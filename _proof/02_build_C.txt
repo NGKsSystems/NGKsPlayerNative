@@ -1,0 +1,5 @@
+[1/5] Running qmlimportscanner for NGKsPlayerNative
+[2/5] Automatic MOC and UIC for target NGKsPlayerNative
+[3/5] Building CXX object CMakeFiles\NGKsPlayerNative.dir\NGKsPlayerNative_autogen\mocs_compilation.cpp.obj
+[4/5] Building CXX object CMakeFiles\NGKsPlayerNative.dir\src\ui\main.cpp.obj
+[5/5] Linking CXX executable NGKsPlayerNative.exe
