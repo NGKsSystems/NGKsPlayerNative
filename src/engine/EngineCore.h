@@ -1,11 +1,11 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
-#include <mutex>
 
-#include "engine/domain/EngineState.h"
-#include "engine/runtime/CommandQueue.h"
+#include "engine/runtime/EngineSnapshot.h"
 #include "engine/runtime/RoutingMatrix.h"
+#include "engine/runtime/SPSCCommandRing.h"
 #include "engine/runtime/graph/AudioGraph.h"
 
 class AudioIOJuce;
@@ -16,7 +16,7 @@ public:
     EngineCore();
     ~EngineCore();
 
-    ngks::EngineState getSnapshot() const;
+    ngks::EngineSnapshot getSnapshot() const;
     void enqueueCommand(const ngks::Command& command);
 
     void prepare(double sampleRate, int blockSize);
@@ -24,17 +24,23 @@ public:
 
 private:
     void startAudioIfNeeded();
-    void applyCommand(const ngks::Command& command);
+    ngks::CommandResult applyCommand(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept;
 
     std::unique_ptr<AudioIOJuce> audioIO;
-    bool audioOpened = false;
-    mutable std::mutex stateMutex;
+    std::atomic<bool> audioOpened { false };
+    std::atomic<uint32_t> frontSnapshotIndex { 0 };
 
-    ngks::EngineState state;
-    ngks::CommandQueue commandQueue;
+    ngks::EngineSnapshot snapshots[2] {};
+    ngks::SPSCCommandRing<1024> commandRing;
     ngks::RoutingMatrix routingMatrix;
     ngks::AudioGraph audioGraph;
 
     double sampleRateHz = 48000.0;
     int fadeSamplesTotal = 9600;
+    float deckRmsSmoothing[ngks::MAX_DECKS] { 0.0f, 0.0f };
+    float deckPeakSmoothing[ngks::MAX_DECKS] { 0.0f, 0.0f };
+    int deckPeakHoldBlocks[ngks::MAX_DECKS] { 0, 0 };
+    float masterRmsSmoothing = 0.0f;
+    float masterPeakSmoothing = 0.0f;
+    int masterPeakHoldBlocks = 0;
 };

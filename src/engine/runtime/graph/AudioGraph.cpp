@@ -33,7 +33,7 @@ bool AudioGraph::isDeckStopFadeActive(DeckId deckId) const noexcept
     return deckNodes[deckId].isStopFadeActive();
 }
 
-GraphRenderStats AudioGraph::render(const EngineState& state,
+GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
                                     const RoutingMatrix& routing,
                                     int numSamples,
                                     float* outLeft,

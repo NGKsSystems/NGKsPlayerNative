@@ -35,7 +35,7 @@ bool DeckNode::isStopFadeActive() const noexcept
     return stopFadeSamplesRemaining > 0;
 }
 
-void DeckNode::render(const DeckState& deck,
+void DeckNode::render(const DeckSnapshot& deck,
                       int numSamples,
                       float* outLeft,
                       float* outRight,

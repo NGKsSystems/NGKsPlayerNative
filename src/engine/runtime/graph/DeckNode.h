@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "engine/domain/DeckState.h"
+#include "engine/runtime/EngineSnapshot.h"
 
 namespace ngks {
 
@@ -13,7 +13,7 @@ public:
     void beginStopFade(int fadeSamples) noexcept;
     bool isStopFadeActive() const noexcept;
 
-    void render(const DeckState& deck,
+    void render(const DeckSnapshot& deck,
                 int numSamples,
                 float* outLeft,
                 float* outRight,

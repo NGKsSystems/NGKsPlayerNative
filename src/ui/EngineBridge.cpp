@@ -7,8 +7,8 @@
 EngineBridge::EngineBridge(QObject* parent)
     : QObject(parent)
 {
-    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_A, "deck_a" });
-    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_B, "deck_b" });
+    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_A, nextCommandSeq++, 1001ULL, 0.0f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_B, nextCommandSeq++, 1002ULL, 0.0f, 0 });
 
     meterTimer.setInterval(16);
     connect(&meterTimer, &QTimer::timeout, this, &EngineBridge::pollSnapshot);
@@ -17,17 +17,17 @@ EngineBridge::EngineBridge(QObject* parent)
 
 void EngineBridge::start()
 {
-    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A });
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, nextCommandSeq++, 0, 0.0f, 0 });
 }
 
 void EngineBridge::stop()
 {
-    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A });
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A, nextCommandSeq++, 0, 0.0f, 0 });
 }
 
 void EngineBridge::setMasterGain(double linear01)
 {
-    engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_A, {}, static_cast<float>(std::clamp(linear01, 0.0, 1.0)) });
+    engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_A, nextCommandSeq++, 0, static_cast<float>(std::clamp(linear01, 0.0, 1.0)), 0 });
 }
 
 double EngineBridge::meterL() const noexcept

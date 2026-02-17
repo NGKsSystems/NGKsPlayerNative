@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "engine/domain/EngineState.h"
+#include "engine/runtime/EngineSnapshot.h"
 #include "engine/runtime/RoutingMatrix.h"
 #include "engine/runtime/graph/CueMixNode.h"
 #include "engine/runtime/graph/DeckNode.h"
@@ -27,7 +27,7 @@ public:
     void beginDeckStopFade(DeckId deckId, int fadeSamples);
     bool isDeckStopFadeActive(DeckId deckId) const noexcept;
 
-    GraphRenderStats render(const EngineState& state,
+    GraphRenderStats render(const EngineSnapshot& state,
                             const RoutingMatrix& routing,
                             int numSamples,
                             float* outLeft,

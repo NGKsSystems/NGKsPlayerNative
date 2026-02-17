@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <QObject>
 #include <QTimer>
 
@@ -36,4 +38,5 @@ private:
     double meterLeftValue = 0.0;
     double meterRightValue = 0.0;
     bool runningValue = false;
+    uint32_t nextCommandSeq = 1;
 };

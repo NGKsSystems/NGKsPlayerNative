@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <thread>
 
@@ -9,13 +10,15 @@ int main()
 {
     EngineCore engine;
     bool pass = true;
+    uint32_t seq = 1;
 
-    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_A, "deckA_track" });
-    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_B, "deckB_track" });
-    engine.enqueueCommand({ ngks::CommandType::SetDeckGain, ngks::DECK_A, {}, 0.9f });
-    engine.enqueueCommand({ ngks::CommandType::SetDeckGain, ngks::DECK_B, {}, 0.5f });
+    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_A, seq++, 1111ULL, 0.0f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_B, seq++, 2222ULL, 0.0f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::SetDeckGain, ngks::DECK_A, seq++, 0, 0.9f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::SetDeckGain, ngks::DECK_B, seq++, 0, 0.5f, 0 });
 
-    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A });
+    const uint32_t seqPlayA = seq;
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0 });
     std::this_thread::sleep_for(std::chrono::milliseconds(1200));
 
     auto snapshot = engine.getSnapshot();
@@ -24,9 +27,12 @@ int main()
     const bool deckBStopped = snapshot.decks[ngks::DECK_B].transport == ngks::TransportState::Stopped;
     std::cout << "DeckA_Playing=" << deckAPlaying << std::endl;
     std::cout << "DeckB_StoppedBeforePlay=" << deckBStopped << std::endl;
+    std::cout << "LastProcessedSeq_AfterPlayA=" << snapshot.lastProcessedCommandSeq << std::endl;
     pass = pass && deckAPlaying && deckBStopped;
+    pass = pass && snapshot.lastProcessedCommandSeq >= seqPlayA;
 
-    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_B });
+    const uint32_t seqPlayB = seq;
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_B, seq++, 0, 0.0f, 0 });
     std::this_thread::sleep_for(std::chrono::milliseconds(1200));
 
     snapshot = engine.getSnapshot();
@@ -37,18 +43,24 @@ int main()
     std::cout << "DeckB_PublicFacing=" << deckBPublicFacing << std::endl;
     std::cout << "DeckB_ActiveRms=" << deckBActive << std::endl;
     pass = pass && deckAPublicFacing && deckBPublicFacing && deckBActive;
+    pass = pass && snapshot.lastProcessedCommandSeq >= seqPlayB;
 
-    const bool cueBefore = snapshot.decks[ngks::DECK_A].cueEnabled;
-    engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_A, {}, 1.0f });
+    const uint32_t seqCueA = seq;
+    const bool cueBefore = snapshot.decks[ngks::DECK_A].cueEnabled != 0;
+    engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_A, seq++, 0, 0.0f, 1 });
     std::this_thread::sleep_for(std::chrono::milliseconds(120));
     snapshot = engine.getSnapshot();
-    const bool cueAfter = snapshot.decks[ngks::DECK_A].cueEnabled;
+    const bool cueAfter = snapshot.decks[ngks::DECK_A].cueEnabled != 0;
     const bool cueRejected = (cueBefore == cueAfter);
+    const bool cueRejectedByResult = snapshot.lastCommandResult[ngks::DECK_A] == ngks::CommandResult::RejectedPublicFacing;
     std::cout << "CueRejectedWhenPublicFacing=" << cueRejected << std::endl;
-    pass = pass && cueRejected;
+    std::cout << "CueRejectedByResultCode=" << cueRejectedByResult << std::endl;
+    std::cout << "LastProcessedSeq_AfterCue=" << snapshot.lastProcessedCommandSeq << std::endl;
+    pass = pass && cueRejected && cueRejectedByResult;
+    pass = pass && snapshot.lastProcessedCommandSeq >= seqCueA;
 
-    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A });
-    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_B });
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A, seq++, 0, 0.0f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_B, seq++, 0, 0.0f, 0 });
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     snapshot = engine.getSnapshot();
