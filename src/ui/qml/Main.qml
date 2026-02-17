@@ -1,33 +1,21 @@
 import QtQuick
 import QtQuick.Window
+import QtQuick.Controls
 
 Window {
     id: root
     width: 900
     height: 520
     visible: true
-    title: "NGKsPlayerNative - Phase C Qt Quick Boot"
+    title: "NGKsPlayerNative - Phase A"
     color: "#131313"
-
-    property real meterL: 0.25
-    property real meterR: 0.55
-
-    Timer {
-        interval: 120
-        running: true
-        repeat: true
-        onTriggered: {
-            meterL = 0.12 + Math.random() * 0.84
-            meterR = 0.12 + Math.random() * 0.84
-        }
-    }
 
     Column {
         anchors.centerIn: parent
         spacing: 18
 
         Text {
-            text: "NGKsPlayerNative — Qt Quick Window"
+            text: "NGKsPlayerNative — Qt + EngineCore"
             color: "#f1f1f1"
             font.pixelSize: 30
             horizontalAlignment: Text.AlignHCenter
@@ -35,11 +23,46 @@ Window {
         }
 
         Text {
-            text: "Phase C: QML rendering check"
+            text: engine.running ? "Engine running" : "Engine stopped"
             color: "#bdbdbd"
             font.pixelSize: 16
             horizontalAlignment: Text.AlignHCenter
             width: 520
+        }
+
+        Row {
+            width: 520
+            spacing: 12
+
+            Button {
+                text: "Play"
+                onClicked: engine.start()
+            }
+
+            Button {
+                text: "Stop"
+                onClicked: engine.stop()
+            }
+        }
+
+        Column {
+            width: 520
+            spacing: 8
+
+            Text {
+                text: "Master Gain (linear): " + gainSlider.value.toFixed(2)
+                color: "#d8d8d8"
+                font.pixelSize: 14
+            }
+
+            Slider {
+                id: gainSlider
+                width: 520
+                from: 0.0
+                to: 1.0
+                value: 1.0
+                onValueChanged: engine.setMasterGain(value)
+            }
         }
 
         Rectangle {
@@ -64,7 +87,7 @@ Window {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
-                        height: parent.height * meterL
+                        height: parent.height * engine.meterL
                         radius: 8
                         color: "#31d17c"
                     }
@@ -81,7 +104,7 @@ Window {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
-                        height: parent.height * meterR
+                        height: parent.height * engine.meterR
                         radius: 8
                         color: "#2fa0ff"
                     }

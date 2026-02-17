@@ -1,0 +1,7 @@
+EXE: C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\build-a\NGKsPlayerNative.exe
+Launching app...
+PID: 18004
+HasExitedAfter5s: False
+MainWindowHandle: 5772174
+RUN_RESULT: PASS_WINDOW_DETECTED
+Process terminated after audit check.

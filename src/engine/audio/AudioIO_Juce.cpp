@@ -1,5 +1,7 @@
 #include "engine/audio/AudioIO_Juce.h"
 
+#include "engine/EngineCore.h"
+
 #include <algorithm>
 
 AudioIOJuce::AudioIOJuce(EngineCore& engineCoreRef)
@@ -16,36 +18,47 @@ AudioIOJuce::StartResult AudioIOJuce::start()
 {
     StartResult result;
 
-    if (const juce::String initError = deviceManager.initialise(0, 2, nullptr, true); initError.isNotEmpty()) {
-        result.ok = false;
-        result.message = initError.toStdString();
-        return result;
+    auto* currentDevice = deviceManager.getCurrentAudioDevice();
+    if (currentDevice == nullptr) {
+        if (const juce::String initError = deviceManager.initialise(0, 2, nullptr, true); initError.isNotEmpty()) {
+            result.ok = false;
+            result.message = initError.toStdString();
+            return result;
+        }
+
+        juce::AudioDeviceManager::AudioDeviceSetup setup;
+        deviceManager.getAudioDeviceSetup(setup);
+        setup.bufferSize = result.requestedBufferSize;
+        deviceManager.setAudioDeviceSetup(setup, true);
+        currentDevice = deviceManager.getCurrentAudioDevice();
     }
 
-    juce::AudioDeviceManager::AudioDeviceSetup setup;
-    deviceManager.getAudioDeviceSetup(setup);
-    setup.bufferSize = result.requestedBufferSize;
-    deviceManager.setAudioDeviceSetup(setup, true);
-
-    auto* device = deviceManager.getCurrentAudioDevice();
-    if (device == nullptr) {
+    if (currentDevice == nullptr) {
         result.ok = false;
         result.message = "No audio device opened";
         return result;
     }
 
-    result.actualBufferSize = device->getCurrentBufferSizeSamples();
-    result.sampleRate = device->getCurrentSampleRate();
+    result.actualBufferSize = currentDevice->getCurrentBufferSizeSamples();
+    result.sampleRate = currentDevice->getCurrentSampleRate();
     result.ok = true;
     result.message = "OK";
 
-    deviceManager.addAudioCallback(this);
+    if (!callbackAdded) {
+        deviceManager.addAudioCallback(this);
+        callbackAdded = true;
+    }
+
     return result;
 }
 
 void AudioIOJuce::stop()
 {
-    deviceManager.removeAudioCallback(this);
+    if (callbackAdded) {
+        deviceManager.removeAudioCallback(this);
+        callbackAdded = false;
+    }
+
     deviceManager.closeAudioDevice();
 }
 

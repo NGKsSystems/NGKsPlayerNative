@@ -4,7 +4,7 @@
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
-#include "engine/EngineCore.h"
+class EngineCore;
 
 class AudioIOJuce final : public juce::AudioIODeviceCallback
 {
@@ -36,4 +36,5 @@ public:
 private:
     EngineCore& engineCore;
     juce::AudioDeviceManager deviceManager;
+    bool callbackAdded = false;
 };

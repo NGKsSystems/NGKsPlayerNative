@@ -10,16 +10,42 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_PREFIX_PATH "C:/Qt/6.10.2/msvc2022_64" CACHE PATH "Qt 6.10.2 MSVC 2022 path" FORCE)
 
 find_package(Qt6 6.10 REQUIRED COMPONENTS Quick)
+set(JUCE_DIR "C:/JUCE")
+add_subdirectory(${JUCE_DIR} JUCE)
 
 qt_standard_project_setup(REQUIRES 6.10)
 
+add_library(NGKsEngine STATIC
+    src/engine/EngineCore.cpp
+    src/engine/audio/AudioIO_Juce.cpp
+    src/engine/dsp/Meter.cpp
+    src/engine/dsp/Limiter.cpp
+)
+
+target_include_directories(NGKsEngine
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(NGKsEngine
+    PUBLIC
+        juce::juce_audio_basics
+        juce::juce_audio_devices
+        juce::juce_dsp
+        juce::juce_core
+        juce::juce_events
+)
+
 qt_add_executable(NGKsPlayerNative
     src/ui/main.cpp
+    src/ui/EngineBridge.h
+    src/ui/EngineBridge.cpp
 )
 
 target_link_libraries(NGKsPlayerNative
     PRIVATE
         Qt6::Quick
+        NGKsEngine
 )
 
 add_custom_command(TARGET NGKsPlayerNative POST_BUILD
@@ -29,27 +55,11 @@ add_custom_command(TARGET NGKsPlayerNative POST_BUILD
         "$<TARGET_FILE_DIR:NGKsPlayerNative>/qml/Main.qml"
 )
 
-set(JUCE_DIR "C:/JUCE")
-add_subdirectory(${JUCE_DIR} JUCE)
-
 add_executable(NGKsPlayerHeadless
     tools/headless_main.cpp
-    src/engine/EngineCore.cpp
-    src/engine/audio/AudioIO_Juce.cpp
-    src/engine/dsp/Meter.cpp
-    src/engine/dsp/Limiter.cpp
-)
-
-target_include_directories(NGKsPlayerHeadless
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(NGKsPlayerHeadless
     PRIVATE
-        juce::juce_audio_basics
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_core
-        juce::juce_events
+        NGKsEngine
 )
