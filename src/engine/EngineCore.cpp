@@ -3,11 +3,9 @@
 #include "engine/audio/AudioIO_Juce.h"
 
 #include <algorithm>
-#include <cmath>
 
 namespace
 {
-constexpr float twoPi = 6.28318530717958647692f;
 constexpr float audibleRmsThresholdLinear = 0.0316227766f;
 }
 
@@ -52,7 +50,6 @@ void EngineCore::startAudioIfNeeded()
         return;
     }
 
-    actualBufferSize = result.actualBufferSize;
     sampleRateHz = result.sampleRate;
     audioOpened = true;
 }
@@ -60,14 +57,12 @@ void EngineCore::startAudioIfNeeded()
 void EngineCore::prepare(double sampleRate, int)
 {
     sampleRateHz = (sampleRate > 0.0) ? sampleRate : 48000.0;
-    deckPhases[ngks::DECK_A] = 0.0f;
-    deckPhases[ngks::DECK_B] = 0.0f;
-    deckPhaseIncrements[ngks::DECK_A] = (twoPi * 220.0f) / static_cast<float>(sampleRateHz);
-    deckPhaseIncrements[ngks::DECK_B] = (twoPi * 330.0f) / static_cast<float>(sampleRateHz);
     fadeSamplesTotal = static_cast<int>(sampleRateHz * 0.2);
     if (fadeSamplesTotal < 1) {
         fadeSamplesTotal = 1;
     }
+
+    audioGraph.prepare(sampleRateHz, 2048);
 }
 
 void EngineCore::applyCommand(const ngks::Command& command)
@@ -90,19 +85,17 @@ void EngineCore::applyCommand(const ngks::Command& command)
         deck.playheadSeconds = 0.0;
         deck.cueEnabled = false;
         deck.publicFacing = false;
-        deckFadeSamplesRemaining[command.deck] = 0;
         break;
     case ngks::CommandType::Play:
         if (deck.hasTrack) {
             startAudioIfNeeded();
             deck.transport = ngks::TransportState::Starting;
-            deckFadeSamplesRemaining[command.deck] = 0;
         }
         break;
     case ngks::CommandType::Stop:
         if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Starting) {
             deck.transport = ngks::TransportState::Stopping;
-            deckFadeSamplesRemaining[command.deck] = fadeSamplesTotal;
+            audioGraph.beginDeckStopFade(command.deck, fadeSamplesTotal);
         }
         break;
     case ngks::CommandType::SetDeckGain:
@@ -133,67 +126,40 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         applyCommand(command);
     }
 
-    float deckSumSquares[ngks::MAX_DECKS] { 0.0f, 0.0f };
-    float deckPeaks[ngks::MAX_DECKS] { 0.0f, 0.0f };
-    float masterSumSquares = 0.0f;
-
-    for (int sample = 0; sample < numSamples; ++sample) {
-        float mix = 0.0f;
-
-        for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
-            auto& deck = state.decks[deckIndex];
-            float deckEnvelope = 0.0f;
-
-            if (deck.transport == ngks::TransportState::Starting) {
-                deck.transport = ngks::TransportState::Playing;
-                deckEnvelope = 1.0f;
-            } else if (deck.transport == ngks::TransportState::Playing) {
-                deckEnvelope = 1.0f;
-            } else if (deck.transport == ngks::TransportState::Stopping && deckFadeSamplesRemaining[deckIndex] > 0) {
-                deckEnvelope = static_cast<float>(deckFadeSamplesRemaining[deckIndex]) / static_cast<float>(fadeSamplesTotal);
-                --deckFadeSamplesRemaining[deckIndex];
-                if (deckFadeSamplesRemaining[deckIndex] <= 0) {
-                    deck.transport = ngks::TransportState::Stopped;
-                }
-            }
-
-            float deckSample = 0.0f;
-            if (deck.hasTrack && deckEnvelope > 0.0f) {
-                deckSample = std::sin(deckPhases[deckIndex]) * 0.1f * deck.deckGain * deckEnvelope;
-                deckPhases[deckIndex] += deckPhaseIncrements[deckIndex];
-                if (deckPhases[deckIndex] >= twoPi) {
-                    deckPhases[deckIndex] -= twoPi;
-                }
-
-                deck.playheadSeconds += (1.0 / sampleRateHz);
-                if (deck.lengthSeconds > 0.0 && deck.playheadSeconds > deck.lengthSeconds) {
-                    deck.playheadSeconds = deck.lengthSeconds;
-                }
-            }
-
-            mix += deckSample;
-            deckSumSquares[deckIndex] += deckSample * deckSample;
-            deckPeaks[deckIndex] = std::max(deckPeaks[deckIndex], std::abs(deckSample));
+    for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
+        auto& deck = state.decks[deckIndex];
+        if (deck.transport == ngks::TransportState::Starting) {
+            deck.transport = ngks::TransportState::Playing;
         }
-
-        const float limited = limiter.processSample(mix * static_cast<float>(state.masterGain));
-        left[sample] = limited;
-        right[sample] = limited;
-        masterSumSquares += limited * limited;
     }
 
-    state.masterRmsL = std::sqrt(masterSumSquares / static_cast<float>(numSamples));
-    state.masterRmsR = state.masterRmsL;
+    const auto graphStats = audioGraph.render(state, routingMatrix, numSamples, left, right);
+
+    state.masterRmsL = graphStats.masterRms;
+    state.masterRmsR = graphStats.masterRms;
 
     for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
         auto& deck = state.decks[deckIndex];
-        deck.rmsL = std::sqrt(deckSumSquares[deckIndex] / static_cast<float>(numSamples));
+        deck.rmsL = graphStats.decks[deckIndex].rms;
         deck.rmsR = deck.rmsL;
-        deck.peakL = deckPeaks[deckIndex];
-        deck.peakR = deckPeaks[deckIndex];
+        deck.peakL = graphStats.decks[deckIndex].peak;
+        deck.peakR = deck.peakL;
 
-        const bool isPlaying = (deck.transport == ngks::TransportState::Playing);
+        if (deck.transport == ngks::TransportState::Stopping && !audioGraph.isDeckStopFadeActive(deckIndex)) {
+            deck.transport = ngks::TransportState::Stopped;
+        }
+
+        const bool isPlayingOrStopping = (deck.transport == ngks::TransportState::Playing)
+            || (deck.transport == ngks::TransportState::Stopping);
+        const bool routedToMaster = routingMatrix.get(deckIndex).toMasterWeight > 0.0f;
         const bool audible = std::max(deck.rmsL, deck.rmsR) > audibleRmsThresholdLinear;
-        deck.publicFacing = isPlaying && audible;
+        deck.publicFacing = isPlayingOrStopping && routedToMaster && audible;
+
+        if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Stopping) {
+            deck.playheadSeconds += (static_cast<double>(numSamples) / sampleRateHz);
+            if (deck.lengthSeconds > 0.0 && deck.playheadSeconds > deck.lengthSeconds) {
+                deck.playheadSeconds = deck.lengthSeconds;
+            }
+        }
     }
 }

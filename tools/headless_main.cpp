@@ -8,6 +8,7 @@
 int main()
 {
     EngineCore engine;
+    bool pass = true;
 
     engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_A, "deckA_track" });
     engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_B, "deckB_track" });
@@ -19,30 +20,44 @@ int main()
 
     auto snapshot = engine.getSnapshot();
     std::cout << "DeckCount=" << static_cast<int>(ngks::MAX_DECKS) << std::endl;
-    std::cout << "DeckA_Playing=" << (snapshot.decks[ngks::DECK_A].transport == ngks::TransportState::Playing) << std::endl;
-    std::cout << "DeckB_Playing=" << (snapshot.decks[ngks::DECK_B].transport == ngks::TransportState::Playing) << std::endl;
+    const bool deckAPlaying = snapshot.decks[ngks::DECK_A].transport == ngks::TransportState::Playing;
+    const bool deckBStopped = snapshot.decks[ngks::DECK_B].transport == ngks::TransportState::Stopped;
+    std::cout << "DeckA_Playing=" << deckAPlaying << std::endl;
+    std::cout << "DeckB_StoppedBeforePlay=" << deckBStopped << std::endl;
+    pass = pass && deckAPlaying && deckBStopped;
 
     engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_B });
     std::this_thread::sleep_for(std::chrono::milliseconds(1200));
 
     snapshot = engine.getSnapshot();
-    std::cout << "DeckA_PublicFacing=" << snapshot.decks[ngks::DECK_A].publicFacing << std::endl;
-    std::cout << "DeckB_PublicFacing=" << snapshot.decks[ngks::DECK_B].publicFacing << std::endl;
+    const bool deckAPublicFacing = snapshot.decks[ngks::DECK_A].publicFacing;
+    const bool deckBPublicFacing = snapshot.decks[ngks::DECK_B].publicFacing;
+    const bool deckBActive = snapshot.decks[ngks::DECK_B].rmsL > 0.0f;
+    std::cout << "DeckA_PublicFacing=" << deckAPublicFacing << std::endl;
+    std::cout << "DeckB_PublicFacing=" << deckBPublicFacing << std::endl;
+    std::cout << "DeckB_ActiveRms=" << deckBActive << std::endl;
+    pass = pass && deckAPublicFacing && deckBPublicFacing && deckBActive;
 
     const bool cueBefore = snapshot.decks[ngks::DECK_A].cueEnabled;
     engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_A, {}, 1.0f });
     std::this_thread::sleep_for(std::chrono::milliseconds(120));
     snapshot = engine.getSnapshot();
     const bool cueAfter = snapshot.decks[ngks::DECK_A].cueEnabled;
-    std::cout << "CueRejectedWhenPublicFacing=" << (cueBefore == cueAfter) << std::endl;
+    const bool cueRejected = (cueBefore == cueAfter);
+    std::cout << "CueRejectedWhenPublicFacing=" << cueRejected << std::endl;
+    pass = pass && cueRejected;
 
     engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A });
     engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_B });
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     snapshot = engine.getSnapshot();
-    std::cout << "DeckA_Stopped=" << (snapshot.decks[ngks::DECK_A].transport == ngks::TransportState::Stopped) << std::endl;
-    std::cout << "DeckB_Stopped=" << (snapshot.decks[ngks::DECK_B].transport == ngks::TransportState::Stopped) << std::endl;
-    std::cout << "RunResult=PASS" << std::endl;
-    return 0;
+    const bool deckAStopped = snapshot.decks[ngks::DECK_A].transport == ngks::TransportState::Stopped;
+    const bool deckBStoppedNow = snapshot.decks[ngks::DECK_B].transport == ngks::TransportState::Stopped;
+    std::cout << "DeckA_Stopped=" << deckAStopped << std::endl;
+    std::cout << "DeckB_Stopped=" << deckBStoppedNow << std::endl;
+    pass = pass && deckAStopped && deckBStoppedNow;
+
+    std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
+    return pass ? 0 : 1;
 }

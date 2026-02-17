@@ -8,6 +8,6 @@ param(
 "CMD: $Command"  | Tee-Object -FilePath $LogPath -Append
 
 # Run via cmd.exe so it works for both .bat and exe commands
-cmd.exe /c $Command 2>&1 | Tee-Object -FilePath $LogPath -Append
+& 'C:\Windows\System32\cmd.exe' /c $Command 2>&1 | Tee-Object -FilePath $LogPath -Append
 
 "" | Tee-Object -FilePath $LogPath -Append

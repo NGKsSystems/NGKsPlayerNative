@@ -3,9 +3,10 @@
 #include <memory>
 #include <mutex>
 
-#include "engine/dsp/Limiter.h"
 #include "engine/domain/EngineState.h"
 #include "engine/runtime/CommandQueue.h"
+#include "engine/runtime/RoutingMatrix.h"
+#include "engine/runtime/graph/AudioGraph.h"
 
 class AudioIOJuce;
 
@@ -31,14 +32,9 @@ private:
 
     ngks::EngineState state;
     ngks::CommandQueue commandQueue;
+    ngks::RoutingMatrix routingMatrix;
+    ngks::AudioGraph audioGraph;
 
     double sampleRateHz = 48000.0;
-    float deckPhases[ngks::MAX_DECKS] { 0.0f, 0.0f };
-    float deckPhaseIncrements[ngks::MAX_DECKS] { 0.0f, 0.0f };
-    int deckFadeSamplesRemaining[ngks::MAX_DECKS] { 0, 0 };
     int fadeSamplesTotal = 9600;
-    int requestedBufferSize = 128;
-    int actualBufferSize = 0;
-
-    Limiter limiter;
 };
