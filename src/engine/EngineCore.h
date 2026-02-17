@@ -1,19 +1,13 @@
 #pragma once
 
-#include <atomic>
-#include <cstddef>
 #include <memory>
+#include <mutex>
 
 #include "engine/dsp/Limiter.h"
-#include "engine/dsp/Meter.h"
+#include "engine/domain/EngineState.h"
+#include "engine/runtime/CommandQueue.h"
 
 class AudioIOJuce;
-
-struct MeterSnapshot
-{
-    float left = 0.0f;
-    float right = 0.0f;
-};
 
 class EngineCore
 {
@@ -21,33 +15,30 @@ public:
     EngineCore();
     ~EngineCore();
 
-    bool startAudioIfNeeded();
-    void stopWithFade();
-    void setMasterGain(double linear01) noexcept;
-    MeterSnapshot getSnapshot() noexcept;
-    bool isRunning() const noexcept;
-
-    int getRequestedBufferSize() const noexcept;
-    int getActualBufferSize() const noexcept;
-    double getSampleRate() const noexcept;
+    ngks::EngineState getSnapshot() const;
+    void enqueueCommand(const ngks::Command& command);
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;
 
 private:
+    void startAudioIfNeeded();
+    void applyCommand(const ngks::Command& command);
+
     std::unique_ptr<AudioIOJuce> audioIO;
-    std::atomic<bool> audioOpened { false };
-    std::atomic<bool> running { false };
-    std::atomic<float> masterGain { 1.0f };
-    std::atomic<int> fadeSamplesRemaining { 0 };
+    bool audioOpened = false;
+    mutable std::mutex stateMutex;
+
+    ngks::EngineState state;
+    ngks::CommandQueue commandQueue;
 
     double sampleRateHz = 48000.0;
-    float phase = 0.0f;
-    float phaseIncrement = 0.0f;
+    float deckPhases[ngks::MAX_DECKS] { 0.0f, 0.0f };
+    float deckPhaseIncrements[ngks::MAX_DECKS] { 0.0f, 0.0f };
+    int deckFadeSamplesRemaining[ngks::MAX_DECKS] { 0, 0 };
     int fadeSamplesTotal = 9600;
     int requestedBufferSize = 128;
     int actualBufferSize = 0;
 
     Limiter limiter;
-    Meter meter;
 };
