@@ -1,0 +1,39 @@
+@"
+# ---- Build outputs ----
+build-*/
+build/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.ninja
+.ninja_*
+
+# ---- Runtime proof / logs (local only) ----
+_proof/
+_artifacts/
+
+# ---- Local app state ----
+.ngkssys/
+
+# ---- OS / editor ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- Compilers / misc ----
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.lib
+*.exp
+*.exe
+*.dll
+*.log
+"@ | Set-Content -Path .\.gitignore -Encoding Ascii
+
+git add .gitignore
+git commit -m "chore: add gitignore for local builds and proof logs"
+git status --short
