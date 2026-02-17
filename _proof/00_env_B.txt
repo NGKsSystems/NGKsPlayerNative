@@ -1,0 +1,17 @@
+C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717\bin\Hostx64\x64\cl.exe
+Microsoft (R) C/C++ Optimizing Compiler Version 19.50.35722 for x64
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+usage: cl [ option... ] filename... [ /link linkoption... ]
+cmake version 4.1.1-msvc1
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+1.13.2
+ Volume in drive C has no label.
+ Volume Serial Number is 1E78-F171
+
+ Directory of C:\JUCE
+
+02/17/2026  04:45 PM             8,559 CMakeLists.txt
+               1 File(s)          8,559 bytes
+               0 Dir(s)  398,851,784,704 bytes free

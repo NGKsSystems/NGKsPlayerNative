@@ -28,3 +28,28 @@ add_custom_command(TARGET NGKsPlayerNative POST_BUILD
         "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/qml/Main.qml"
         "$<TARGET_FILE_DIR:NGKsPlayerNative>/qml/Main.qml"
 )
+
+set(JUCE_DIR "C:/JUCE")
+add_subdirectory(${JUCE_DIR} JUCE)
+
+add_executable(NGKsPlayerHeadless
+    tools/headless_main.cpp
+    src/engine/EngineCore.cpp
+    src/engine/audio/AudioIO_Juce.cpp
+    src/engine/dsp/Meter.cpp
+    src/engine/dsp/Limiter.cpp
+)
+
+target_include_directories(NGKsPlayerHeadless
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(NGKsPlayerHeadless
+    PRIVATE
+        juce::juce_audio_basics
+        juce::juce_audio_devices
+        juce::juce_dsp
+        juce::juce_core
+        juce::juce_events
+)
