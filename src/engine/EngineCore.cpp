@@ -9,7 +9,6 @@
 
 namespace
 {
-constexpr float audibleRmsThresholdLinear = 0.0316227766f;
 constexpr float warmupAudibleRmsThreshold = 0.005f;
 constexpr uint32_t warmupConsecutiveBlocksRequired = 50u;
 constexpr float rmsSmoothingAlpha = 0.2f;
@@ -721,13 +720,10 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         const float cueWeight = mixMatrix_.decks[deckIndex].cueWeight;
         deck.masterWeight = masterWeight;
         deck.cueWeight = cueWeight;
-        const bool deckAudible =
-            (deck.lifecycle == DeckLifecycleState::Playing)
-            && (masterWeight > 0.001f)
-            && (std::max(deck.rmsL, deck.rmsR) > audibleRmsThresholdLinear);
+        deck.routingActive = (masterWeight > 0.001f) && isDeckRoutingActive(deck);
+        const bool deckAudible = deck.routingActive && (deck.lifecycle == DeckLifecycleState::Playing);
         deck.audible = deckAudible;
         deck.publicFacing = false;
-        deck.routingActive = (masterWeight > 0.001f) && isDeckRoutingActive(deck);
         deck.lastAcceptedCommandSeq = authority_[deckIndex].lastAcceptedSeq;
 
         if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Stopping) {
@@ -746,7 +742,11 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
     float publicFacingWeight = -1.0f;
     for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
         const auto& deck = working.decks[deckIndex];
-        const bool qualifies = deck.audible && (deck.masterWeight > kPublicFacingWeightThreshold);
+        const bool lifecycleActive = (deck.lifecycle == DeckLifecycleState::Playing);
+        const bool qualifies = lifecycleActive
+            && deck.routingActive
+            && (deck.masterWeight > kPublicFacingWeightThreshold)
+            && !authority_[deckIndex].commandInFlight;
         if (!qualifies) {
             continue;
         }

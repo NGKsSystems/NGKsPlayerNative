@@ -10,7 +10,7 @@
 
 namespace {
 
-constexpr int kPolls = 400;
+constexpr int kPolls = 800;
 constexpr int kPollSleepMs = 10;
 constexpr float kEpsilon = 0.0001f;
 
@@ -78,6 +78,18 @@ bool waitForAllAnalyzed(EngineCore& engine)
     return false;
 }
 
+bool waitForDeckAnalyzed(EngineCore& engine, ngks::DeckId deckId)
+{
+    for (int poll = 0; poll < kPolls; ++poll) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
+        const auto snapshot = engine.getSnapshot();
+        if (snapshot.decks[deckId].lifecycle == DeckLifecycleState::Analyzed) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool waitForStopped(EngineCore& engine, ngks::DeckId deckA, ngks::DeckId deckB)
 {
     for (int poll = 0; poll < kPolls; ++poll) {
@@ -92,6 +104,18 @@ bool waitForStopped(EngineCore& engine, ngks::DeckId deckA, ngks::DeckId deckB)
     return false;
 }
 
+bool waitForTransportState(EngineCore& engine, ngks::DeckId deck, ngks::TransportState state)
+{
+    for (int poll = 0; poll < kPolls; ++poll) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
+        const auto snapshot = engine.getSnapshot();
+        if (snapshot.decks[deck].transport == state) {
+            return true;
+        }
+    }
+    return false;
+}
+
 float weightSumSq(const ngks::EngineSnapshot& snapshot)
 {
     float sumSq = 0.0f;
@@ -100,6 +124,27 @@ float weightSumSq(const ngks::EngineSnapshot& snapshot)
         sumSq += w * w;
     }
     return sumSq;
+}
+
+bool allNoIllegalTransitions(const ngks::EngineSnapshot& snapshot)
+{
+    for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
+        if (snapshot.lastCommandResult[deck] == ngks::CommandResult::IllegalTransition) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool publicFacingAtMostOne(const ngks::EngineSnapshot& snapshot)
+{
+    int count = 0;
+    for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
+        if (snapshot.decks[deck].publicFacing) {
+            ++count;
+        }
+    }
+    return count <= 1;
 }
 
 } // namespace
@@ -199,7 +244,37 @@ int main()
     std::cout << "PublicConflictCheck: " << (conflictPass ? "PASS" : "FAIL") << std::endl;
     pass = pass && conflictPass;
 
-    std::cout << "MultiDeckTest=" << (pass ? "PASS" : "FAIL") << std::endl;
+    snapshot = engine.getSnapshot();
+    const bool illegalTransitionLeakPass = allNoIllegalTransitions(snapshot);
+    std::cout << "IllegalTransitionLeakCheck: " << (illegalTransitionLeakPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && illegalTransitionLeakPass;
+
+    sendStop(engine, ngks::DECK_A, seq++);
+    sendStop(engine, ngks::DECK_B, seq++);
+    const bool allStopped =
+        waitForTransportState(engine, ngks::DECK_A, ngks::TransportState::Stopped)
+        && waitForTransportState(engine, ngks::DECK_B, ngks::TransportState::Stopped)
+        && waitForTransportState(engine, ngks::DECK_C, ngks::TransportState::Stopped)
+        && waitForTransportState(engine, ngks::DECK_D, ngks::TransportState::Stopped);
+
+    sendSetDeckTrack(engine, ngks::DECK_A, seq++, 2001ULL, "ReloadA");
+    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 2001ULL, 0.0f, 0, 0, 201u });
+    const bool reanalyzed = waitForDeckAnalyzed(engine, ngks::DECK_A);
+    sendSetCue(engine, ngks::DECK_A, seq++);
+    sendPlay(engine, ngks::DECK_A, seq++);
+    const bool replayingA = waitForTransportState(engine, ngks::DECK_A, ngks::TransportState::Playing);
+
+    snapshot = engine.getSnapshot();
+    const bool restartReloadCleanPass = allStopped
+        && reanalyzed
+        && replayingA
+        && publicFacingAtMostOne(snapshot)
+        && allNoIllegalTransitions(snapshot)
+        && snapshot.decks[ngks::DECK_A].currentTrackId == 2001ULL;
+    std::cout << "RestartReloadStateCleanCheck: " << (restartReloadCleanPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && restartReloadCleanPass;
+
+    std::cout << "StabilitySweep=" << (pass ? "PASS" : "FAIL") << std::endl;
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }
