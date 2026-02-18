@@ -57,6 +57,24 @@ qt_add_executable(NGKsPlayerNative
     src/ui/EngineBridge.cpp
 )
 
+string(TIMESTAMP NGKS_BUILD_STAMP_UTC "%Y-%m-%dT%H:%M:%SZ" UTC)
+execute_process(
+    COMMAND git rev-parse --short=12 HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE NGKS_GIT_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT NGKS_GIT_SHA)
+    set(NGKS_GIT_SHA "unknown")
+endif()
+
+target_compile_definitions(NGKsPlayerNative
+    PRIVATE
+        NGKS_BUILD_STAMP="${NGKS_BUILD_STAMP_UTC}"
+        NGKS_GIT_SHA="${NGKS_GIT_SHA}"
+)
+
 target_link_libraries(NGKsPlayerNative
     PRIVATE
         Qt6::Quick
