@@ -28,6 +28,8 @@ add_library(NGKsEngine STATIC
     src/engine/runtime/library/TrackRegistry.cpp
     src/engine/runtime/library/RegistryStore.cpp
     src/engine/runtime/MasterBus.cpp
+    src/engine/runtime/offline/WavWriter.cpp
+    src/engine/runtime/offline/OfflineRenderer.cpp
     src/engine/runtime/graph/AudioGraph.cpp
     src/engine/runtime/graph/DeckNode.cpp
     src/engine/runtime/graph/MasterMixNode.cpp

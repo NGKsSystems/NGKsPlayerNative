@@ -117,9 +117,13 @@ void computeCrossfadeWeights(const ngks::EngineSnapshot& snapshot, float x, MixM
 }
 }
 
-EngineCore::EngineCore()
-    : audioIO(std::make_unique<AudioIOJuce>(*this))
+EngineCore::EngineCore(bool offlineMode)
+    : offlineMode_(offlineMode)
 {
+    if (!offlineMode_) {
+        audioIO = std::make_unique<AudioIOJuce>(*this);
+    }
+
     for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
         snapshots[0].decks[deck].id = deck;
         snapshots[1].decks[deck].id = deck;
@@ -295,6 +299,11 @@ bool EngineCore::validateTransition(DeckLifecycleState from, DeckLifecycleState 
 
 void EngineCore::startAudioIfNeeded()
 {
+    if (offlineMode_) {
+        audioOpened.store(true, std::memory_order_release);
+        return;
+    }
+
     if (audioOpened.load(std::memory_order_acquire)) {
         return;
     }
@@ -306,6 +315,34 @@ void EngineCore::startAudioIfNeeded()
 
     sampleRateHz = result.sampleRate;
     audioOpened.store(true, std::memory_order_release);
+}
+
+bool EngineCore::renderOfflineBlock(float* outInterleavedLR, uint32_t frames)
+{
+    if (outInterleavedLR == nullptr || frames == 0u) {
+        return false;
+    }
+
+    constexpr uint32_t kMaxChunkFrames = 2048u;
+    float left[kMaxChunkFrames] {};
+    float right[kMaxChunkFrames] {};
+
+    uint32_t rendered = 0u;
+    while (rendered < frames) {
+        const uint32_t remaining = frames - rendered;
+        const uint32_t chunk = std::min(remaining, kMaxChunkFrames);
+        process(left, right, static_cast<int>(chunk));
+
+        for (uint32_t i = 0u; i < chunk; ++i) {
+            const uint32_t outIndex = (rendered + i) * 2u;
+            outInterleavedLR[outIndex] = left[i];
+            outInterleavedLR[outIndex + 1u] = right[i];
+        }
+
+        rendered += chunk;
+    }
+
+    return true;
 }
 
 void EngineCore::prepare(double sampleRate, int)

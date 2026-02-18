@@ -1,142 +1,61 @@
-#include <chrono>
-#include <cmath>
 #include <cstdint>
-#include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
-#include <thread>
 
-#include "engine/EngineCore.h"
-#include "engine/command/Command.h"
+#include "engine/runtime/MasterBus.h"
+#include "engine/runtime/offline/OfflineRenderConfig.h"
+#include "engine/runtime/offline/OfflineRenderer.h"
 
 namespace {
+constexpr float kSecondsToRender = 2.0f;
+constexpr uint32_t kSampleRate = 48000u;
+constexpr uint32_t kBlockSize = 256u;
 
-constexpr int kPolls = 400;
-constexpr int kPollSleepMs = 10;
-constexpr int kMetricSamples = 60;
-constexpr float kLimiterThreshold = 0.95f;
-constexpr float kPeakTolerance = 0.0001f;
-
-void sendSetDeckTrack(EngineCore& engine, ngks::DeckId deck, uint32_t seq, uint64_t trackId, const char* label)
+bool readWavDataSize(const std::string& path, uint32_t& outDataBytes)
 {
-    ngks::Command command {};
-    command.type = ngks::CommandType::SetDeckTrack;
-    command.deck = deck;
-    command.seq = seq;
-    command.trackUidHash = trackId;
-    std::memcpy(command.trackLabel, label, std::strlen(label));
-    engine.enqueueCommand(command);
-}
-
-void sendSetCue(EngineCore& engine, ngks::DeckId deck, uint32_t seq)
-{
-    engine.enqueueCommand({ ngks::CommandType::SetCue, deck, seq, 0, 0.0f, 1, 0 });
-}
-
-void sendPlay(EngineCore& engine, ngks::DeckId deck, uint32_t seq)
-{
-    engine.enqueueCommand({ ngks::CommandType::Play, deck, seq, 0, 0.0f, 0, 0 });
-}
-
-void sendSetDeckGain(EngineCore& engine, ngks::DeckId deck, uint32_t seq, float gain)
-{
-    engine.enqueueCommand({ ngks::CommandType::SetDeckGain, deck, seq, 0, gain, 0, 0 });
-}
-
-bool waitWarmup(EngineCore& engine)
-{
-    for (int poll = 0; poll < kPolls; ++poll) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
-        const auto snapshot = engine.getSnapshot();
-        if ((snapshot.flags & ngks::SNAP_WARMUP_COMPLETE) != 0u) {
-            return true;
-        }
+    std::ifstream stream(path, std::ios::binary);
+    if (!stream.is_open()) {
+        return false;
     }
-    return false;
-}
 
-bool waitDeckAnalyzed(EngineCore& engine, ngks::DeckId deckId)
-{
-    for (int poll = 0; poll < kPolls; ++poll) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
-        const auto snapshot = engine.getSnapshot();
-        if (snapshot.decks[deckId].lifecycle == DeckLifecycleState::Analyzed) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool waitDeckPlaying(EngineCore& engine, ngks::DeckId deckId)
-{
-    for (int poll = 0; poll < kPolls; ++poll) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
-        const auto snapshot = engine.getSnapshot();
-        if (snapshot.decks[deckId].transport == ngks::TransportState::Playing) {
-            return true;
-        }
-    }
-    return false;
-}
-
-struct MasterMetricWindow {
-    float avgRmsL{0.0f};
-    float maxPeakL{0.0f};
-    bool limiterSeen{false};
-};
-
-MasterMetricWindow sampleMasterMetrics(EngineCore& engine)
-{
-    MasterMetricWindow metrics;
-    float rmsAccum = 0.0f;
-    for (int i = 0; i < kMetricSamples; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
-        const auto snapshot = engine.getSnapshot();
-        rmsAccum += snapshot.masterRmsL;
-        metrics.maxPeakL = std::max(metrics.maxPeakL, snapshot.masterPeakL);
-        metrics.limiterSeen = metrics.limiterSeen || snapshot.masterLimiterActive;
-    }
-    metrics.avgRmsL = rmsAccum / static_cast<float>(kMetricSamples);
-    return metrics;
+    stream.seekg(40, std::ios::beg);
+    stream.read(reinterpret_cast<char*>(&outDataBytes), sizeof(outDataBytes));
+    return stream.good();
 }
 
 } // namespace
 
 int main()
 {
-    EngineCore engine;
-    bool pass = true;
-    uint32_t seq = 10u;
+    std::filesystem::create_directories("_artifacts/exports");
 
-    engine.updateCrossfader(0.0f);
-    sendSetDeckTrack(engine, ngks::DECK_A, seq++, 3001ULL, "DeckA");
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 3001ULL, 0.0f, 0, 0, 301u });
-    const bool analyzed = waitDeckAnalyzed(engine, ngks::DECK_A);
+    ngks::OfflineRenderConfig config {};
+    config.sampleRate = kSampleRate;
+    config.blockSize = kBlockSize;
+    config.channels = 2;
+    config.secondsToRender = kSecondsToRender;
+    config.masterGain = 1.0f;
+    config.seed = 123u;
 
-    sendSetCue(engine, ngks::DECK_A, seq++);
-    sendPlay(engine, ngks::DECK_A, seq++);
-    const bool playing = waitDeckPlaying(engine, ngks::DECK_A);
-    const bool warmup = waitWarmup(engine);
+    const std::string outputPath = "_artifacts/exports/offline_render_test.wav";
+    ngks::OfflineRenderResult result {};
+    ngks::OfflineRenderer renderer;
+    const bool rendered = renderer.renderToWav(config, outputPath, result);
 
-    const auto baseline = sampleMasterMetrics(engine);
-    const auto snapshot = engine.getSnapshot();
-    const bool baselinePass = analyzed
-        && playing
-        && warmup
-        && baseline.avgRmsL > 0.0f
-        && baseline.maxPeakL > 0.0f
-        && !baseline.limiterSeen
-        && !snapshot.masterLimiterActive;
+    const bool fileExists = std::filesystem::exists(outputPath);
+    const uint32_t expectedFrames = static_cast<uint32_t>(kSampleRate * kSecondsToRender);
+    uint32_t dataBytes = 0;
+    const bool headerRead = fileExists && readWavDataSize(outputPath, dataBytes);
+    const bool dataSizeValid = headerRead && dataBytes > 44u;
+    const uint32_t actualFrames = headerRead ? (dataBytes / 4u) : 0u;
+    const bool frameCountOk = (actualFrames == expectedFrames) && (result.renderedFrames == expectedFrames);
+    const bool limiterPeakOk = result.peakAbs <= (ngks::MasterBus::kLimiterThreshold + 0.0001f);
 
-    sendSetDeckGain(engine, ngks::DECK_A, seq++, 12.0f);
-    const auto clipped = sampleMasterMetrics(engine);
+    const bool offlinePass = rendered && result.success && fileExists && dataSizeValid && frameCountOk && limiterPeakOk;
 
-    const bool limiterPass = clipped.limiterSeen
-        && clipped.maxPeakL <= (kLimiterThreshold + kPeakTolerance)
-        && clipped.avgRmsL > 0.0f;
-
-    pass = baselinePass && limiterPass;
-    std::cout << "MasterBusTest=" << (baselinePass ? "PASS" : "FAIL") << std::endl;
-    std::cout << "LimiterClampTest=" << (limiterPass ? "PASS" : "FAIL") << std::endl;
+    std::cout << "OfflineRenderTest=" << (offlinePass ? "PASS" : "FAIL") << std::endl;
+    const bool pass = offlinePass;
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }

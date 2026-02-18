@@ -20,12 +20,13 @@ class AudioIOJuce;
 class EngineCore
 {
 public:
-    EngineCore();
+    explicit EngineCore(bool offlineMode = false);
     ~EngineCore();
 
     ngks::EngineSnapshot getSnapshot();
     void enqueueCommand(const ngks::Command& command);
     void updateCrossfader(float x);
+    bool renderOfflineBlock(float* outInterleavedLR, uint32_t frames);
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;
@@ -44,6 +45,7 @@ private:
     bool isDeckMutationCommand(const ngks::Command& c);
 
     std::unique_ptr<AudioIOJuce> audioIO;
+    bool offlineMode_ = false;
     std::atomic<bool> audioOpened { false };
     std::atomic<uint32_t> frontSnapshotIndex { 0 };
 
