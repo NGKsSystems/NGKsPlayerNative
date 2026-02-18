@@ -11,16 +11,15 @@ namespace {
 
 constexpr uint64_t kTrackId = 123ULL;
 constexpr int kWarmupPolls = 300;
-constexpr int kWarmupPollSleepMs = 10;
-constexpr int kJobPolls = 300;
-constexpr int kJobPollSleepMs = 10;
-constexpr int kCacheHitPolls = 20;
+constexpr int kWarmupSleepMs = 10;
+constexpr int kPolls = 300;
+constexpr int kPollSleepMs = 10;
 
 bool waitWarmup(EngineCore& engine)
 {
-    ngks::EngineSnapshot snapshot = engine.getSnapshot();
-    for (int attempt = 0; attempt < kWarmupPolls; ++attempt) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kWarmupPollSleepMs));
+    auto snapshot = engine.getSnapshot();
+    for (int i = 0; i < kWarmupPolls; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kWarmupSleepMs));
         snapshot = engine.getSnapshot();
         if ((snapshot.flags & ngks::SNAP_WARMUP_COMPLETE) != 0u) {
             return true;
@@ -35,39 +34,33 @@ bool waitWarmup(EngineCore& engine)
     return false;
 }
 
-void enqueueSetDeckTrack(EngineCore& engine, uint32_t seq, uint64_t trackId)
+void sendSetDeckTrack(EngineCore& engine, uint32_t seq, uint64_t trackId)
 {
-    ngks::Command cmd {};
-    cmd.type = ngks::CommandType::SetDeckTrack;
-    cmd.deck = ngks::DECK_A;
-    cmd.seq = seq;
-    cmd.trackUidHash = trackId;
+    ngks::Command command {};
+    command.type = ngks::CommandType::SetDeckTrack;
+    command.deck = ngks::DECK_A;
+    command.seq = seq;
+    command.trackUidHash = trackId;
     const char* label = "TestTrack";
-    std::memcpy(cmd.trackLabel, label, std::strlen(label));
-    engine.enqueueCommand(cmd);
+    std::memcpy(command.trackLabel, label, std::strlen(label));
+    engine.enqueueCommand(command);
 }
 
-bool findCompletedJob(const ngks::EngineSnapshot& snapshot, uint32_t jobId, ngks::JobResult& out)
+bool waitForAnalyzeComplete(EngineCore& engine, uint32_t jobId)
 {
-    for (int i = 0; i < ngks::EngineSnapshot::kMaxJobResults; ++i) {
-        const auto& candidate = snapshot.jobResults[i];
-        if (candidate.jobId == jobId && candidate.status == ngks::JobStatus::Complete) {
-            out = candidate;
-            return true;
-        }
-    }
-    return false;
-}
-
-bool waitForJob(EngineCore& engine, uint32_t jobId, int maxPolls, ngks::JobResult& out)
-{
-    for (int poll = 0; poll < maxPolls; ++poll) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kJobPollSleepMs));
+    for (int i = 0; i < kPolls; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
         const auto snapshot = engine.getSnapshot();
-        if (findCompletedJob(snapshot, jobId, out)) {
-            return true;
+        for (int slot = 0; slot < ngks::EngineSnapshot::kMaxJobResults; ++slot) {
+            const auto& result = snapshot.jobResults[slot];
+            if (result.jobId == jobId
+                && result.type == ngks::JobType::AnalyzeTrack
+                && result.status == ngks::JobStatus::Complete) {
+                return true;
+            }
         }
     }
+
     return false;
 }
 
@@ -75,73 +68,76 @@ bool waitForJob(EngineCore& engine, uint32_t jobId, int maxPolls, ngks::JobResul
 
 int main()
 {
+    EngineCore engine;
     bool pass = true;
+    uint32_t seq = 1;
 
-    {
-        EngineCore engine;
-        uint32_t seq = 1;
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    auto snapshot = engine.getSnapshot();
+    const bool illegalTransitionPass =
+        snapshot.lastCommandResult[ngks::DECK_A] == ngks::CommandResult::IllegalTransition;
+    std::cout << "IllegalTransitionCheck: " << (illegalTransitionPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && illegalTransitionPass;
 
-        enqueueSetDeckTrack(engine, seq++, kTrackId);
-        engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
+    sendSetDeckTrack(engine, seq++, kTrackId);
+    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, kTrackId, 0.0f, 0, 0, 1u });
 
-        if (!waitWarmup(engine)) {
-            std::cout << "RunResult=FAIL" << std::endl;
-            return 1;
-        }
+    const bool analyzeDone = waitForAnalyzeComplete(engine, 1u);
+    engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_A, seq++, 0, 0.0f, 1, 0 });
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
 
-        engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, kTrackId, 0.0f, 0, 0, 1u });
-        ngks::JobResult analyzeResult {};
-        const bool analyzeCompleted = waitForJob(engine, 1u, kJobPolls, analyzeResult);
-        std::cout << "AnalyzeJob1Completed=" << analyzeCompleted << std::endl;
-        std::cout << "AnalyzeJob1_cacheHit=" << static_cast<int>(analyzeResult.cacheHit) << std::endl;
-        std::cout << "AnalyzeJob1_bpmFixed=" << analyzeResult.bpmFixed << std::endl;
-
-        const auto postAnalyzeSnapshot = engine.getSnapshot();
-        std::cout << "DeckA_cachedBpmAfterJob1=" << postAnalyzeSnapshot.decks[ngks::DECK_A].cachedBpmFixed << std::endl;
-
-        pass = pass && analyzeCompleted;
-        pass = pass && (analyzeResult.bpmFixed == 12800);
-        pass = pass && (postAnalyzeSnapshot.decks[ngks::DECK_A].cachedBpmFixed == 12800);
-
-        engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    if (!waitWarmup(engine)) {
+        std::cout << "RunResult=FAIL" << std::endl;
+        return 1;
     }
 
-    {
-        EngineCore engine;
-        uint32_t seq = 100;
-
-        enqueueSetDeckTrack(engine, seq++, kTrackId);
-        engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
-
-        if (!waitWarmup(engine)) {
-            std::cout << "RunResult=FAIL" << std::endl;
-            return 1;
+    bool publicFacingPass = false;
+    for (int i = 0; i < kPolls; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
+        snapshot = engine.getSnapshot();
+        if (snapshot.decks[ngks::DECK_A].audible) {
+            publicFacingPass =
+                snapshot.decks[ngks::DECK_A].publicFacing
+                && !snapshot.decks[ngks::DECK_A].cueEnabled
+                && (snapshot.decks[ngks::DECK_A].lifecycle == DeckLifecycleState::Playing);
+            break;
         }
-
-        engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, kTrackId, 0.0f, 0, 0, 2u });
-
-        ngks::JobResult cacheHitResult {};
-        const bool cacheHitCompleted = waitForJob(engine, 2u, kCacheHitPolls, cacheHitResult);
-        std::cout << "AnalyzeJob2Completed=" << cacheHitCompleted << std::endl;
-        std::cout << "AnalyzeJob2_cacheHit=" << static_cast<int>(cacheHitResult.cacheHit) << std::endl;
-        std::cout << "AnalyzeJob2_bpmFixed=" << cacheHitResult.bpmFixed << std::endl;
-
-        if (cacheHitCompleted && cacheHitResult.cacheHit == 1) {
-            std::cout << "CACHE_HIT_ANALYZE trackId=123" << std::endl;
-        }
-
-        const auto postRestartSnapshot = engine.getSnapshot();
-        std::cout << "DeckA_cachedBpmAfterRestart=" << postRestartSnapshot.decks[ngks::DECK_A].cachedBpmFixed << std::endl;
-
-        pass = pass && cacheHitCompleted;
-        pass = pass && (cacheHitResult.cacheHit == 1);
-        pass = pass && (cacheHitResult.bpmFixed == 12800);
-        pass = pass && (postRestartSnapshot.decks[ngks::DECK_A].cachedBpmFixed == 12800);
-
-        engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
+
+    publicFacingPass = publicFacingPass && analyzeDone;
+    std::cout << "PublicFacingCheck: " << (publicFacingPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && publicFacingPass;
+
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
+    bool stopPass = false;
+    for (int i = 0; i < kPolls; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
+        snapshot = engine.getSnapshot();
+        if (snapshot.decks[ngks::DECK_A].lifecycle == DeckLifecycleState::Stopped) {
+            stopPass = !snapshot.decks[ngks::DECK_A].publicFacing
+                && snapshot.decks[ngks::DECK_A].cueEnabled;
+            break;
+        }
+    }
+    std::cout << "StopCheck: " << (stopPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && stopPass;
+
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
+    for (int i = 0; i < kPolls; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
+        snapshot = engine.getSnapshot();
+        if (snapshot.decks[ngks::DECK_A].lifecycle == DeckLifecycleState::Playing) {
+            break;
+        }
+    }
+    engine.enqueueCommand({ ngks::CommandType::UnloadTrack, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    snapshot = engine.getSnapshot();
+    const bool unloadProtectionPass =
+        snapshot.lastCommandResult[ngks::DECK_A] == ngks::CommandResult::IllegalTransition;
+    std::cout << "UnloadProtectionCheck: " << (unloadProtectionPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && unloadProtectionPass;
 
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;

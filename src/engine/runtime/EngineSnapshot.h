@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "engine/domain/DeckId.h"
+#include "engine/domain/DeckLifecycleState.h"
 #include "engine/domain/TransportState.h"
 #include "engine/runtime/jobs/JobResult.h"
 
@@ -18,13 +19,15 @@ enum class CommandResult : uint8_t {
     RejectedNoTrack = 3,
     RejectedInvalidDeck = 4,
     RejectedQueueFull = 5,
-    RejectedInvalidSlot = 6
+    RejectedInvalidSlot = 6,
+    IllegalTransition = 7
 };
 
 struct DeckSnapshot {
     DeckId id{};
     uint8_t hasTrack{0};
     uint64_t trackUidHash{0};
+    DeckLifecycleState lifecycle{DeckLifecycleState::Empty};
     uint64_t currentTrackId{0};
     char currentTrackLabel[64]{};
     int32_t cachedBpmFixed{0};
@@ -44,8 +47,9 @@ struct DeckSnapshot {
     float peakL{0.0f};
     float peakR{0.0f};
 
-    uint8_t cueEnabled{0};
-    uint8_t publicFacing{0};
+    bool audible{false};
+    bool publicFacing{false};
+    bool cueEnabled{true};
     uint8_t fxSlotEnabled[8]{};
 };
 

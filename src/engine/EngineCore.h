@@ -33,9 +33,10 @@ private:
     ngks::CommandResult submitJobCommand(const ngks::Command& command) noexcept;
     void appendJobResults(ngks::EngineSnapshot& snapshot) noexcept;
     void publishCommandOutcome(const ngks::Command& command, ngks::CommandResult result) noexcept;
-    void applySetDeckTrack(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept;
+    ngks::CommandResult applySetDeckTrack(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept;
     void applyCachedAnalysisToDeck(ngks::DeckSnapshot& deck, const ngks::AnalysisMeta& analysis) noexcept;
     void persistRegistryIfNeeded(bool force);
+    bool validateTransition(DeckLifecycleState from, DeckLifecycleState to);
 
     std::unique_ptr<AudioIOJuce> audioIO;
     std::atomic<bool> audioOpened { false };

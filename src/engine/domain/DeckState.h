@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "DeckId.h"
+#include "DeckLifecycleState.h"
 #include "TransportState.h"
 
 namespace ngks {
@@ -10,6 +11,7 @@ struct DeckState {
     bool hasTrack{false};
     uint64_t trackId{0};
     char trackLabel[64]{};
+    DeckLifecycleState lifecycle{DeckLifecycleState::Empty};
 
     TransportState transport{TransportState::Stopped};
 
