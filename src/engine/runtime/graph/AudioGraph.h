@@ -27,11 +27,14 @@ public:
     void prepare(double sampleRate, int maxBlockSize);
     void beginDeckStopFade(DeckId deckId, int fadeSamples);
     bool isDeckStopFadeActive(DeckId deckId) const noexcept;
+    bool setDeckFxSlotType(DeckId deckId, int slotIndex, uint32_t fxType) noexcept;
     bool setDeckFxSlotEnabled(DeckId deckId, int slotIndex, bool enabled) noexcept;
+    bool setDeckFxSlotDryWet(DeckId deckId, int slotIndex, float dryWet) noexcept;
     bool setDeckFxGain(DeckId deckId, int slotIndex, float gainLinear) noexcept;
     bool setMasterFxSlotEnabled(int slotIndex, bool enabled) noexcept;
     bool setMasterFxGain(int slotIndex, float gainLinear) noexcept;
     bool isDeckFxSlotEnabled(DeckId deckId, int slotIndex) const noexcept;
+    FxSlotState getDeckFxSlotState(DeckId deckId, int slotIndex) const noexcept;
     bool isMasterFxSlotEnabled(int slotIndex) const noexcept;
 
     GraphRenderStats render(const EngineSnapshot& state,

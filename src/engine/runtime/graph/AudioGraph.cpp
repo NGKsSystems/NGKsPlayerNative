@@ -44,13 +44,31 @@ bool AudioGraph::setDeckFxSlotEnabled(DeckId deckId, int slotIndex, bool enabled
     return deckFxChains[deckId].setSlotEnabled(slotIndex, enabled);
 }
 
+bool AudioGraph::setDeckFxSlotType(DeckId deckId, int slotIndex, uint32_t fxType) noexcept
+{
+    if (deckId >= MAX_DECKS) {
+        return false;
+    }
+
+    return deckFxChains[deckId].setSlotType(slotIndex, fxType);
+}
+
+bool AudioGraph::setDeckFxSlotDryWet(DeckId deckId, int slotIndex, float dryWet) noexcept
+{
+    if (deckId >= MAX_DECKS) {
+        return false;
+    }
+
+    return deckFxChains[deckId].setSlotDryWet(slotIndex, dryWet);
+}
+
 bool AudioGraph::setDeckFxGain(DeckId deckId, int slotIndex, float gainLinear) noexcept
 {
     if (deckId >= MAX_DECKS) {
         return false;
     }
 
-    return deckFxChains[deckId].setSlotGain(slotIndex, gainLinear);
+    return deckFxChains[deckId].setSlotParam0(slotIndex, gainLinear);
 }
 
 bool AudioGraph::setMasterFxSlotEnabled(int slotIndex, bool enabled) noexcept
@@ -60,7 +78,7 @@ bool AudioGraph::setMasterFxSlotEnabled(int slotIndex, bool enabled) noexcept
 
 bool AudioGraph::setMasterFxGain(int slotIndex, float gainLinear) noexcept
 {
-    return masterFxChain.setSlotGain(slotIndex, gainLinear);
+    return masterFxChain.setSlotParam0(slotIndex, gainLinear);
 }
 
 bool AudioGraph::isDeckFxSlotEnabled(DeckId deckId, int slotIndex) const noexcept
@@ -70,6 +88,15 @@ bool AudioGraph::isDeckFxSlotEnabled(DeckId deckId, int slotIndex) const noexcep
     }
 
     return deckFxChains[deckId].isSlotEnabled(slotIndex);
+}
+
+FxSlotState AudioGraph::getDeckFxSlotState(DeckId deckId, int slotIndex) const noexcept
+{
+    if (deckId >= MAX_DECKS) {
+        return {};
+    }
+
+    return deckFxChains[deckId].getSlotState(slotIndex);
 }
 
 bool AudioGraph::isMasterFxSlotEnabled(int slotIndex) const noexcept

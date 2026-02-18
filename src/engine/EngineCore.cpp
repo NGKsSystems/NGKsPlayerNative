@@ -257,6 +257,9 @@ bool EngineCore::isDeckMutationCommand(const ngks::Command& c)
     case ngks::CommandType::Stop:
     case ngks::CommandType::SetDeckGain:
     case ngks::CommandType::SetCue:
+    case ngks::CommandType::SetFxSlotType:
+    case ngks::CommandType::SetFxSlotEnabled:
+    case ngks::CommandType::SetFxSlotDryWet:
     case ngks::CommandType::SetDeckFxGain:
     case ngks::CommandType::EnableDeckFxSlot:
     case ngks::CommandType::RequestAnalyzeTrack:
@@ -545,6 +548,7 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
     }
 
     auto& deck = snapshot.decks[command.deck];
+    const bool fxTransitionAllowed = deck.lifecycle != DeckLifecycleState::Empty;
     switch (command.type) {
     case ngks::CommandType::SetDeckTrack:
         return ngks::CommandResult::Applied;
@@ -615,12 +619,42 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
         }
         deck.lifecycle = DeckLifecycleState::Armed;
         return ngks::CommandResult::Applied;
+    case ngks::CommandType::SetFxSlotType:
+        if (!fxTransitionAllowed) {
+            return ngks::CommandResult::IllegalTransition;
+        }
+        if (!audioGraph.setDeckFxSlotType(command.deck, command.slotIndex, command.jobId)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
+    case ngks::CommandType::SetFxSlotEnabled:
+        if (!fxTransitionAllowed) {
+            return ngks::CommandResult::IllegalTransition;
+        }
+        if (!audioGraph.setDeckFxSlotEnabled(command.deck, command.slotIndex, command.boolValue != 0)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
+    case ngks::CommandType::SetFxSlotDryWet:
+        if (!fxTransitionAllowed) {
+            return ngks::CommandResult::IllegalTransition;
+        }
+        if (!audioGraph.setDeckFxSlotDryWet(command.deck, command.slotIndex, command.floatValue)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
     case ngks::CommandType::SetDeckFxGain:
+        if (!fxTransitionAllowed) {
+            return ngks::CommandResult::IllegalTransition;
+        }
         if (!audioGraph.setDeckFxGain(command.deck, command.slotIndex, command.floatValue)) {
             return ngks::CommandResult::RejectedInvalidSlot;
         }
         return ngks::CommandResult::Applied;
     case ngks::CommandType::EnableDeckFxSlot:
+        if (!fxTransitionAllowed) {
+            return ngks::CommandResult::IllegalTransition;
+        }
         if (!audioGraph.setDeckFxSlotEnabled(command.deck, command.slotIndex, command.boolValue != 0)) {
             return ngks::CommandResult::RejectedInvalidSlot;
         }
@@ -733,8 +767,8 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
             }
         }
 
-        for (int slot = 0; slot < 8; ++slot) {
-            deck.fxSlotEnabled[slot] = audioGraph.isDeckFxSlotEnabled(deckIndex, slot) ? 1 : 0;
+        for (int slot = 0; slot < 4; ++slot) {
+            deck.fxSlots[slot] = audioGraph.getDeckFxSlotState(deckIndex, slot);
         }
     }
 

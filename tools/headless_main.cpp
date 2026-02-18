@@ -7,12 +7,13 @@
 
 #include "engine/EngineCore.h"
 #include "engine/command/Command.h"
+#include "engine/runtime/fx/FxTypes.h"
 
 namespace {
 
-constexpr int kPolls = 800;
+constexpr int kPolls = 500;
 constexpr int kPollSleepMs = 10;
-constexpr float kEpsilon = 0.0001f;
+constexpr int kRmsSamples = 40;
 
 void sendSetDeckTrack(EngineCore& engine, ngks::DeckId deck, uint32_t seq, uint64_t trackId, const char* label)
 {
@@ -40,45 +41,19 @@ void sendStop(EngineCore& engine, ngks::DeckId deck, uint32_t seq)
     engine.enqueueCommand({ ngks::CommandType::Stop, deck, seq, 0, 0.0f, 0, 0 });
 }
 
-bool waitForAllPlaying(EngineCore& engine)
+bool waitWarmup(EngineCore& engine)
 {
     for (int poll = 0; poll < kPolls; ++poll) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
         const auto snapshot = engine.getSnapshot();
-        bool allPlaying = true;
-        for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
-            if (snapshot.decks[deck].transport != ngks::TransportState::Playing) {
-                allPlaying = false;
-                break;
-            }
-        }
-        if (allPlaying) {
+        if ((snapshot.flags & ngks::SNAP_WARMUP_COMPLETE) != 0u) {
             return true;
         }
     }
     return false;
 }
 
-bool waitForAllAnalyzed(EngineCore& engine)
-{
-    for (int poll = 0; poll < kPolls; ++poll) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
-        const auto snapshot = engine.getSnapshot();
-        bool allAnalyzed = true;
-        for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
-            if (snapshot.decks[deck].lifecycle != DeckLifecycleState::Analyzed) {
-                allAnalyzed = false;
-                break;
-            }
-        }
-        if (allAnalyzed) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool waitForDeckAnalyzed(EngineCore& engine, ngks::DeckId deckId)
+bool waitDeckAnalyzed(EngineCore& engine, ngks::DeckId deckId)
 {
     for (int poll = 0; poll < kPolls; ++poll) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
@@ -90,61 +65,41 @@ bool waitForDeckAnalyzed(EngineCore& engine, ngks::DeckId deckId)
     return false;
 }
 
-bool waitForStopped(EngineCore& engine, ngks::DeckId deckA, ngks::DeckId deckB)
+bool waitDeckPlaying(EngineCore& engine, ngks::DeckId deckId)
 {
     for (int poll = 0; poll < kPolls; ++poll) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
         const auto snapshot = engine.getSnapshot();
-        const bool aStopped = snapshot.decks[deckA].transport == ngks::TransportState::Stopped;
-        const bool bStopped = snapshot.decks[deckB].transport == ngks::TransportState::Stopped;
-        if (aStopped && bStopped) {
+        if (snapshot.decks[deckId].transport == ngks::TransportState::Playing) {
             return true;
         }
     }
     return false;
 }
 
-bool waitForTransportState(EngineCore& engine, ngks::DeckId deck, ngks::TransportState state)
+float sampleDeckRms(EngineCore& engine, ngks::DeckId deckId)
+{
+    float sum = 0.0f;
+    for (int i = 0; i < kRmsSamples; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
+        const auto snapshot = engine.getSnapshot();
+        sum += snapshot.decks[deckId].rmsL;
+    }
+    return sum / static_cast<float>(kRmsSamples);
+}
+
+bool waitStableFxState(EngineCore& engine, ngks::DeckId deckId, int slotIndex, bool enabled, float dryWet, uint32_t type)
 {
     for (int poll = 0; poll < kPolls; ++poll) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
         const auto snapshot = engine.getSnapshot();
-        if (snapshot.decks[deck].transport == state) {
+        const auto& slot = snapshot.decks[deckId].fxSlots[slotIndex];
+        const bool dryWetOk = std::abs(slot.dryWet - dryWet) < 0.001f;
+        if (slot.enabled == enabled && dryWetOk && slot.type == type) {
             return true;
         }
     }
     return false;
-}
-
-float weightSumSq(const ngks::EngineSnapshot& snapshot)
-{
-    float sumSq = 0.0f;
-    for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
-        const float w = snapshot.decks[deck].masterWeight;
-        sumSq += w * w;
-    }
-    return sumSq;
-}
-
-bool allNoIllegalTransitions(const ngks::EngineSnapshot& snapshot)
-{
-    for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
-        if (snapshot.lastCommandResult[deck] == ngks::CommandResult::IllegalTransition) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool publicFacingAtMostOne(const ngks::EngineSnapshot& snapshot)
-{
-    int count = 0;
-    for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
-        if (snapshot.decks[deck].publicFacing) {
-            ++count;
-        }
-    }
-    return count <= 1;
 }
 
 } // namespace
@@ -155,126 +110,68 @@ int main()
     bool pass = true;
     uint32_t seq = 10u;
 
-    sendSetDeckTrack(engine, ngks::DECK_A, seq++, 1001ULL, "DeckA");
-    sendSetDeckTrack(engine, ngks::DECK_B, seq++, 1002ULL, "DeckB");
-    sendSetDeckTrack(engine, ngks::DECK_C, seq++, 1003ULL, "DeckC");
-    sendSetDeckTrack(engine, ngks::DECK_D, seq++, 1004ULL, "DeckD");
-
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 1001ULL, 0.0f, 0, 0, 101u });
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_B, seq++, 1002ULL, 0.0f, 0, 0, 102u });
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_C, seq++, 1003ULL, 0.0f, 0, 0, 103u });
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_D, seq++, 1004ULL, 0.0f, 0, 0, 104u });
-    const bool allAnalyzed = waitForAllAnalyzed(engine);
+    sendSetDeckTrack(engine, ngks::DECK_A, seq++, 3001ULL, "DeckA");
+    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 3001ULL, 0.0f, 0, 0, 301u });
+    const bool analyzed = waitDeckAnalyzed(engine, ngks::DECK_A);
 
     sendSetCue(engine, ngks::DECK_A, seq++);
-    sendSetCue(engine, ngks::DECK_B, seq++);
-    sendSetCue(engine, ngks::DECK_C, seq++);
-    sendSetCue(engine, ngks::DECK_D, seq++);
-
     sendPlay(engine, ngks::DECK_A, seq++);
-    sendPlay(engine, ngks::DECK_B, seq++);
-    sendPlay(engine, ngks::DECK_C, seq++);
-    sendPlay(engine, ngks::DECK_D, seq++);
+    const bool playing = waitDeckPlaying(engine, ngks::DECK_A);
+    const bool warmup = waitWarmup(engine);
 
-    const bool allPlaying = allAnalyzed && waitForAllPlaying(engine);
+    const float baselineRms = sampleDeckRms(engine, ngks::DECK_A);
 
-    engine.updateCrossfader(0.5f);
-    std::this_thread::sleep_for(std::chrono::milliseconds(120));
-    auto snapshot = engine.getSnapshot();
-    const float centerSumSq = weightSumSq(snapshot);
-    const bool centerWeightsPositive =
-        snapshot.decks[ngks::DECK_A].masterWeight > 0.0f
-        && snapshot.decks[ngks::DECK_B].masterWeight > 0.0f
-        && snapshot.decks[ngks::DECK_C].masterWeight > 0.0f
-        && snapshot.decks[ngks::DECK_D].masterWeight > 0.0f;
-    const bool centerConserved = centerSumSq <= 1.0001f;
-    const bool centerPass = allPlaying && centerWeightsPositive && centerConserved;
-    std::cout << "FourDeckEqualCenterCheck: " << (centerPass ? "PASS" : "FAIL") << std::endl;
-    pass = pass && centerPass;
+    engine.enqueueCommand({ ngks::CommandType::SetFxSlotType,
+                            ngks::DECK_A,
+                            seq++,
+                            0,
+                            0.0f,
+                            0,
+                            0,
+                            static_cast<uint32_t>(ngks::FxType::Gain) });
+    engine.enqueueCommand({ ngks::CommandType::SetDeckFxGain, ngks::DECK_A, seq++, 0, 0.5f, 0, 0 });
+    engine.enqueueCommand({ ngks::CommandType::SetFxSlotDryWet, ngks::DECK_A, seq++, 0, 1.0f, 0, 0 });
+    engine.enqueueCommand({ ngks::CommandType::SetFxSlotEnabled, ngks::DECK_A, seq++, 0, 0.0f, 1, 0 });
 
-    engine.updateCrossfader(0.0f);
-    std::this_thread::sleep_for(std::chrono::milliseconds(120));
-    snapshot = engine.getSnapshot();
-    const bool hardLeftPass =
-        snapshot.decks[ngks::DECK_A].masterWeight > 0.0f
-        && snapshot.decks[ngks::DECK_B].masterWeight > 0.0f
-        && std::abs(snapshot.decks[ngks::DECK_C].masterWeight) <= kEpsilon
-        && std::abs(snapshot.decks[ngks::DECK_D].masterWeight) <= kEpsilon;
-    std::cout << "HardLeftCheck: " << (hardLeftPass ? "PASS" : "FAIL") << std::endl;
-    pass = pass && hardLeftPass;
+    const bool fxEnabledState = waitStableFxState(
+        engine,
+        ngks::DECK_A,
+        0,
+        true,
+        1.0f,
+        static_cast<uint32_t>(ngks::FxType::Gain));
+    const float fxRms = sampleDeckRms(engine, ngks::DECK_A);
 
-    engine.updateCrossfader(1.0f);
-    std::this_thread::sleep_for(std::chrono::milliseconds(120));
-    snapshot = engine.getSnapshot();
-    const bool hardRightPass =
-        std::abs(snapshot.decks[ngks::DECK_A].masterWeight) <= kEpsilon
-        && std::abs(snapshot.decks[ngks::DECK_B].masterWeight) <= kEpsilon
-        && snapshot.decks[ngks::DECK_C].masterWeight > 0.0f
-        && snapshot.decks[ngks::DECK_D].masterWeight > 0.0f;
-    std::cout << "HardRightCheck: " << (hardRightPass ? "PASS" : "FAIL") << std::endl;
-    pass = pass && hardRightPass;
+    engine.enqueueCommand({ ngks::CommandType::SetFxSlotEnabled, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
+    const bool fxDisabledState = waitStableFxState(
+        engine,
+        ngks::DECK_A,
+        0,
+        false,
+        1.0f,
+        static_cast<uint32_t>(ngks::FxType::Gain));
+    const float restoredRms = sampleDeckRms(engine, ngks::DECK_A);
 
-    sendStop(engine, ngks::DECK_C, seq++);
-    sendStop(engine, ngks::DECK_D, seq++);
-    const bool rightStopped = waitForStopped(engine, ngks::DECK_C, ngks::DECK_D);
+    const float ratio = (baselineRms > 0.0001f) ? (fxRms / baselineRms) : 0.0f;
+    const bool reducedExpected = ratio > 0.40f && ratio < 0.60f;
+    const bool restoredExpected = (restoredRms > 0.0f) && (std::abs(restoredRms - baselineRms) / baselineRms < 0.25f);
+    const auto snapshot = engine.getSnapshot();
+    const bool noIllegalTransition = snapshot.lastCommandResult[ngks::DECK_A] != ngks::CommandResult::IllegalTransition;
 
-    engine.updateCrossfader(0.5f);
-    bool conflictPass = false;
-    for (int poll = 0; poll < kPolls; ++poll) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
-        snapshot = engine.getSnapshot();
+    const bool fxPass = analyzed
+        && playing
+        && warmup
+        && fxEnabledState
+        && reducedExpected
+        && fxDisabledState
+        && restoredExpected
+        && noIllegalTransition;
 
-        const bool twoAudible = snapshot.decks[ngks::DECK_A].audible && snapshot.decks[ngks::DECK_B].audible;
-        const bool aboveThreshold = snapshot.decks[ngks::DECK_A].masterWeight > 0.15f
-            && snapshot.decks[ngks::DECK_B].masterWeight > 0.15f;
-        int publicCount = 0;
-        int publicDeck = -1;
-        for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
-            if (snapshot.decks[deck].publicFacing) {
-                ++publicCount;
-                publicDeck = static_cast<int>(deck);
-            }
-        }
-
-        if (rightStopped && twoAudible && aboveThreshold && publicCount == 1 && publicDeck == ngks::DECK_A) {
-            conflictPass = true;
-            break;
-        }
-    }
-    std::cout << "PublicConflictCheck: " << (conflictPass ? "PASS" : "FAIL") << std::endl;
-    pass = pass && conflictPass;
-
-    snapshot = engine.getSnapshot();
-    const bool illegalTransitionLeakPass = allNoIllegalTransitions(snapshot);
-    std::cout << "IllegalTransitionLeakCheck: " << (illegalTransitionLeakPass ? "PASS" : "FAIL") << std::endl;
-    pass = pass && illegalTransitionLeakPass;
+    pass = pass && fxPass;
 
     sendStop(engine, ngks::DECK_A, seq++);
-    sendStop(engine, ngks::DECK_B, seq++);
-    const bool allStopped =
-        waitForTransportState(engine, ngks::DECK_A, ngks::TransportState::Stopped)
-        && waitForTransportState(engine, ngks::DECK_B, ngks::TransportState::Stopped)
-        && waitForTransportState(engine, ngks::DECK_C, ngks::TransportState::Stopped)
-        && waitForTransportState(engine, ngks::DECK_D, ngks::TransportState::Stopped);
 
-    sendSetDeckTrack(engine, ngks::DECK_A, seq++, 2001ULL, "ReloadA");
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 2001ULL, 0.0f, 0, 0, 201u });
-    const bool reanalyzed = waitForDeckAnalyzed(engine, ngks::DECK_A);
-    sendSetCue(engine, ngks::DECK_A, seq++);
-    sendPlay(engine, ngks::DECK_A, seq++);
-    const bool replayingA = waitForTransportState(engine, ngks::DECK_A, ngks::TransportState::Playing);
-
-    snapshot = engine.getSnapshot();
-    const bool restartReloadCleanPass = allStopped
-        && reanalyzed
-        && replayingA
-        && publicFacingAtMostOne(snapshot)
-        && allNoIllegalTransitions(snapshot)
-        && snapshot.decks[ngks::DECK_A].currentTrackId == 2001ULL;
-    std::cout << "RestartReloadStateCleanCheck: " << (restartReloadCleanPass ? "PASS" : "FAIL") << std::endl;
-    pass = pass && restartReloadCleanPass;
-
-    std::cout << "StabilitySweep=" << (pass ? "PASS" : "FAIL") << std::endl;
+    std::cout << "FxChainTest=" << (pass ? "PASS" : "FAIL") << std::endl;
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }

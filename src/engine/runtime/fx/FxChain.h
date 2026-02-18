@@ -3,33 +3,24 @@
 #include <array>
 #include <cstdint>
 
-#include "engine/runtime/fx/DummyGainFx.h"
+#include "engine/runtime/fx/FxSlot.h"
 
 namespace ngks {
 
 class FxChain {
 public:
-    static constexpr int kMaxSlots = 8;
-
-    enum class ProcessorType : uint8_t {
-        None = 0,
-        DummyGain = 1
-    };
-
-    struct Slot {
-        uint8_t enabled = 0;
-        ProcessorType type = ProcessorType::None;
-        float param0 = 1.0f;
-        DummyGainFx dummyGain;
-    };
+    static constexpr int kMaxSlots = 4;
 
     bool setSlotEnabled(int slotIndex, bool enabled) noexcept;
-    bool setSlotGain(int slotIndex, float gainLinear) noexcept;
+    bool setSlotType(int slotIndex, uint32_t fxType) noexcept;
+    bool setSlotDryWet(int slotIndex, float dryWet) noexcept;
+    bool setSlotParam0(int slotIndex, float value) noexcept;
     bool isSlotEnabled(int slotIndex) const noexcept;
+    FxSlotState getSlotState(int slotIndex) const noexcept;
     void process(float* left, float* right, int numSamples) noexcept;
 
 private:
-    std::array<Slot, kMaxSlots> slotStates {};
+    std::array<FxSlot, kMaxSlots> slotStates_ {};
 };
 
 }

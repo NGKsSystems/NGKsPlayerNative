@@ -5,6 +5,7 @@
 #include "engine/domain/DeckId.h"
 #include "engine/domain/DeckLifecycleState.h"
 #include "engine/domain/TransportState.h"
+#include "engine/runtime/fx/FxSlot.h"
 #include "engine/runtime/jobs/JobResult.h"
 
 namespace ngks {
@@ -57,7 +58,7 @@ struct DeckSnapshot {
     bool publicFacing{false};
     bool routingActive{false};
     bool cueEnabled{true};
-    uint8_t fxSlotEnabled[8]{};
+    FxSlotState fxSlots[4] {};
 };
 
 struct EngineSnapshot {
