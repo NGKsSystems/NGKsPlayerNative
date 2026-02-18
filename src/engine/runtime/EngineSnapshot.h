@@ -25,6 +25,13 @@ struct DeckSnapshot {
     DeckId id{};
     uint8_t hasTrack{0};
     uint64_t trackUidHash{0};
+    uint64_t currentTrackId{0};
+    char currentTrackLabel[64]{};
+    int32_t cachedBpmFixed{0};
+    int32_t cachedLoudnessCentiDb{0};
+    uint32_t cachedDeadAirMs{0};
+    uint8_t cachedStemsReady{0};
+    uint32_t cachedAnalysisStatus{0};
 
     TransportState transport{TransportState::Stopped};
 

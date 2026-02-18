@@ -40,6 +40,11 @@ void JobSystem::cancel(uint32_t jobId) noexcept
     queue.cancel(jobId);
 }
 
+void JobSystem::publishSyntheticResult(const JobResult& result) noexcept
+{
+    results.push(result);
+}
+
 bool JobSystem::tryPopResult(JobResult& out) noexcept
 {
     return results.pop(out);

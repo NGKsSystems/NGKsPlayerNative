@@ -10,6 +10,7 @@ namespace ngks {
 struct JobResult {
     uint32_t jobId{0};
     DeckId deckId{0};
+    uint64_t trackId{0};
     JobType type{JobType::AnalyzeTrack};
     JobStatus status{JobStatus::Pending};
     uint8_t progress0_100{0};
@@ -17,6 +18,7 @@ struct JobResult {
     int32_t loudness{0};
     int32_t deadAirMs{0};
     uint8_t stemsReady{0};
+    uint8_t cacheHit{0};
 };
 
 }

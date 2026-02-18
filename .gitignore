@@ -37,3 +37,6 @@ Thumbs.db
 git add .gitignore
 git commit -m "chore: add gitignore for local builds and proof logs"
 git status --short
+
+# ---- Runtime data cache ----
+data/runtime/

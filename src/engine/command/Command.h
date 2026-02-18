@@ -5,6 +5,7 @@
 namespace ngks {
 
 enum class CommandType {
+    SetDeckTrack,
     LoadTrack,
     UnloadTrack,
     Play,
@@ -30,6 +31,7 @@ struct Command {
     uint8_t boolValue{0};
     uint8_t slotIndex{0};
     uint32_t jobId{0};
+    char trackLabel[64]{};
 };
 
 }

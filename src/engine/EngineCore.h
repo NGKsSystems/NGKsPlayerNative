@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 
 #include "engine/command/Command.h"
@@ -9,6 +10,8 @@
 #include "engine/runtime/SPSCCommandRing.h"
 #include "engine/runtime/graph/AudioGraph.h"
 #include "engine/runtime/jobs/JobSystem.h"
+#include "engine/runtime/library/RegistryStore.h"
+#include "engine/runtime/library/TrackRegistry.h"
 
 class AudioIOJuce;
 
@@ -30,6 +33,9 @@ private:
     ngks::CommandResult submitJobCommand(const ngks::Command& command) noexcept;
     void appendJobResults(ngks::EngineSnapshot& snapshot) noexcept;
     void publishCommandOutcome(const ngks::Command& command, ngks::CommandResult result) noexcept;
+    void applySetDeckTrack(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept;
+    void applyCachedAnalysisToDeck(ngks::DeckSnapshot& deck, const ngks::AnalysisMeta& analysis) noexcept;
+    void persistRegistryIfNeeded(bool force);
 
     std::unique_ptr<AudioIOJuce> audioIO;
     std::atomic<bool> audioOpened { false };
@@ -40,6 +46,10 @@ private:
     ngks::RoutingMatrix routingMatrix;
     ngks::AudioGraph audioGraph;
     ngks::JobSystem jobSystem;
+    ngks::TrackRegistry trackRegistry;
+    ngks::RegistryStore registryStore;
+    bool registryDirty = false;
+    std::chrono::steady_clock::time_point lastRegistryPersist {};
 
     double sampleRateHz = 48000.0;
     int fadeSamplesTotal = 9600;

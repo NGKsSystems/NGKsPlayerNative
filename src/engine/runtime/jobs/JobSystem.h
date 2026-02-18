@@ -57,6 +57,7 @@ public:
 
     bool enqueue(const JobRequest& request);
     void cancel(uint32_t jobId) noexcept;
+    void publishSyntheticResult(const JobResult& result) noexcept;
 
     bool tryPopResult(JobResult& out) noexcept;
 

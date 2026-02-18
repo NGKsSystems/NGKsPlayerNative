@@ -25,6 +25,8 @@ add_library(NGKsEngine STATIC
     src/engine/runtime/jobs/JobQueue.cpp
     src/engine/runtime/jobs/JobWorker.cpp
     src/engine/runtime/jobs/JobSystem.cpp
+    src/engine/runtime/library/TrackRegistry.cpp
+    src/engine/runtime/library/RegistryStore.cpp
     src/engine/runtime/graph/AudioGraph.cpp
     src/engine/runtime/graph/DeckNode.cpp
     src/engine/runtime/graph/MasterMixNode.cpp

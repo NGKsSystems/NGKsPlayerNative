@@ -57,6 +57,7 @@ void JobWorker::run()
             JobResult cancelled {};
             cancelled.jobId = request.jobId;
             cancelled.deckId = request.deckId;
+            cancelled.trackId = request.trackId;
             cancelled.type = request.type;
             cancelled.status = JobStatus::Cancelled;
             cancelled.progress0_100 = 100;
@@ -72,6 +73,7 @@ void JobWorker::run()
                 JobResult cancelled {};
                 cancelled.jobId = request.jobId;
                 cancelled.deckId = request.deckId;
+                cancelled.trackId = request.trackId;
                 cancelled.type = request.type;
                 cancelled.status = JobStatus::Cancelled;
                 cancelled.progress0_100 = static_cast<uint8_t>((step * 100) / totalSteps);
@@ -86,6 +88,7 @@ void JobWorker::run()
             JobResult completed {};
             completed.jobId = request.jobId;
             completed.deckId = request.deckId;
+            completed.trackId = request.trackId;
             completed.type = request.type;
             completed.status = JobStatus::Complete;
             completed.progress0_100 = 100;
@@ -110,6 +113,7 @@ void JobWorker::emitProgress(const JobRequest& request, uint8_t progress)
     JobResult progressResult {};
     progressResult.jobId = request.jobId;
     progressResult.deckId = request.deckId;
+    progressResult.trackId = request.trackId;
     progressResult.type = request.type;
     progressResult.status = JobStatus::Running;
     progressResult.progress0_100 = progress;
