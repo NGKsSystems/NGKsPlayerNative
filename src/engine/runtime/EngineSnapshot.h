@@ -55,6 +55,7 @@ struct DeckSnapshot {
 
     bool audible{false};
     bool publicFacing{false};
+    bool routingActive{false};
     bool cueEnabled{true};
     uint8_t fxSlotEnabled[8]{};
 };
@@ -77,10 +78,7 @@ struct EngineSnapshot {
     uint32_t jobResultsWriteSeq{0};
 
     uint32_t lastProcessedCommandSeq{0};
-    CommandResult lastCommandResult[MAX_DECKS] {
-        CommandResult::None,
-        CommandResult::None
-    };
+    CommandResult lastCommandResult[MAX_DECKS] {};
 };
 
 }

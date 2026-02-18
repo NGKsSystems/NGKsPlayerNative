@@ -1,6 +1,7 @@
 #include "engine/EngineCore.h"
 
 #include "engine/audio/AudioIO_Juce.h"
+#include "engine/domain/CrossfadeAssignment.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,6 +16,106 @@ constexpr float rmsSmoothingAlpha = 0.2f;
 constexpr float peakDecayFactor = 0.96f;
 constexpr int peakHoldBlocks = 8;
 constexpr std::chrono::seconds registryPersistInterval(1);
+constexpr float kPublicFacingWeightThreshold = 0.15f;
+constexpr CrossfadeAssignment kDefaultCrossfadeAssignment {
+    { 0, 1 },
+    { 2, 3 },
+    2,
+    2
+};
+
+bool isDeckRoutingActive(const ngks::DeckSnapshot& deck) noexcept
+{
+    if (deck.hasTrack == 0) {
+        return false;
+    }
+
+    return deck.transport == ngks::TransportState::Starting
+        || deck.transport == ngks::TransportState::Playing
+        || deck.transport == ngks::TransportState::Stopping;
+}
+
+void computeCrossfadeWeights(const ngks::EngineSnapshot& snapshot, float x, MixMatrix& mixMatrix) noexcept
+{
+    x = std::clamp(x, 0.0f, 1.0f);
+    const float leftGain = std::cos(x * 1.57079632679f);
+    const float rightGain = std::sin(x * 1.57079632679f);
+
+    for (uint8_t i = 0; i < ngks::MAX_DECKS; ++i) {
+        mixMatrix.decks[i].masterWeight = 0.0f;
+        mixMatrix.decks[i].cueWeight = 1.0f;
+    }
+
+    int leftActiveCount = 0;
+    int rightActiveCount = 0;
+    bool leftActive[2] { false, false };
+    bool rightActive[2] { false, false };
+
+    for (int i = 0; i < kDefaultCrossfadeAssignment.leftCount; ++i) {
+        const int deckIndex = kDefaultCrossfadeAssignment.leftDecks[i];
+        if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) {
+            continue;
+        }
+
+        leftActive[i] = isDeckRoutingActive(snapshot.decks[deckIndex]);
+        if (leftActive[i]) {
+            ++leftActiveCount;
+        }
+    }
+
+    for (int i = 0; i < kDefaultCrossfadeAssignment.rightCount; ++i) {
+        const int deckIndex = kDefaultCrossfadeAssignment.rightDecks[i];
+        if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) {
+            continue;
+        }
+
+        rightActive[i] = isDeckRoutingActive(snapshot.decks[deckIndex]);
+        if (rightActive[i]) {
+            ++rightActiveCount;
+        }
+    }
+
+    if (leftActiveCount > 0) {
+        const float perDeckLeft = leftGain / static_cast<float>(leftActiveCount);
+        for (int i = 0; i < kDefaultCrossfadeAssignment.leftCount; ++i) {
+            if (!leftActive[i]) {
+                continue;
+            }
+
+            const int deckIndex = kDefaultCrossfadeAssignment.leftDecks[i];
+            if (deckIndex >= 0 && deckIndex < ngks::MAX_DECKS) {
+                mixMatrix.decks[deckIndex].masterWeight = perDeckLeft;
+            }
+        }
+    }
+
+    if (rightActiveCount > 0) {
+        const float perDeckRight = rightGain / static_cast<float>(rightActiveCount);
+        for (int i = 0; i < kDefaultCrossfadeAssignment.rightCount; ++i) {
+            if (!rightActive[i]) {
+                continue;
+            }
+
+            const int deckIndex = kDefaultCrossfadeAssignment.rightDecks[i];
+            if (deckIndex >= 0 && deckIndex < ngks::MAX_DECKS) {
+                mixMatrix.decks[deckIndex].masterWeight = perDeckRight;
+            }
+        }
+    }
+
+    float sumSq = 0.0f;
+    for (uint8_t i = 0; i < ngks::MAX_DECKS; ++i) {
+        const float w = mixMatrix.decks[i].masterWeight;
+        sumSq += (w * w);
+    }
+
+    if (sumSq > 1.0001f) {
+        const float scale = 1.0f / std::sqrt(sumSq);
+        for (uint8_t i = 0; i < ngks::MAX_DECKS; ++i) {
+            mixMatrix.decks[i].masterWeight *= scale;
+        }
+    }
+}
 }
 
 EngineCore::EngineCore()
@@ -65,7 +166,7 @@ ngks::EngineSnapshot EngineCore::getSnapshot()
 void EngineCore::enqueueCommand(const ngks::Command& command)
 {
     if (isDeckMutationCommand(command)) {
-        if (command.deck >= ngks::MAX_DECKS || command.deck >= 4) {
+        if (command.deck >= ngks::MAX_DECKS) {
             publishCommandOutcome(command, ngks::CommandResult::RejectedInvalidDeck);
             return;
         }
@@ -218,26 +319,9 @@ void EngineCore::prepare(double sampleRate, int)
 
 void EngineCore::updateCrossfader(float x)
 {
-    if (x < 0.0f) {
-        x = 0.0f;
-    }
-    if (x > 1.0f) {
-        x = 1.0f;
-    }
-
-    const float a = std::cos(x * 1.57079632679f);
-    const float b = std::sin(x * 1.57079632679f);
-
-    mixMatrix_.decks[0].masterWeight = a;
-    mixMatrix_.decks[1].masterWeight = b;
-
-    mixMatrix_.decks[0].cueWeight = 1.0f;
-    mixMatrix_.decks[1].cueWeight = 1.0f;
-
-    for (int i = 2; i < MAX_DECKS; ++i) {
-        mixMatrix_.decks[i].masterWeight = 0.0f;
-        mixMatrix_.decks[i].cueWeight = 0.0f;
-    }
+    crossfaderPosition_ = std::clamp(x, 0.0f, 1.0f);
+    const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
+    computeCrossfadeWeights(snapshots[front], crossfaderPosition_, mixMatrix_);
 }
 
 ngks::CommandResult EngineCore::submitJobCommand(const ngks::Command& command) noexcept
@@ -599,6 +683,8 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         }
     }
 
+    computeCrossfadeWeights(working, crossfaderPosition_, mixMatrix_);
+
     const auto graphStats = audioGraph.render(working, mixMatrix_, numSamples, left, right);
 
     masterRmsSmoothing = masterRmsSmoothing + rmsSmoothingAlpha * (graphStats.masterRms - masterRmsSmoothing);
@@ -640,10 +726,8 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
             && (masterWeight > 0.001f)
             && (std::max(deck.rmsL, deck.rmsR) > audibleRmsThresholdLinear);
         deck.audible = deckAudible;
-        deck.publicFacing = deckAudible;
-        deck.cueEnabled = !deck.publicFacing;
-        authority_[deckIndex].locked = deck.publicFacing;
-        deck.commandLocked = authority_[deckIndex].locked;
+        deck.publicFacing = false;
+        deck.routingActive = (masterWeight > 0.001f) && isDeckRoutingActive(deck);
         deck.lastAcceptedCommandSeq = authority_[deckIndex].lastAcceptedSeq;
 
         if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Stopping) {
@@ -656,6 +740,35 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         for (int slot = 0; slot < 8; ++slot) {
             deck.fxSlotEnabled[slot] = audioGraph.isDeckFxSlotEnabled(deckIndex, slot) ? 1 : 0;
         }
+    }
+
+    int publicFacingDeck = -1;
+    float publicFacingWeight = -1.0f;
+    for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
+        const auto& deck = working.decks[deckIndex];
+        const bool qualifies = deck.audible && (deck.masterWeight > kPublicFacingWeightThreshold);
+        if (!qualifies) {
+            continue;
+        }
+
+        if (deck.masterWeight > publicFacingWeight) {
+            publicFacingWeight = deck.masterWeight;
+            publicFacingDeck = static_cast<int>(deckIndex);
+            continue;
+        }
+
+        if (deck.masterWeight == publicFacingWeight
+            && (publicFacingDeck < 0 || deckIndex < static_cast<uint8_t>(publicFacingDeck))) {
+            publicFacingDeck = static_cast<int>(deckIndex);
+        }
+    }
+
+    for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
+        auto& deck = working.decks[deckIndex];
+        deck.publicFacing = (publicFacingDeck >= 0) && (deckIndex == static_cast<uint8_t>(publicFacingDeck));
+        deck.cueEnabled = !deck.publicFacing;
+        authority_[deckIndex].locked = deck.publicFacing;
+        deck.commandLocked = authority_[deckIndex].locked;
     }
 
     for (int slot = 0; slot < 8; ++slot) {

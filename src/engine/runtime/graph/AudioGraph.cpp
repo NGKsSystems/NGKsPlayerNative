@@ -9,6 +9,8 @@ void AudioGraph::prepare(double sampleRate, int)
 {
     deckNodes[DECK_A].setFrequency(220.0f);
     deckNodes[DECK_B].setFrequency(330.0f);
+    deckNodes[DECK_C].setFrequency(440.0f);
+    deckNodes[DECK_D].setFrequency(550.0f);
 
     for (auto& node : deckNodes) {
         node.prepare(sampleRate);

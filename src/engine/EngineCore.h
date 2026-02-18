@@ -47,9 +47,10 @@ private:
     std::atomic<uint32_t> frontSnapshotIndex { 0 };
 
     ngks::EngineSnapshot snapshots[2] {};
-    DeckAuthorityState authority_[4] {};
+    DeckAuthorityState authority_[ngks::MAX_DECKS] {};
     ngks::SPSCCommandRing<1024> commandRing;
     MixMatrix mixMatrix_ {};
+    float crossfaderPosition_ = 0.5f;
     ngks::AudioGraph audioGraph;
     ngks::JobSystem jobSystem;
     ngks::TrackRegistry trackRegistry;
@@ -59,9 +60,9 @@ private:
 
     double sampleRateHz = 48000.0;
     int fadeSamplesTotal = 9600;
-    float deckRmsSmoothing[ngks::MAX_DECKS] { 0.0f, 0.0f };
-    float deckPeakSmoothing[ngks::MAX_DECKS] { 0.0f, 0.0f };
-    int deckPeakHoldBlocks[ngks::MAX_DECKS] { 0, 0 };
+    float deckRmsSmoothing[ngks::MAX_DECKS] {};
+    float deckPeakSmoothing[ngks::MAX_DECKS] {};
+    int deckPeakHoldBlocks[ngks::MAX_DECKS] {};
     float masterRmsSmoothing = 0.0f;
     float masterPeakSmoothing = 0.0f;
     int masterPeakHoldBlocks = 0;
