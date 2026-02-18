@@ -30,6 +30,16 @@ void EngineBridge::setMasterGain(double linear01)
     engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_A, nextCommandSeq++, 0, static_cast<float>(std::clamp(linear01, 0.0, 1.0)), 0 });
 }
 
+bool EngineBridge::tryGetStatus(UIStatus& out)
+{
+    const auto snapshot = engine.getSnapshot();
+    out.engineReady = (snapshot.flags & ngks::SNAP_AUDIO_RUNNING) != 0u;
+    out.sampleRateHz = 0;
+    out.blockSize = 0;
+    out.masterPeakLinear = std::max(snapshot.masterPeakL, snapshot.masterPeakR);
+    return out.engineReady;
+}
+
 double EngineBridge::meterL() const noexcept
 {
     return meterLeftValue;

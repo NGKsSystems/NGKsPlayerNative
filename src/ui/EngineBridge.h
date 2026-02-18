@@ -1,11 +1,22 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include <QObject>
 #include <QTimer>
 
 #include "engine/EngineCore.h"
+
+struct UIStatus {
+    std::string buildStamp;
+    std::string gitSha;
+    bool engineReady{false};
+    int sampleRateHz{0};
+    int blockSize{0};
+    float masterPeakLinear{0.0f};
+    std::string lastUpdateUtc;
+};
 
 class EngineBridge final : public QObject
 {
@@ -20,6 +31,8 @@ public:
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void setMasterGain(double linear01);
+
+    bool tryGetStatus(UIStatus& out);
 
     double meterL() const noexcept;
     double meterR() const noexcept;

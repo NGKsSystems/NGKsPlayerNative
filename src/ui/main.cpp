@@ -12,13 +12,16 @@
 #include <QPushButton>
 #include <QShortcut>
 #include <QStringList>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QDateTime>
+#include <QWidget>
 
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include "ui/EngineBridge.h"
 
@@ -109,13 +112,29 @@ void initializeUiRuntimeLog()
     writeLine(banner);
 }
 
+QString utcNowIso()
+{
+    return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+}
+
+QString statusSummaryLine(const UIStatus& status)
+{
+    return QStringLiteral("StatusReady=%1 peakLinear=%2 sampleRateHz=%3 blockSize=%4 limiterActive=%5 lastUpdateUtc=%6")
+        .arg(status.engineReady ? QStringLiteral("TRUE") : QStringLiteral("FALSE"),
+             QString::number(status.masterPeakLinear, 'f', 6),
+             QString::number(status.sampleRateHz),
+             QString::number(status.blockSize),
+             QStringLiteral("N/A"),
+             QString::fromStdString(status.lastUpdateUtc));
+}
+
 class DiagnosticsDialog : public QDialog {
 public:
     explicit DiagnosticsDialog(QWidget* parent = nullptr)
         : QDialog(parent)
     {
         setWindowTitle(QStringLiteral("Diagnostics"));
-        resize(760, 360);
+        resize(780, 430);
 
         auto* layout = new QVBoxLayout(this);
 
@@ -129,14 +148,34 @@ public:
         row->addStretch(1);
         layout->addLayout(row);
 
+        statusLabel_ = new QLabel(QStringLiteral("Engine: NOT_READY"), this);
+        statusLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(statusLabel_);
+
+        detailsLabel_ = new QLabel(QStringLiteral("StatusReady=FALSE peakLinear=0 sampleRateHz=0 blockSize=0 limiterActive=N/A lastUpdateUtc=N/A"), this);
+        detailsLabel_->setWordWrap(true);
+        detailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(detailsLabel_);
+
+        lastUpdateLabel_ = new QLabel(QStringLiteral("Last status update: N/A"), this);
+        lastUpdateLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(lastUpdateLabel_);
+
         logTailBox_ = new QPlainTextEdit(this);
         logTailBox_->setReadOnly(true);
         layout->addWidget(logTailBox_);
 
         QObject::connect(refreshButton, &QPushButton::clicked, this, &DiagnosticsDialog::refreshLogTail);
 
-        qInfo() << "DiagnosticsDialogConstructed";
+        qInfo() << "DiagnosticsDialogConstructed=PASS";
         refreshLogTail();
+    }
+
+    void setStatus(const UIStatus& status)
+    {
+        statusLabel_->setText(status.engineReady ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
+        detailsLabel_->setText(statusSummaryLine(status));
+        lastUpdateLabel_->setText(QStringLiteral("Last status update: %1").arg(QString::fromStdString(status.lastUpdateUtc)));
     }
 
     void refreshLogTail()
@@ -167,12 +206,16 @@ public:
     }
 
 private:
+    QLabel* statusLabel_{nullptr};
+    QLabel* detailsLabel_{nullptr};
+    QLabel* lastUpdateLabel_{nullptr};
     QPlainTextEdit* logTailBox_{nullptr};
 };
 
 class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(EngineBridge& engineBridge)
+        : bridge_(engineBridge)
     {
         setWindowTitle(QStringLiteral("NGKsPlayerNative (Dev)"));
         resize(760, 300);
@@ -189,11 +232,16 @@ public:
         buildInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(buildInfo);
 
-        auto* bridgeStatus = new QLabel(QStringLiteral("EngineBridge: OK"), root);
-        layout->addWidget(bridgeStatus);
+        bridgeStatusLabel_ = new QLabel(QStringLiteral("EngineBridge: OK"), root);
+        layout->addWidget(bridgeStatusLabel_);
 
-        auto* placeholderState = new QLabel(QStringLiteral("State: UI_SANITY_V1"), root);
-        layout->addWidget(placeholderState);
+        engineStatusLabel_ = new QLabel(QStringLiteral("Engine: NOT_READY"), root);
+        layout->addWidget(engineStatusLabel_);
+
+        statusDetailsLabel_ = new QLabel(QStringLiteral("StatusReady=FALSE peakLinear=0 sampleRateHz=0 blockSize=0 limiterActive=N/A lastUpdateUtc=N/A"), root);
+        statusDetailsLabel_->setWordWrap(true);
+        statusDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(statusDetailsLabel_);
 
         layout->addStretch(1);
         setCentralWidget(root);
@@ -204,8 +252,11 @@ public:
         auto* shortcut = new QShortcut(QKeySequence(QStringLiteral("Ctrl+D")), this);
         QObject::connect(shortcut, &QShortcut::activated, this, &MainWindow::showDiagnostics);
 
-        Q_UNUSED(engineBridge);
-        qInfo() << "MainWindowConstructed";
+        pollTimer_.setInterval(250);
+        QObject::connect(&pollTimer_, &QTimer::timeout, this, &MainWindow::pollStatus);
+        pollTimer_.start();
+
+        qInfo() << "MainWindowConstructed=PASS";
     }
 
 private:
@@ -214,10 +265,39 @@ private:
         if (!diagnosticsDialog_) {
             diagnosticsDialog_ = new DiagnosticsDialog(this);
         }
+        if (!lastStatus_.lastUpdateUtc.empty()) {
+            diagnosticsDialog_->setStatus(lastStatus_);
+        }
         diagnosticsDialog_->refreshLogTail();
         diagnosticsDialog_->show();
         diagnosticsDialog_->raise();
         diagnosticsDialog_->activateWindow();
+    }
+
+    void pollStatus()
+    {
+        UIStatus status {};
+        status.buildStamp = NGKS_BUILD_STAMP;
+        status.gitSha = NGKS_GIT_SHA;
+        status.lastUpdateUtc = utcNowIso().toStdString();
+        const bool ready = bridge_.tryGetStatus(status);
+
+        if (!ready) {
+            status.engineReady = false;
+        }
+
+        lastStatus_ = status;
+        engineStatusLabel_->setText(status.engineReady ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
+        statusDetailsLabel_->setText(statusSummaryLine(status));
+
+        if (diagnosticsDialog_) {
+            diagnosticsDialog_->setStatus(status);
+        }
+
+        if (!statusTickLogged_) {
+            qInfo().noquote() << QStringLiteral("StatusPollTick=PASS %1").arg(statusSummaryLine(status));
+            statusTickLogged_ = true;
+        }
     }
 
 public:
@@ -230,7 +310,14 @@ public:
     }
 
 private:
+    EngineBridge& bridge_;
+    QTimer pollTimer_;
     DiagnosticsDialog* diagnosticsDialog_{nullptr};
+    QLabel* bridgeStatusLabel_{nullptr};
+    QLabel* engineStatusLabel_{nullptr};
+    QLabel* statusDetailsLabel_{nullptr};
+    UIStatus lastStatus_ {};
+    bool statusTickLogged_{false};
 };
 
 } // namespace
