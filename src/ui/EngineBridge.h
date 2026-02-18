@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 
@@ -18,6 +19,13 @@ struct UIStatus {
     std::string lastUpdateUtc;
 };
 
+struct UIHealthSnapshot {
+    bool engineInitialized{false};
+    bool audioDeviceReady{false};
+    bool lastRenderCycleOk{false};
+    uint64_t renderCycleCounter{0};
+};
+
 class EngineBridge final : public QObject
 {
     Q_OBJECT
@@ -33,6 +41,7 @@ public:
     Q_INVOKABLE void setMasterGain(double linear01);
 
     bool tryGetStatus(UIStatus& out);
+    bool tryGetHealth(UIHealthSnapshot& out) const;
 
     double meterL() const noexcept;
     double meterR() const noexcept;
@@ -52,4 +61,9 @@ private:
     double meterRightValue = 0.0;
     bool runningValue = false;
     uint32_t nextCommandSeq = 1;
+
+    std::atomic<bool> healthEngineInitialized { false };
+    std::atomic<bool> healthAudioDeviceReady { false };
+    std::atomic<bool> healthLastRenderCycleOk { false };
+    std::atomic<uint64_t> healthRenderCycleCounter { 0 };
 };

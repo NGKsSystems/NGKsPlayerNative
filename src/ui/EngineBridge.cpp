@@ -1,12 +1,14 @@
 #include "ui/EngineBridge.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "engine/command/Command.h"
 
 EngineBridge::EngineBridge(QObject* parent)
     : QObject(parent)
 {
+    healthEngineInitialized.store(true, std::memory_order_relaxed);
     engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_A, nextCommandSeq++, 1001ULL, 0.0f, 0 });
     engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_B, nextCommandSeq++, 1002ULL, 0.0f, 0 });
 
@@ -40,6 +42,15 @@ bool EngineBridge::tryGetStatus(UIStatus& out)
     return out.engineReady;
 }
 
+bool EngineBridge::tryGetHealth(UIHealthSnapshot& out) const
+{
+    out.engineInitialized = healthEngineInitialized.load(std::memory_order_relaxed);
+    out.audioDeviceReady = healthAudioDeviceReady.load(std::memory_order_relaxed);
+    out.lastRenderCycleOk = healthLastRenderCycleOk.load(std::memory_order_relaxed);
+    out.renderCycleCounter = healthRenderCycleCounter.load(std::memory_order_relaxed);
+    return out.engineInitialized;
+}
+
 double EngineBridge::meterL() const noexcept
 {
     return meterLeftValue;
@@ -64,6 +75,16 @@ void EngineBridge::pollSnapshot()
     const bool nowRunning = (transport == ngks::TransportState::Starting)
         || (transport == ngks::TransportState::Playing)
         || (transport == ngks::TransportState::Stopping);
+
+    const bool audioReady = (snapshot.flags & ngks::SNAP_AUDIO_RUNNING) != 0u;
+    const bool renderOk = std::isfinite(snapshot.masterPeakL)
+        && std::isfinite(snapshot.masterPeakR)
+        && std::isfinite(snapshot.masterRmsL)
+        && std::isfinite(snapshot.masterRmsR);
+
+    healthAudioDeviceReady.store(audioReady, std::memory_order_relaxed);
+    healthLastRenderCycleOk.store(renderOk, std::memory_order_relaxed);
+    healthRenderCycleCounter.fetch_add(1u, std::memory_order_relaxed);
 
     if (newL != meterLeftValue) {
         meterLeftValue = newL;

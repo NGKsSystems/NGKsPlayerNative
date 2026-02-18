@@ -128,6 +128,20 @@ QString statusSummaryLine(const UIStatus& status)
              QString::fromStdString(status.lastUpdateUtc));
 }
 
+QString boolToFlag(bool value)
+{
+    return value ? QStringLiteral("TRUE") : QStringLiteral("FALSE");
+}
+
+QString healthSummaryLine(const UIHealthSnapshot& health)
+{
+    return QStringLiteral("HealthEngineInit=%1 HealthAudioReady=%2 HealthRenderOK=%3 RenderCycleCounter=%4")
+        .arg(boolToFlag(health.engineInitialized),
+             boolToFlag(health.audioDeviceReady),
+             boolToFlag(health.lastRenderCycleOk),
+             QString::number(static_cast<qulonglong>(health.renderCycleCounter)));
+}
+
 class DiagnosticsDialog : public QDialog {
 public:
     explicit DiagnosticsDialog(QWidget* parent = nullptr)
@@ -161,6 +175,12 @@ public:
         lastUpdateLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(lastUpdateLabel_);
 
+        healthLabel_ = new QLabel(
+            QStringLiteral("Engine Health:\n  Initialized: FALSE\n  Audio Ready: FALSE\n  Render OK: FALSE\n  Render Cycles: 0"),
+            this);
+        healthLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(healthLabel_);
+
         logTailBox_ = new QPlainTextEdit(this);
         logTailBox_->setReadOnly(true);
         layout->addWidget(logTailBox_);
@@ -176,6 +196,16 @@ public:
         statusLabel_->setText(status.engineReady ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
         detailsLabel_->setText(statusSummaryLine(status));
         lastUpdateLabel_->setText(QStringLiteral("Last status update: %1").arg(QString::fromStdString(status.lastUpdateUtc)));
+    }
+
+    void setHealth(const UIHealthSnapshot& health)
+    {
+        healthLabel_->setText(
+            QStringLiteral("Engine Health:\n  Initialized: %1\n  Audio Ready: %2\n  Render OK: %3\n  Render Cycles: %4")
+                .arg(boolToFlag(health.engineInitialized),
+                     boolToFlag(health.audioDeviceReady),
+                     boolToFlag(health.lastRenderCycleOk),
+                     QString::number(static_cast<qulonglong>(health.renderCycleCounter))));
     }
 
     void refreshLogTail()
@@ -209,6 +239,7 @@ private:
     QLabel* statusLabel_{nullptr};
     QLabel* detailsLabel_{nullptr};
     QLabel* lastUpdateLabel_{nullptr};
+    QLabel* healthLabel_{nullptr};
     QPlainTextEdit* logTailBox_{nullptr};
 };
 
@@ -243,6 +274,11 @@ public:
         statusDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(statusDetailsLabel_);
 
+        healthDetailsLabel_ = new QLabel(QStringLiteral("HealthEngineInit=FALSE HealthAudioReady=FALSE HealthRenderOK=FALSE RenderCycleCounter=0"), root);
+        healthDetailsLabel_->setWordWrap(true);
+        healthDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(healthDetailsLabel_);
+
         layout->addStretch(1);
         setCentralWidget(root);
 
@@ -268,6 +304,7 @@ private:
         if (!lastStatus_.lastUpdateUtc.empty()) {
             diagnosticsDialog_->setStatus(lastStatus_);
         }
+        diagnosticsDialog_->setHealth(lastHealth_);
         diagnosticsDialog_->refreshLogTail();
         diagnosticsDialog_->show();
         diagnosticsDialog_->raise();
@@ -286,17 +323,38 @@ private:
             status.engineReady = false;
         }
 
+        UIHealthSnapshot health {};
+        const bool healthReady = bridge_.tryGetHealth(health);
+        if (!healthReady) {
+            health.engineInitialized = false;
+            health.audioDeviceReady = false;
+            health.lastRenderCycleOk = false;
+            health.renderCycleCounter = 0;
+        }
+
         lastStatus_ = status;
+        lastHealth_ = health;
         engineStatusLabel_->setText(status.engineReady ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
         statusDetailsLabel_->setText(statusSummaryLine(status));
+        healthDetailsLabel_->setText(healthSummaryLine(health));
 
         if (diagnosticsDialog_) {
             diagnosticsDialog_->setStatus(status);
+            diagnosticsDialog_->setHealth(health);
         }
 
         if (!statusTickLogged_) {
             qInfo().noquote() << QStringLiteral("StatusPollTick=PASS %1").arg(statusSummaryLine(status));
             statusTickLogged_ = true;
+        }
+
+        if (!healthTickLogged_) {
+            qInfo() << "HealthPollTick=PASS";
+            qInfo().noquote() << QStringLiteral("HealthEngineInit=%1").arg(boolToFlag(health.engineInitialized));
+            qInfo().noquote() << QStringLiteral("HealthAudioReady=%1").arg(boolToFlag(health.audioDeviceReady));
+            qInfo().noquote() << QStringLiteral("HealthRenderOK=%1").arg(boolToFlag(health.lastRenderCycleOk));
+            qInfo().noquote() << QStringLiteral("RenderCycleCounter=%1").arg(QString::number(static_cast<qulonglong>(health.renderCycleCounter)));
+            healthTickLogged_ = true;
         }
     }
 
@@ -316,8 +374,11 @@ private:
     QLabel* bridgeStatusLabel_{nullptr};
     QLabel* engineStatusLabel_{nullptr};
     QLabel* statusDetailsLabel_{nullptr};
+    QLabel* healthDetailsLabel_{nullptr};
     UIStatus lastStatus_ {};
+    UIHealthSnapshot lastHealth_ {};
     bool statusTickLogged_{false};
+    bool healthTickLogged_{false};
 };
 
 } // namespace
