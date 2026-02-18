@@ -160,29 +160,12 @@ GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
         }
     }
 
-    float sumSquares = 0.0f;
-    for (int sample = 0; sample < safeSamples; ++sample) {
-        const float mono = 0.5f * (masterBusL[sample] + masterBusR[sample]);
-        sumSquares += mono * mono;
-    }
-
-    stats.masterRms = std::sqrt(sumSquares / static_cast<float>(safeSamples));
-
     masterFxChain.process(masterBusL.data(), masterBusR.data(), safeSamples);
 
-    float postMasterSumSquares = 0.0f;
     for (int sample = 0; sample < safeSamples; ++sample) {
-        const float mono = 0.5f * (masterBusL[sample] + masterBusR[sample]);
-        postMasterSumSquares += mono * mono;
+        outLeft[sample] = masterBusL[sample];
+        outRight[sample] = masterBusR[sample];
     }
-    stats.masterRms = std::sqrt(postMasterSumSquares / static_cast<float>(safeSamples));
-
-    outputNode.renderToDevice(masterBusL.data(),
-                              masterBusR.data(),
-                              safeSamples,
-                              static_cast<float>(state.masterGain),
-                              outLeft,
-                              outRight);
 
     if (safeSamples < numSamples) {
         for (int sample = safeSamples; sample < numSamples; ++sample) {

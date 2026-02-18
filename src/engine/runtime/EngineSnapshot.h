@@ -72,6 +72,7 @@ struct EngineSnapshot {
     float masterRmsR{0.0f};
     float masterPeakL{0.0f};
     float masterPeakR{0.0f};
+    bool masterLimiterActive{false};
 
     DeckSnapshot decks[MAX_DECKS] {};
     uint8_t masterFxSlotEnabled[8]{};

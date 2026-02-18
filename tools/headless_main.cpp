@@ -7,13 +7,14 @@
 
 #include "engine/EngineCore.h"
 #include "engine/command/Command.h"
-#include "engine/runtime/fx/FxTypes.h"
 
 namespace {
 
-constexpr int kPolls = 500;
+constexpr int kPolls = 400;
 constexpr int kPollSleepMs = 10;
-constexpr int kRmsSamples = 40;
+constexpr int kMetricSamples = 60;
+constexpr float kLimiterThreshold = 0.95f;
+constexpr float kPeakTolerance = 0.0001f;
 
 void sendSetDeckTrack(EngineCore& engine, ngks::DeckId deck, uint32_t seq, uint64_t trackId, const char* label)
 {
@@ -36,9 +37,9 @@ void sendPlay(EngineCore& engine, ngks::DeckId deck, uint32_t seq)
     engine.enqueueCommand({ ngks::CommandType::Play, deck, seq, 0, 0.0f, 0, 0 });
 }
 
-void sendStop(EngineCore& engine, ngks::DeckId deck, uint32_t seq)
+void sendSetDeckGain(EngineCore& engine, ngks::DeckId deck, uint32_t seq, float gain)
 {
-    engine.enqueueCommand({ ngks::CommandType::Stop, deck, seq, 0, 0.0f, 0, 0 });
+    engine.enqueueCommand({ ngks::CommandType::SetDeckGain, deck, seq, 0, gain, 0, 0 });
 }
 
 bool waitWarmup(EngineCore& engine)
@@ -77,29 +78,25 @@ bool waitDeckPlaying(EngineCore& engine, ngks::DeckId deckId)
     return false;
 }
 
-float sampleDeckRms(EngineCore& engine, ngks::DeckId deckId)
-{
-    float sum = 0.0f;
-    for (int i = 0; i < kRmsSamples; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
-        const auto snapshot = engine.getSnapshot();
-        sum += snapshot.decks[deckId].rmsL;
-    }
-    return sum / static_cast<float>(kRmsSamples);
-}
+struct MasterMetricWindow {
+    float avgRmsL{0.0f};
+    float maxPeakL{0.0f};
+    bool limiterSeen{false};
+};
 
-bool waitStableFxState(EngineCore& engine, ngks::DeckId deckId, int slotIndex, bool enabled, float dryWet, uint32_t type)
+MasterMetricWindow sampleMasterMetrics(EngineCore& engine)
 {
-    for (int poll = 0; poll < kPolls; ++poll) {
+    MasterMetricWindow metrics;
+    float rmsAccum = 0.0f;
+    for (int i = 0; i < kMetricSamples; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
         const auto snapshot = engine.getSnapshot();
-        const auto& slot = snapshot.decks[deckId].fxSlots[slotIndex];
-        const bool dryWetOk = std::abs(slot.dryWet - dryWet) < 0.001f;
-        if (slot.enabled == enabled && dryWetOk && slot.type == type) {
-            return true;
-        }
+        rmsAccum += snapshot.masterRmsL;
+        metrics.maxPeakL = std::max(metrics.maxPeakL, snapshot.masterPeakL);
+        metrics.limiterSeen = metrics.limiterSeen || snapshot.masterLimiterActive;
     }
-    return false;
+    metrics.avgRmsL = rmsAccum / static_cast<float>(kMetricSamples);
+    return metrics;
 }
 
 } // namespace
@@ -110,6 +107,7 @@ int main()
     bool pass = true;
     uint32_t seq = 10u;
 
+    engine.updateCrossfader(0.0f);
     sendSetDeckTrack(engine, ngks::DECK_A, seq++, 3001ULL, "DeckA");
     engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 3001ULL, 0.0f, 0, 0, 301u });
     const bool analyzed = waitDeckAnalyzed(engine, ngks::DECK_A);
@@ -119,59 +117,26 @@ int main()
     const bool playing = waitDeckPlaying(engine, ngks::DECK_A);
     const bool warmup = waitWarmup(engine);
 
-    const float baselineRms = sampleDeckRms(engine, ngks::DECK_A);
-
-    engine.enqueueCommand({ ngks::CommandType::SetFxSlotType,
-                            ngks::DECK_A,
-                            seq++,
-                            0,
-                            0.0f,
-                            0,
-                            0,
-                            static_cast<uint32_t>(ngks::FxType::Gain) });
-    engine.enqueueCommand({ ngks::CommandType::SetDeckFxGain, ngks::DECK_A, seq++, 0, 0.5f, 0, 0 });
-    engine.enqueueCommand({ ngks::CommandType::SetFxSlotDryWet, ngks::DECK_A, seq++, 0, 1.0f, 0, 0 });
-    engine.enqueueCommand({ ngks::CommandType::SetFxSlotEnabled, ngks::DECK_A, seq++, 0, 0.0f, 1, 0 });
-
-    const bool fxEnabledState = waitStableFxState(
-        engine,
-        ngks::DECK_A,
-        0,
-        true,
-        1.0f,
-        static_cast<uint32_t>(ngks::FxType::Gain));
-    const float fxRms = sampleDeckRms(engine, ngks::DECK_A);
-
-    engine.enqueueCommand({ ngks::CommandType::SetFxSlotEnabled, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
-    const bool fxDisabledState = waitStableFxState(
-        engine,
-        ngks::DECK_A,
-        0,
-        false,
-        1.0f,
-        static_cast<uint32_t>(ngks::FxType::Gain));
-    const float restoredRms = sampleDeckRms(engine, ngks::DECK_A);
-
-    const float ratio = (baselineRms > 0.0001f) ? (fxRms / baselineRms) : 0.0f;
-    const bool reducedExpected = ratio > 0.40f && ratio < 0.60f;
-    const bool restoredExpected = (restoredRms > 0.0f) && (std::abs(restoredRms - baselineRms) / baselineRms < 0.25f);
+    const auto baseline = sampleMasterMetrics(engine);
     const auto snapshot = engine.getSnapshot();
-    const bool noIllegalTransition = snapshot.lastCommandResult[ngks::DECK_A] != ngks::CommandResult::IllegalTransition;
-
-    const bool fxPass = analyzed
+    const bool baselinePass = analyzed
         && playing
         && warmup
-        && fxEnabledState
-        && reducedExpected
-        && fxDisabledState
-        && restoredExpected
-        && noIllegalTransition;
+        && baseline.avgRmsL > 0.0f
+        && baseline.maxPeakL > 0.0f
+        && !baseline.limiterSeen
+        && !snapshot.masterLimiterActive;
 
-    pass = pass && fxPass;
+    sendSetDeckGain(engine, ngks::DECK_A, seq++, 12.0f);
+    const auto clipped = sampleMasterMetrics(engine);
 
-    sendStop(engine, ngks::DECK_A, seq++);
+    const bool limiterPass = clipped.limiterSeen
+        && clipped.maxPeakL <= (kLimiterThreshold + kPeakTolerance)
+        && clipped.avgRmsL > 0.0f;
 
-    std::cout << "FxChainTest=" << (pass ? "PASS" : "FAIL") << std::endl;
+    pass = baselinePass && limiterPass;
+    std::cout << "MasterBusTest=" << (baselinePass ? "PASS" : "FAIL") << std::endl;
+    std::cout << "LimiterClampTest=" << (limiterPass ? "PASS" : "FAIL") << std::endl;
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }

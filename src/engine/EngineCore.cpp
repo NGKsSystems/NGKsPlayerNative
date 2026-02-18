@@ -605,7 +605,7 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
         }
         return ngks::CommandResult::Applied;
     case ngks::CommandType::SetDeckGain:
-        deck.deckGain = std::clamp(command.floatValue, 0.0f, 1.5f);
+        deck.deckGain = std::clamp(command.floatValue, 0.0f, 12.0f);
         return ngks::CommandResult::Applied;
     case ngks::CommandType::SetMasterGain:
         snapshot.masterGain = std::clamp(static_cast<double>(command.floatValue), 0.0, 1.5);
@@ -720,9 +720,13 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
 
     const auto graphStats = audioGraph.render(working, mixMatrix_, numSamples, left, right);
 
-    masterRmsSmoothing = masterRmsSmoothing + rmsSmoothingAlpha * (graphStats.masterRms - masterRmsSmoothing);
-    working.masterRmsL = masterRmsSmoothing;
-    working.masterRmsR = masterRmsSmoothing;
+    masterBus_.setGainTrim(static_cast<float>(working.masterGain));
+    const auto masterMeters = masterBus_.process(left, right, numSamples);
+    working.masterRmsL = masterMeters.masterRmsL;
+    working.masterRmsR = masterMeters.masterRmsR;
+    working.masterPeakL = masterMeters.masterPeakL;
+    working.masterPeakR = masterMeters.masterPeakR;
+    working.masterLimiterActive = masterMeters.limiterEngaged;
 
     float instantaneousMasterPeak = 0.0f;
     for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
@@ -817,9 +821,6 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
     } else {
         masterPeakSmoothing *= peakDecayFactor;
     }
-
-    working.masterPeakL = masterPeakSmoothing;
-    working.masterPeakR = masterPeakSmoothing;
 
     if ((working.flags & ngks::SNAP_AUDIO_RUNNING) != 0u
         && (working.flags & ngks::SNAP_WARMUP_COMPLETE) == 0u) {

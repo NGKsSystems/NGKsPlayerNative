@@ -8,7 +8,6 @@
 #include "engine/runtime/graph/CueMixNode.h"
 #include "engine/runtime/graph/DeckNode.h"
 #include "engine/runtime/graph/MasterMixNode.h"
-#include "engine/runtime/graph/OutputNode.h"
 
 namespace ngks {
 
@@ -19,7 +18,6 @@ struct GraphDeckStats {
 
 struct GraphRenderStats {
     std::array<GraphDeckStats, MAX_DECKS> decks {};
-    float masterRms = 0.0f;
 };
 
 class AudioGraph {
@@ -51,7 +49,6 @@ private:
     FxChain masterFxChain;
     MasterMixNode masterMixNode;
     CueMixNode cueMixNode;
-    OutputNode outputNode;
 
     std::array<std::array<float, maxGraphBlock>, MAX_DECKS> deckBufferL {};
     std::array<std::array<float, maxGraphBlock>, MAX_DECKS> deckBufferR {};

@@ -7,6 +7,7 @@
 #include "engine/command/Command.h"
 #include "engine/runtime/DeckAuthorityState.h"
 #include "engine/runtime/EngineSnapshot.h"
+#include "engine/runtime/MasterBus.h"
 #include "engine/runtime/MixMatrix.h"
 #include "engine/runtime/SPSCCommandRing.h"
 #include "engine/runtime/graph/AudioGraph.h"
@@ -51,6 +52,7 @@ private:
     ngks::SPSCCommandRing<1024> commandRing;
     MixMatrix mixMatrix_ {};
     float crossfaderPosition_ = 0.5f;
+    ngks::MasterBus masterBus_ {};
     ngks::AudioGraph audioGraph;
     ngks::JobSystem jobSystem;
     ngks::TrackRegistry trackRegistry;
