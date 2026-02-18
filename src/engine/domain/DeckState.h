@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include <cstdint>
 #include "DeckId.h"
 #include "TransportState.h"
 
@@ -8,7 +8,8 @@ namespace ngks {
 struct DeckState {
     DeckId id{};
     bool hasTrack{false};
-    std::string trackUid{};
+    uint64_t trackId{0};
+    char trackLabel[64]{};
 
     TransportState transport{TransportState::Stopped};
 
