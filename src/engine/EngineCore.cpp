@@ -7,6 +7,8 @@
 namespace
 {
 constexpr float audibleRmsThresholdLinear = 0.0316227766f;
+constexpr float warmupAudibleRmsThreshold = 0.005f;
+constexpr uint32_t warmupConsecutiveBlocksRequired = 50u;
 constexpr float rmsSmoothingAlpha = 0.2f;
 constexpr float peakDecayFactor = 0.96f;
 constexpr int peakHoldBlocks = 8;
@@ -161,6 +163,10 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
 
     ngks::EngineSnapshot working = snapshots[front];
 
+    if (audioOpened.load(std::memory_order_acquire)) {
+        working.flags |= ngks::SNAP_AUDIO_RUNNING;
+    }
+
     ngks::Command command { ngks::CommandType::Stop };
     while (commandRing.pop(command)) {
         const auto result = applyCommand(working, command);
@@ -241,6 +247,22 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
 
     working.masterPeakL = masterPeakSmoothing;
     working.masterPeakR = masterPeakSmoothing;
+
+    if ((working.flags & ngks::SNAP_AUDIO_RUNNING) != 0u
+        && (working.flags & ngks::SNAP_WARMUP_COMPLETE) == 0u) {
+        const float warmupRms = std::max(working.masterRmsL, working.masterRmsR);
+        if (warmupRms > warmupAudibleRmsThreshold) {
+            if (working.warmupCounter < warmupConsecutiveBlocksRequired) {
+                ++working.warmupCounter;
+            }
+        } else {
+            working.warmupCounter = 0;
+        }
+
+        if (working.warmupCounter >= warmupConsecutiveBlocksRequired) {
+            working.flags |= ngks::SNAP_WARMUP_COMPLETE;
+        }
+    }
 
     snapshots[back] = working;
     frontSnapshotIndex.store(back, std::memory_order_release);

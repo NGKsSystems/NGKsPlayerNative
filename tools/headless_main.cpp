@@ -19,7 +19,27 @@ int main()
 
     const uint32_t seqPlayA = seq;
     engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
-    std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+
+    bool warmupComplete = false;
+    ngks::EngineSnapshot warmupSnapshot = engine.getSnapshot();
+    for (int attempt = 0; attempt < 300; ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        warmupSnapshot = engine.getSnapshot();
+        if ((warmupSnapshot.flags & ngks::SNAP_WARMUP_COMPLETE) != 0u) {
+            warmupComplete = true;
+            break;
+        }
+    }
+
+    if (!warmupComplete) {
+        const bool audioRunning = (warmupSnapshot.flags & ngks::SNAP_AUDIO_RUNNING) != 0u;
+        std::cout << "WarmupTimeout: audioRunning=" << (audioRunning ? 1 : 0)
+                  << " masterRms=" << warmupSnapshot.masterRmsL
+                  << " warmupCounter=" << warmupSnapshot.warmupCounter
+                  << std::endl;
+        std::cout << "RunResult=FAIL" << std::endl;
+        return 1;
+    }
 
     auto snapshot = engine.getSnapshot();
     std::cout << "DeckCount=" << static_cast<int>(ngks::MAX_DECKS) << std::endl;
@@ -57,6 +77,9 @@ int main()
 
     snapshot = engine.getSnapshot();
     pass = pass && snapshot.lastProcessedCommandSeq >= seqDeckFxGain;
+
+    engine.enqueueCommand({ ngks::CommandType::EnableDeckFxSlot, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     const uint32_t seqPlayB = seq;
     engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_B, seq++, 0, 0.0f, 0, 0 });

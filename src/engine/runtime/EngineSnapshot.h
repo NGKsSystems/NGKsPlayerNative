@@ -7,6 +7,9 @@
 
 namespace ngks {
 
+constexpr uint32_t SNAP_AUDIO_RUNNING = 1u << 0;
+constexpr uint32_t SNAP_WARMUP_COMPLETE = 1u << 1;
+
 enum class CommandResult : uint8_t {
     None = 0,
     Applied = 1,
@@ -39,6 +42,9 @@ struct DeckSnapshot {
 };
 
 struct EngineSnapshot {
+    uint32_t flags{0};
+    uint32_t warmupCounter{0};
+
     double masterGain{1.0};
     float masterRmsL{0.0f};
     float masterRmsR{0.0f};
