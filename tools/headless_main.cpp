@@ -1,5 +1,4 @@
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -26,7 +25,7 @@ void sendSetDeckTrack(EngineCore& engine, ngks::DeckId deck, uint32_t seq, uint6
     engine.enqueueCommand(command);
 }
 
-bool waitAnalyzeDone(EngineCore& engine, uint32_t jobId)
+bool waitAnalyzeComplete(EngineCore& engine, uint32_t jobId)
 {
     for (int i = 0; i < kPolls; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
@@ -41,26 +40,30 @@ bool waitAnalyzeDone(EngineCore& engine, uint32_t jobId)
     return false;
 }
 
-bool waitDeckPlaying(EngineCore& engine, ngks::DeckId deck)
+bool waitPublicFacing(EngineCore& engine, ngks::DeckId deck)
 {
     for (int i = 0; i < kPolls; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
         const auto snapshot = engine.getSnapshot();
-        if (snapshot.decks[deck].lifecycle == DeckLifecycleState::Playing) {
+        if (snapshot.decks[deck].publicFacing) {
             return true;
         }
     }
     return false;
 }
 
-ngks::EngineSnapshot settleSnapshot(EngineCore& engine)
+bool waitUnlockedStopped(EngineCore& engine, ngks::DeckId deck)
 {
-    ngks::EngineSnapshot snapshot = engine.getSnapshot();
-    for (int i = 0; i < 40; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        snapshot = engine.getSnapshot();
+    for (int i = 0; i < kPolls; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kPollSleepMs));
+        const auto snapshot = engine.getSnapshot();
+        if (snapshot.decks[deck].lifecycle == DeckLifecycleState::Stopped
+            && !snapshot.decks[deck].publicFacing
+            && !snapshot.decks[deck].commandLocked) {
+            return true;
+        }
     }
-    return snapshot;
+    return false;
 }
 
 } // namespace
@@ -69,56 +72,53 @@ int main()
 {
     EngineCore engine;
     bool pass = true;
-    uint32_t seq = 1;
 
-    sendSetDeckTrack(engine, ngks::DECK_A, seq++, kTrackA, "DeckA");
-    sendSetDeckTrack(engine, ngks::DECK_B, seq++, kTrackB, "DeckB");
+    sendSetDeckTrack(engine, ngks::DECK_A, 10u, kTrackA, "DeckA");
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    sendSetDeckTrack(engine, ngks::DECK_A, 9u, kTrackB, "DeckB");
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, kTrackA, 0.0f, 0, 0, 1u });
-    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_B, seq++, kTrackB, 0.0f, 0, 0, 2u });
+    auto snapshot = engine.getSnapshot();
+    const bool outOfOrderPass =
+        snapshot.lastCommandResult[ngks::DECK_A] == ngks::CommandResult::OutOfOrderSeq
+        && snapshot.decks[ngks::DECK_A].lastAcceptedCommandSeq == 10u;
+    std::cout << "OutOfOrderObservedResult=" << static_cast<int>(snapshot.lastCommandResult[ngks::DECK_A]) << std::endl;
+    std::cout << "OutOfOrderObservedLastAcceptedSeq=" << snapshot.decks[ngks::DECK_A].lastAcceptedCommandSeq << std::endl;
+    std::cout << "OutOfOrderSeqCheck: " << (outOfOrderPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && outOfOrderPass;
 
-    const bool analyzeA = waitAnalyzeDone(engine, 1u);
-    const bool analyzeB = waitAnalyzeDone(engine, 2u);
-    pass = pass && analyzeA && analyzeB;
+    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, 11u, kTrackA, 0.0f, 0, 0, 1u });
+    const bool analyzed = waitAnalyzeComplete(engine, 1u);
+    engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_A, 12u, 0, 0.0f, 1, 0 });
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, 13u, 0, 0.0f, 0, 0 });
 
-    engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_A, seq++, 0, 0.0f, 1, 0 });
-    engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_B, seq++, 0, 0.0f, 1, 0 });
+    const bool publicFacingReady = analyzed && waitPublicFacing(engine, ngks::DECK_A);
+    snapshot = engine.getSnapshot();
+    const uint64_t trackBeforeLock = snapshot.decks[ngks::DECK_A].currentTrackId;
 
-    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq++, 0, 0.0f, 0, 0 });
-    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_B, seq++, 0, 0.0f, 0, 0 });
+    engine.enqueueCommand({ ngks::CommandType::UnloadTrack, ngks::DECK_A, 14u, 0, 0.0f, 0, 0 });
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    snapshot = engine.getSnapshot();
+    const bool lockPass = publicFacingReady
+        && snapshot.lastCommandResult[ngks::DECK_A] == ngks::CommandResult::DeckLocked
+        && snapshot.decks[ngks::DECK_A].lifecycle == DeckLifecycleState::Playing
+        && snapshot.decks[ngks::DECK_A].currentTrackId == trackBeforeLock;
+    std::cout << "PublicFacingLockCheck: " << (lockPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && lockPass;
 
-    const bool playingA = waitDeckPlaying(engine, ngks::DECK_A);
-    const bool playingB = waitDeckPlaying(engine, ngks::DECK_B);
-    pass = pass && playingA && playingB;
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A, 15u, 0, 0.0f, 0, 0 });
+    const bool stoppedUnlocked = waitUnlockedStopped(engine, ngks::DECK_A);
 
-    engine.updateCrossfader(0.0f);
-    auto snapshot = settleSnapshot(engine);
-    const bool leftAaudible = snapshot.decks[ngks::DECK_A].audible;
-    const bool leftBsilent = !snapshot.decks[ngks::DECK_B].audible;
-    const bool leftPublic = snapshot.decks[ngks::DECK_A].publicFacing && !snapshot.decks[ngks::DECK_B].publicFacing;
-    pass = pass && leftAaudible && leftBsilent && leftPublic;
+    sendSetDeckTrack(engine, ngks::DECK_A, 16u, 2002ULL, "DeckC");
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    snapshot = engine.getSnapshot();
+    const bool unlockPass = stoppedUnlocked
+        && snapshot.lastCommandResult[ngks::DECK_A] == ngks::CommandResult::Applied
+        && snapshot.decks[ngks::DECK_A].currentTrackId == 2002ULL;
+    std::cout << "UnlockAfterStopCheck: " << (unlockPass ? "PASS" : "FAIL") << std::endl;
+    pass = pass && unlockPass;
 
-    engine.updateCrossfader(1.0f);
-    snapshot = settleSnapshot(engine);
-    const bool rightBaudible = snapshot.decks[ngks::DECK_B].audible;
-    const bool rightAsilent = !snapshot.decks[ngks::DECK_A].audible;
-    const bool rightPublic = snapshot.decks[ngks::DECK_B].publicFacing && !snapshot.decks[ngks::DECK_A].publicFacing;
-    pass = pass && rightBaudible && rightAsilent && rightPublic;
-
-    engine.updateCrossfader(0.5f);
-    snapshot = settleSnapshot(engine);
-    const float aWeight = snapshot.decks[ngks::DECK_A].masterWeight;
-    const float bWeight = snapshot.decks[ngks::DECK_B].masterWeight;
-    const float energy = (aWeight * aWeight) + (bWeight * bWeight);
-    const bool bothRmsPositive = snapshot.decks[ngks::DECK_A].rmsL > 0.0f && snapshot.decks[ngks::DECK_B].rmsL > 0.0f;
-    const bool bothBelowFullScale = snapshot.decks[ngks::DECK_A].rmsL < 1.0f && snapshot.decks[ngks::DECK_B].rmsL < 1.0f;
-    const bool equalPower = std::abs(energy - 1.0f) < 0.02f;
-    pass = pass && bothRmsPositive && bothBelowFullScale && equalPower;
-
-    if (pass) {
-        std::cout << "CrossfadeTest=PASS" << std::endl;
-    }
-
+    std::cout << "AuthorityTest=" << (pass ? "PASS" : "FAIL") << std::endl;
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }

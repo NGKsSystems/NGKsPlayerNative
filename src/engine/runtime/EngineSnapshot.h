@@ -20,7 +20,9 @@ enum class CommandResult : uint8_t {
     RejectedInvalidDeck = 4,
     RejectedQueueFull = 5,
     RejectedInvalidSlot = 6,
-    IllegalTransition = 7
+    IllegalTransition = 7,
+    OutOfOrderSeq = 8,
+    DeckLocked = 9
 };
 
 struct DeckSnapshot {
@@ -35,6 +37,8 @@ struct DeckSnapshot {
     uint32_t cachedDeadAirMs{0};
     uint8_t cachedStemsReady{0};
     uint32_t cachedAnalysisStatus{0};
+    uint64_t lastAcceptedCommandSeq{0};
+    bool commandLocked{false};
 
     TransportState transport{TransportState::Stopped};
 

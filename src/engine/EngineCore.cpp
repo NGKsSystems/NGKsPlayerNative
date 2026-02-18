@@ -23,6 +23,10 @@ EngineCore::EngineCore()
     for (uint8_t deck = 0; deck < ngks::MAX_DECKS; ++deck) {
         snapshots[0].decks[deck].id = deck;
         snapshots[1].decks[deck].id = deck;
+        snapshots[0].decks[deck].lastAcceptedCommandSeq = authority_[deck].lastAcceptedSeq;
+        snapshots[1].decks[deck].lastAcceptedCommandSeq = authority_[deck].lastAcceptedSeq;
+        snapshots[0].decks[deck].commandLocked = authority_[deck].locked;
+        snapshots[1].decks[deck].commandLocked = authority_[deck].locked;
     }
 
     const size_t loadedCount = registryStore.load(trackRegistry);
@@ -60,6 +64,26 @@ ngks::EngineSnapshot EngineCore::getSnapshot()
 
 void EngineCore::enqueueCommand(const ngks::Command& command)
 {
+    if (isDeckMutationCommand(command)) {
+        if (command.deck >= ngks::MAX_DECKS || command.deck >= 4) {
+            publishCommandOutcome(command, ngks::CommandResult::RejectedInvalidDeck);
+            return;
+        }
+
+        auto& authority = authority_[command.deck];
+        if (command.seq <= authority.lastAcceptedSeq) {
+            publishCommandOutcome(command, ngks::CommandResult::OutOfOrderSeq);
+            return;
+        }
+
+        if (authority.locked && isCriticalMutationCommand(command)) {
+            publishCommandOutcome(command, ngks::CommandResult::DeckLocked);
+            return;
+        }
+
+        authority.commandInFlight = true;
+    }
+
     if (command.type == ngks::CommandType::SetDeckTrack) {
         publishCommandOutcome(command, ngks::CommandResult::Applied);
         return;
@@ -104,10 +128,43 @@ void EngineCore::enqueueCommand(const ngks::Command& command)
         if (command.deck < ngks::MAX_DECKS) {
             dropped.lastCommandResult[command.deck] = ngks::CommandResult::RejectedQueueFull;
             dropped.lastProcessedCommandSeq = command.seq;
+            if (isDeckMutationCommand(command)) {
+                authority_[command.deck].commandInFlight = false;
+                dropped.decks[command.deck].lastAcceptedCommandSeq = authority_[command.deck].lastAcceptedSeq;
+                dropped.decks[command.deck].commandLocked = authority_[command.deck].locked;
+            }
             const uint32_t back = front ^ 1u;
             snapshots[back] = dropped;
             frontSnapshotIndex.store(back, std::memory_order_release);
         }
+    }
+}
+
+bool EngineCore::isCriticalMutationCommand(const ngks::Command& c)
+{
+    return c.type == ngks::CommandType::SetDeckTrack
+        || c.type == ngks::CommandType::LoadTrack
+        || c.type == ngks::CommandType::UnloadTrack;
+}
+
+bool EngineCore::isDeckMutationCommand(const ngks::Command& c)
+{
+    switch (c.type) {
+    case ngks::CommandType::SetDeckTrack:
+    case ngks::CommandType::LoadTrack:
+    case ngks::CommandType::UnloadTrack:
+    case ngks::CommandType::Play:
+    case ngks::CommandType::Stop:
+    case ngks::CommandType::SetDeckGain:
+    case ngks::CommandType::SetCue:
+    case ngks::CommandType::SetDeckFxGain:
+    case ngks::CommandType::EnableDeckFxSlot:
+    case ngks::CommandType::RequestAnalyzeTrack:
+    case ngks::CommandType::RequestStemsOffline:
+    case ngks::CommandType::CancelJob:
+        return true;
+    default:
+        return false;
     }
 }
 
@@ -375,15 +432,23 @@ void EngineCore::publishCommandOutcome(const ngks::Command& command, ngks::Comma
     const uint32_t back = front ^ 1u;
 
     ngks::EngineSnapshot updated = snapshots[front];
-    if (command.type == ngks::CommandType::SetDeckTrack) {
+    if (result == ngks::CommandResult::Applied && command.type == ngks::CommandType::SetDeckTrack) {
         result = applySetDeckTrack(updated, command);
-    } else if (command.type == ngks::CommandType::SetCue) {
+    } else if (result == ngks::CommandResult::Applied && command.type == ngks::CommandType::SetCue) {
         result = applyCommand(updated, command);
     }
     appendJobResults(updated);
     updated.lastProcessedCommandSeq = command.seq;
     if (command.deck < ngks::MAX_DECKS) {
         updated.lastCommandResult[command.deck] = result;
+        if (isDeckMutationCommand(command)) {
+            if (result == ngks::CommandResult::Applied) {
+                authority_[command.deck].lastAcceptedSeq = command.seq;
+            }
+            authority_[command.deck].commandInFlight = false;
+            updated.decks[command.deck].lastAcceptedCommandSeq = authority_[command.deck].lastAcceptedSeq;
+            updated.decks[command.deck].commandLocked = authority_[command.deck].locked;
+        }
     }
 
     snapshots[back] = updated;
@@ -516,6 +581,14 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         const auto result = applyCommand(working, command);
         if (command.deck < ngks::MAX_DECKS) {
             working.lastCommandResult[command.deck] = result;
+            if (isDeckMutationCommand(command)) {
+                if (result == ngks::CommandResult::Applied) {
+                    authority_[command.deck].lastAcceptedSeq = command.seq;
+                }
+                authority_[command.deck].commandInFlight = false;
+                working.decks[command.deck].lastAcceptedCommandSeq = authority_[command.deck].lastAcceptedSeq;
+                working.decks[command.deck].commandLocked = authority_[command.deck].locked;
+            }
         }
         working.lastProcessedCommandSeq = command.seq;
     }
@@ -569,6 +642,9 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         deck.audible = deckAudible;
         deck.publicFacing = deckAudible;
         deck.cueEnabled = !deck.publicFacing;
+        authority_[deckIndex].locked = deck.publicFacing;
+        deck.commandLocked = authority_[deckIndex].locked;
+        deck.lastAcceptedCommandSeq = authority_[deckIndex].lastAcceptedSeq;
 
         if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Stopping) {
             deck.playheadSeconds += (static_cast<double>(numSamples) / sampleRateHz);

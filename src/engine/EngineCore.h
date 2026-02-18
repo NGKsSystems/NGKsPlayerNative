@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "engine/command/Command.h"
+#include "engine/runtime/DeckAuthorityState.h"
 #include "engine/runtime/EngineSnapshot.h"
 #include "engine/runtime/MixMatrix.h"
 #include "engine/runtime/SPSCCommandRing.h"
@@ -38,12 +39,15 @@ private:
     void applyCachedAnalysisToDeck(ngks::DeckSnapshot& deck, const ngks::AnalysisMeta& analysis) noexcept;
     void persistRegistryIfNeeded(bool force);
     bool validateTransition(DeckLifecycleState from, DeckLifecycleState to);
+    bool isCriticalMutationCommand(const ngks::Command& c);
+    bool isDeckMutationCommand(const ngks::Command& c);
 
     std::unique_ptr<AudioIOJuce> audioIO;
     std::atomic<bool> audioOpened { false };
     std::atomic<uint32_t> frontSnapshotIndex { 0 };
 
     ngks::EngineSnapshot snapshots[2] {};
+    DeckAuthorityState authority_[4] {};
     ngks::SPSCCommandRing<1024> commandRing;
     MixMatrix mixMatrix_ {};
     ngks::AudioGraph audioGraph;
