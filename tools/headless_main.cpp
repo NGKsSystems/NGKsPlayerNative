@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 
+#include "engine/EngineCore.h"
 #include "engine/runtime/MasterBus.h"
 #include "engine/runtime/offline/OfflineRenderConfig.h"
 #include "engine/runtime/offline/OfflineRenderer.h"
@@ -139,8 +140,19 @@ int main()
 
     const bool offlinePass = pcm16Ok && float32Ok;
 
+    EngineCore telemetryProbe(true);
+    telemetryProbe.prepare(static_cast<double>(kSampleRate), static_cast<int>(kBlockSize));
+    float telemetryInterleaved[kBlockSize * 2u] {};
+    telemetryProbe.renderOfflineBlock(telemetryInterleaved, kBlockSize);
+    telemetryProbe.renderOfflineBlock(telemetryInterleaved, kBlockSize);
+    telemetryProbe.renderOfflineBlock(telemetryInterleaved, kBlockSize);
+    const auto telemetry = telemetryProbe.getTelemetrySnapshot();
+    const bool telemetryPass = telemetry.renderCycles >= 3u;
+    std::cout << "TelemetryRenderCycles>=3=" << (telemetryPass ? "PASS" : "FAIL")
+              << " value=" << telemetry.renderCycles << std::endl;
+
     std::cout << "OfflineRenderTest=" << (offlinePass ? "PASS" : "FAIL") << std::endl;
-    const bool pass = offlinePass;
+    const bool pass = offlinePass && telemetryPass;
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }

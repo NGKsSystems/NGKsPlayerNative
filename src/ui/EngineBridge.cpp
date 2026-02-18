@@ -51,6 +51,16 @@ bool EngineBridge::tryGetHealth(UIHealthSnapshot& out) const
     return out.engineInitialized;
 }
 
+bool EngineBridge::tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcept
+{
+    const auto telemetry = engine.getTelemetrySnapshot();
+    out.renderCycles = telemetry.renderCycles;
+    out.audioCallbacks = telemetry.audioCallbacks;
+    out.xruns = telemetry.xruns;
+    out.lastRenderDurationUs = telemetry.lastRenderDurationUs;
+    return true;
+}
+
 double EngineBridge::meterL() const noexcept
 {
     return meterLeftValue;

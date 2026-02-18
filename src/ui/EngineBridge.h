@@ -26,6 +26,13 @@ struct UIHealthSnapshot {
     uint64_t renderCycleCounter{0};
 };
 
+struct UIEngineTelemetrySnapshot {
+    uint64_t renderCycles;
+    uint64_t audioCallbacks;
+    uint64_t xruns;
+    uint32_t lastRenderDurationUs;
+};
+
 class EngineBridge final : public QObject
 {
     Q_OBJECT
@@ -42,6 +49,7 @@ public:
 
     bool tryGetStatus(UIStatus& out);
     bool tryGetHealth(UIHealthSnapshot& out) const;
+    bool tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcept;
 
     double meterL() const noexcept;
     double meterR() const noexcept;

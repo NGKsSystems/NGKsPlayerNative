@@ -142,6 +142,14 @@ QString healthSummaryLine(const UIHealthSnapshot& health)
              QString::number(static_cast<qulonglong>(health.renderCycleCounter)));
 }
 
+QString telemetrySummaryLine(const UIEngineTelemetrySnapshot& telemetry)
+{
+    return QStringLiteral("TelemetryRenderCycles=%1 TelemetryXRuns=%2 TelemetryLastRenderUs=%3")
+        .arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)),
+             QString::number(static_cast<qulonglong>(telemetry.xruns)),
+             QString::number(telemetry.lastRenderDurationUs));
+}
+
 class DiagnosticsDialog : public QDialog {
 public:
     explicit DiagnosticsDialog(QWidget* parent = nullptr)
@@ -181,6 +189,12 @@ public:
         healthLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(healthLabel_);
 
+        telemetryLabel_ = new QLabel(
+            QStringLiteral("Telemetry:\n  Render Cycles: 0\n  Audio Callbacks: 0\n  XRuns: 0\n  Last Render Us: 0"),
+            this);
+        telemetryLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(telemetryLabel_);
+
         logTailBox_ = new QPlainTextEdit(this);
         logTailBox_->setReadOnly(true);
         layout->addWidget(logTailBox_);
@@ -206,6 +220,16 @@ public:
                      boolToFlag(health.audioDeviceReady),
                      boolToFlag(health.lastRenderCycleOk),
                      QString::number(static_cast<qulonglong>(health.renderCycleCounter))));
+    }
+
+    void setTelemetry(const UIEngineTelemetrySnapshot& telemetry)
+    {
+        telemetryLabel_->setText(
+            QStringLiteral("Telemetry:\n  Render Cycles: %1\n  Audio Callbacks: %2\n  XRuns: %3\n  Last Render Us: %4")
+                .arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)),
+                     QString::number(static_cast<qulonglong>(telemetry.audioCallbacks)),
+                     QString::number(static_cast<qulonglong>(telemetry.xruns)),
+                     QString::number(telemetry.lastRenderDurationUs)));
     }
 
     void refreshLogTail()
@@ -240,6 +264,7 @@ private:
     QLabel* detailsLabel_{nullptr};
     QLabel* lastUpdateLabel_{nullptr};
     QLabel* healthLabel_{nullptr};
+    QLabel* telemetryLabel_{nullptr};
     QPlainTextEdit* logTailBox_{nullptr};
 };
 
@@ -279,6 +304,11 @@ public:
         healthDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(healthDetailsLabel_);
 
+        telemetryDetailsLabel_ = new QLabel(QStringLiteral("TelemetryRenderCycles=0 TelemetryXRuns=0 TelemetryLastRenderUs=0"), root);
+        telemetryDetailsLabel_->setWordWrap(true);
+        telemetryDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(telemetryDetailsLabel_);
+
         layout->addStretch(1);
         setCentralWidget(root);
 
@@ -305,6 +335,7 @@ private:
             diagnosticsDialog_->setStatus(lastStatus_);
         }
         diagnosticsDialog_->setHealth(lastHealth_);
+        diagnosticsDialog_->setTelemetry(lastTelemetry_);
         diagnosticsDialog_->refreshLogTail();
         diagnosticsDialog_->show();
         diagnosticsDialog_->raise();
@@ -332,15 +363,24 @@ private:
             health.renderCycleCounter = 0;
         }
 
+        UIEngineTelemetrySnapshot telemetry {};
+        const bool telemetryReady = bridge_.tryGetTelemetry(telemetry);
+        if (!telemetryReady) {
+            telemetry = {};
+        }
+
         lastStatus_ = status;
         lastHealth_ = health;
+        lastTelemetry_ = telemetry;
         engineStatusLabel_->setText(status.engineReady ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
         statusDetailsLabel_->setText(statusSummaryLine(status));
         healthDetailsLabel_->setText(healthSummaryLine(health));
+        telemetryDetailsLabel_->setText(telemetrySummaryLine(telemetry));
 
         if (diagnosticsDialog_) {
             diagnosticsDialog_->setStatus(status);
             diagnosticsDialog_->setHealth(health);
+            diagnosticsDialog_->setTelemetry(telemetry);
         }
 
         if (!statusTickLogged_) {
@@ -355,6 +395,19 @@ private:
             qInfo().noquote() << QStringLiteral("HealthRenderOK=%1").arg(boolToFlag(health.lastRenderCycleOk));
             qInfo().noquote() << QStringLiteral("RenderCycleCounter=%1").arg(QString::number(static_cast<qulonglong>(health.renderCycleCounter)));
             healthTickLogged_ = true;
+        }
+
+        if (!telemetryTickLogged_) {
+            qInfo() << "TelemetryPollTick=PASS";
+            qInfo().noquote() << QStringLiteral("TelemetryRenderCycles=%1").arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)));
+            qInfo().noquote() << QStringLiteral("TelemetryXRuns=%1").arg(QString::number(static_cast<qulonglong>(telemetry.xruns)));
+            qInfo().noquote() << QStringLiteral("TelemetryLastRenderUs=%1").arg(QString::number(telemetry.lastRenderDurationUs));
+            qInfo() << "=== Telemetry Snapshot ===";
+            qInfo().noquote() << QStringLiteral("RenderCycles=%1").arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)));
+            qInfo().noquote() << QStringLiteral("XRuns=%1").arg(QString::number(static_cast<qulonglong>(telemetry.xruns)));
+            qInfo().noquote() << QStringLiteral("LastRenderUs=%1").arg(QString::number(telemetry.lastRenderDurationUs));
+            qInfo() << "==========================";
+            telemetryTickLogged_ = true;
         }
     }
 
@@ -375,10 +428,13 @@ private:
     QLabel* engineStatusLabel_{nullptr};
     QLabel* statusDetailsLabel_{nullptr};
     QLabel* healthDetailsLabel_{nullptr};
+    QLabel* telemetryDetailsLabel_{nullptr};
     UIStatus lastStatus_ {};
     UIHealthSnapshot lastHealth_ {};
+    UIEngineTelemetrySnapshot lastTelemetry_ {};
     bool statusTickLogged_{false};
     bool healthTickLogged_{false};
+    bool telemetryTickLogged_{false};
 };
 
 } // namespace

@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 #include <iostream>
 
 namespace
@@ -343,6 +344,16 @@ bool EngineCore::renderOfflineBlock(float* outInterleavedLR, uint32_t frames)
     }
 
     return true;
+}
+
+EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
+{
+    EngineTelemetrySnapshot snapshot {};
+    snapshot.renderCycles = telemetry_.renderCycles.load(std::memory_order_relaxed);
+    snapshot.audioCallbacks = telemetry_.audioCallbacks.load(std::memory_order_relaxed);
+    snapshot.xruns = telemetry_.xruns.load(std::memory_order_relaxed);
+    snapshot.lastRenderDurationUs = telemetry_.lastRenderDurationUs.load(std::memory_order_relaxed);
+    return snapshot;
 }
 
 void EngineCore::prepare(double sampleRate, int)
@@ -717,7 +728,13 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
 
 void EngineCore::process(float* left, float* right, int numSamples) noexcept
 {
+    telemetry_.audioCallbacks.fetch_add(1u, std::memory_order_relaxed);
+
+    const auto renderStart = std::chrono::high_resolution_clock::now();
+
     if (numSamples <= 0 || left == nullptr || right == nullptr) {
+        telemetry_.xruns.fetch_add(1u, std::memory_order_relaxed);
+        telemetry_.lastRenderDurationUs.store(0u, std::memory_order_relaxed);
         return;
     }
 
@@ -877,4 +894,9 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
 
     snapshots[back] = working;
     frontSnapshotIndex.store(back, std::memory_order_release);
+
+    const auto renderEnd = std::chrono::high_resolution_clock::now();
+    const auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(renderEnd - renderStart).count();
+    telemetry_.renderCycles.fetch_add(1u, std::memory_order_relaxed);
+    telemetry_.lastRenderDurationUs.store(static_cast<uint32_t>(std::max<int64_t>(0, durationUs)), std::memory_order_relaxed);
 }

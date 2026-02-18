@@ -17,6 +17,14 @@
 
 class AudioIOJuce;
 
+struct EngineTelemetrySnapshot
+{
+    uint64_t renderCycles{0};
+    uint64_t audioCallbacks{0};
+    uint64_t xruns{0};
+    uint32_t lastRenderDurationUs{0};
+};
+
 class EngineCore
 {
 public:
@@ -27,9 +35,18 @@ public:
     void enqueueCommand(const ngks::Command& command);
     void updateCrossfader(float x);
     bool renderOfflineBlock(float* outInterleavedLR, uint32_t frames);
+    EngineTelemetrySnapshot getTelemetrySnapshot() const noexcept;
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;
+
+    struct EngineTelemetry
+    {
+        std::atomic<uint64_t> renderCycles { 0 };
+        std::atomic<uint64_t> audioCallbacks { 0 };
+        std::atomic<uint64_t> xruns { 0 };
+        std::atomic<uint32_t> lastRenderDurationUs { 0 };
+    };
 
 private:
     void startAudioIfNeeded();
@@ -70,4 +87,5 @@ private:
     float masterRmsSmoothing = 0.0f;
     float masterPeakSmoothing = 0.0f;
     int masterPeakHoldBlocks = 0;
+    EngineTelemetry telemetry_ {};
 };
