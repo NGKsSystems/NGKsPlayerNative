@@ -1,11 +1,9 @@
 #include "engine/runtime/offline/OfflineRenderer.h"
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
-#include <thread>
 #include <vector>
 
 #include "engine/EngineCore.h"
@@ -14,6 +12,16 @@
 #include "engine/runtime/offline/WavWriter.h"
 
 namespace ngks {
+
+std::string OfflineRenderer::deterministicFileName(const OfflineRenderConfig& config)
+{
+    const uint32_t totalFrames = static_cast<uint32_t>(std::round(config.secondsToRender * static_cast<float>(config.sampleRate)));
+    const char* suffix = (config.wavFormat == OfflineWavFormat::Float32) ? "f32" : "pcm16";
+    return "offline_sr" + std::to_string(config.sampleRate)
+        + "_f" + std::to_string(totalFrames)
+        + "_" + suffix
+        + ".wav";
+}
 
 bool OfflineRenderer::renderToWav(const OfflineRenderConfig& config,
                                   const std::string& outputPath,
@@ -41,16 +49,18 @@ bool OfflineRenderer::renderToWav(const OfflineRenderConfig& config,
 
     engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 4001ULL, 0.0f, 0, 0, 401u });
 
-    {
-        std::vector<float> warmupInterleaved(static_cast<size_t>(config.blockSize) * 2u, 0.0f);
-        for (int i = 0; i < 200; ++i) {
-            engine.renderOfflineBlock(warmupInterleaved.data(), config.blockSize);
-            const auto snapshot = engine.getSnapshot();
-            if (snapshot.decks[ngks::DECK_A].lifecycle == DeckLifecycleState::Analyzed) {
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    std::vector<float> warmupInterleaved(static_cast<size_t>(config.blockSize) * 2u, 0.0f);
+    bool analyzed = false;
+    for (int i = 0; i < 400; ++i) {
+        engine.renderOfflineBlock(warmupInterleaved.data(), config.blockSize);
+        const auto snapshot = engine.getSnapshot();
+        if (snapshot.decks[ngks::DECK_A].lifecycle == DeckLifecycleState::Analyzed) {
+            analyzed = true;
+            break;
         }
+    }
+    if (!analyzed) {
+        return false;
     }
 
     engine.enqueueCommand({ ngks::CommandType::SetCue, ngks::DECK_A, seq++, 0, 0.0f, 1, 0 });
@@ -61,7 +71,7 @@ bool OfflineRenderer::renderToWav(const OfflineRenderConfig& config,
     const uint32_t totalFrames = static_cast<uint32_t>(std::round(config.secondsToRender * static_cast<float>(config.sampleRate)));
 
     WavWriter writer;
-    if (!writer.open(outputPath, config.sampleRate, static_cast<uint16_t>(config.channels))) {
+    if (!writer.open(outputPath, config.sampleRate, static_cast<uint16_t>(config.channels), config.wavFormat)) {
         return false;
     }
 
@@ -89,9 +99,18 @@ bool OfflineRenderer::renderToWav(const OfflineRenderConfig& config,
         return false;
     }
 
+    if (renderedFrames != totalFrames) {
+        return false;
+    }
+
     result.success = true;
     result.renderedFrames = renderedFrames;
     result.peakAbs = peakAbs;
+    result.wavFormatCode = writer.formatCode();
+    result.bitsPerSample = writer.bitsPerSample();
+    result.blockAlign = writer.blockAlign();
+    result.sampleRate = config.sampleRate;
+    result.channels = static_cast<uint16_t>(config.channels);
     return true;
 }
 

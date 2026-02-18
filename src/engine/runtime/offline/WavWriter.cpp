@@ -18,7 +18,7 @@ void writeU32(std::ofstream& stream, uint32_t value)
 
 } // namespace
 
-bool WavWriter::open(const std::string& path, uint32_t sampleRate, uint16_t channels)
+bool WavWriter::open(const std::string& path, uint32_t sampleRate, uint16_t channels, OfflineWavFormat format)
 {
     stream_.open(path, std::ios::binary | std::ios::trunc);
     if (!stream_.is_open()) {
@@ -29,8 +29,10 @@ bool WavWriter::open(const std::string& path, uint32_t sampleRate, uint16_t chan
     channels_ = channels;
     sampleRate_ = sampleRate;
 
-    const uint16_t bitsPerSample = 16;
-    const uint16_t blockAlign = static_cast<uint16_t>(channels_ * (bitsPerSample / 8));
+    format_ = format;
+    bitsPerSample_ = (format_ == OfflineWavFormat::Float32) ? 32 : 16;
+
+    const uint16_t blockAlign = static_cast<uint16_t>(channels_ * (bitsPerSample_ / 8));
     const uint32_t byteRate = sampleRate_ * static_cast<uint32_t>(blockAlign);
 
     stream_.write("RIFF", 4);
@@ -39,12 +41,12 @@ bool WavWriter::open(const std::string& path, uint32_t sampleRate, uint16_t chan
 
     stream_.write("fmt ", 4);
     writeU32(stream_, 16);
-    writeU16(stream_, 1);
+    writeU16(stream_, formatCode());
     writeU16(stream_, channels_);
     writeU32(stream_, sampleRate_);
     writeU32(stream_, byteRate);
     writeU16(stream_, blockAlign);
-    writeU16(stream_, bitsPerSample);
+    writeU16(stream_, bitsPerSample_);
 
     stream_.write("data", 4);
     writeU32(stream_, 0);
@@ -61,10 +63,16 @@ bool WavWriter::writeInterleaved(const float* interleaved, uint32_t frames)
     for (uint32_t frame = 0; frame < frames; ++frame) {
         for (uint16_t channel = 0; channel < channels_; ++channel) {
             const float input = interleaved[frame * channels_ + channel];
-            const float clamped = std::clamp(input, -1.0f, 1.0f);
-            const int16_t pcm = static_cast<int16_t>(clamped * 32767.0f);
-            stream_.write(reinterpret_cast<const char*>(&pcm), sizeof(pcm));
-            dataBytesWritten_ += sizeof(pcm);
+            if (format_ == OfflineWavFormat::Float32) {
+                const float clamped = std::clamp(input, -1.0f, 1.0f);
+                stream_.write(reinterpret_cast<const char*>(&clamped), sizeof(clamped));
+                dataBytesWritten_ += sizeof(clamped);
+            } else {
+                const float clamped = std::clamp(input, -1.0f, 1.0f);
+                const int16_t pcm = static_cast<int16_t>(clamped * 32767.0f);
+                stream_.write(reinterpret_cast<const char*>(&pcm), sizeof(pcm));
+                dataBytesWritten_ += sizeof(pcm);
+            }
         }
     }
 
@@ -84,6 +92,21 @@ bool WavWriter::finalize()
     writeU32(stream_, dataBytesWritten_);
     stream_.close();
     return true;
+}
+
+uint16_t WavWriter::formatCode() const noexcept
+{
+    return static_cast<uint16_t>(format_);
+}
+
+uint16_t WavWriter::bitsPerSample() const noexcept
+{
+    return bitsPerSample_;
+}
+
+uint16_t WavWriter::blockAlign() const noexcept
+{
+    return static_cast<uint16_t>(channels_ * (bitsPerSample_ / 8));
 }
 
 }
