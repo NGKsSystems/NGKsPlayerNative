@@ -1,9 +1,11 @@
 #include <cstdint>
 #include <cstring>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "engine/EngineCore.h"
 #include "engine/runtime/MasterBus.h"
@@ -126,10 +128,122 @@ bool runFormatCase(ngks::OfflineWavFormat format,
     return limiterPeakOk;
 }
 
+struct CliOptions {
+    std::string telemetryCsvPath;
+    int telemetrySeconds = 3;
+};
+
+bool parseCliOptions(int argc, char* argv[], CliOptions& options)
+{
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if (arg == "--telemetry_csv") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.telemetryCsvPath = argv[++i];
+            continue;
+        }
+
+        if (arg == "--telemetry_seconds") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+
+            try {
+                options.telemetrySeconds = std::stoi(argv[++i]);
+            } catch (...) {
+                return false;
+            }
+
+            if (options.telemetrySeconds <= 0) {
+                return false;
+            }
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+int runTelemetryCsvMode(const CliOptions& options)
+{
+    const std::filesystem::path csvPath(options.telemetryCsvPath);
+    if (csvPath.empty()) {
+        std::cerr << "TelemetryCsvMode=FAIL reason=missing_path" << std::endl;
+        return 1;
+    }
+
+    if (csvPath.has_parent_path()) {
+        std::filesystem::create_directories(csvPath.parent_path());
+    }
+
+    std::ofstream csv(csvPath, std::ios::trunc);
+    if (!csv.is_open()) {
+        std::cerr << "TelemetryCsvMode=FAIL reason=open_failed path=" << csvPath.string() << std::endl;
+        return 1;
+    }
+
+    csv << "elapsed_ms,render_cycles,audio_callbacks,xruns,last_render_us,max_render_us,last_callback_us,max_callback_us,window_count,window_last_us\n";
+
+    EngineCore telemetryProbe(true);
+    telemetryProbe.prepare(static_cast<double>(kSampleRate), static_cast<int>(kBlockSize));
+    std::vector<float> interleaved(static_cast<size_t>(kBlockSize) * 2u, 0.0f);
+
+    const int ticks = options.telemetrySeconds * 4;
+    const double callbackMs = (1000.0 * static_cast<double>(kBlockSize)) / static_cast<double>(kSampleRate);
+    int callbacksPerTick = static_cast<int>(250.0 / callbackMs + 0.5);
+    if (callbacksPerTick < 1) {
+        callbacksPerTick = 1;
+    }
+
+    for (int tick = 0; tick <= ticks; ++tick) {
+        for (int cb = 0; cb < callbacksPerTick; ++cb) {
+            telemetryProbe.renderOfflineBlock(interleaved.data(), kBlockSize);
+        }
+
+        const auto telemetry = telemetryProbe.getTelemetrySnapshot();
+        const uint32_t count = telemetry.renderDurationWindowCount;
+        const uint32_t lastWindowUs = (count > 0u) ? telemetry.renderDurationWindowUs[count - 1u] : 0u;
+
+        csv << (tick * 250)
+            << ',' << telemetry.renderCycles
+            << ',' << telemetry.audioCallbacks
+            << ',' << telemetry.xruns
+            << ',' << telemetry.lastRenderDurationUs
+            << ',' << telemetry.maxRenderDurationUs
+            << ',' << telemetry.lastCallbackDurationUs
+            << ',' << telemetry.maxCallbackDurationUs
+            << ',' << telemetry.renderDurationWindowCount
+            << ',' << lastWindowUs
+            << '\n';
+    }
+
+    csv.flush();
+
+    std::cout << "TelemetryCsvMode=PASS" << std::endl;
+    std::cout << "TelemetryCsvPath=" << csvPath.string() << std::endl;
+    std::cout << "TelemetryCsvRows=" << (ticks + 1) << std::endl;
+    std::cout << "RunResult=PASS" << std::endl;
+    return 0;
+}
+
 } // namespace
 
-int main()
+int main(int argc, char* argv[])
 {
+    CliOptions options {};
+    if (!parseCliOptions(argc, argv, options)) {
+        std::cerr << "Usage: NGKsPlayerHeadless [--telemetry_csv <path>] [--telemetry_seconds <int>]" << std::endl;
+        return 1;
+    }
+
+    if (!options.telemetryCsvPath.empty()) {
+        return runTelemetryCsvMode(options);
+    }
+
     const std::filesystem::path outputDir = "_proof/milestone_S/render_out";
     std::filesystem::create_directories(outputDir);
 

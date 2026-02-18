@@ -144,10 +144,43 @@ QString healthSummaryLine(const UIHealthSnapshot& health)
 
 QString telemetrySummaryLine(const UIEngineTelemetrySnapshot& telemetry)
 {
-    return QStringLiteral("TelemetryRenderCycles=%1 TelemetryXRuns=%2 TelemetryLastRenderUs=%3")
+    return QStringLiteral("TelemetryRenderCycles=%1 TelemetryAudioCallbacks=%2 TelemetryXRuns=%3 TelemetryLastRenderUs=%4 TelemetryMaxRenderUs=%5 TelemetryLastCallbackUs=%6 TelemetryMaxCallbackUs=%7")
         .arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)),
+             QString::number(static_cast<qulonglong>(telemetry.audioCallbacks)),
              QString::number(static_cast<qulonglong>(telemetry.xruns)),
-             QString::number(telemetry.lastRenderDurationUs));
+             QString::number(telemetry.lastRenderDurationUs),
+             QString::number(telemetry.maxRenderDurationUs),
+             QString::number(telemetry.lastCallbackDurationUs),
+             QString::number(telemetry.maxCallbackDurationUs));
+}
+
+QString telemetrySparkline(const UIEngineTelemetrySnapshot& telemetry)
+{
+    static const char* levels = " .:-=+*#%@";
+    constexpr int levelCount = 10;
+
+    uint32_t count = telemetry.renderDurationWindowCount;
+    if (count > UIEngineTelemetrySnapshot::kRenderDurationWindowSize) {
+        count = UIEngineTelemetrySnapshot::kRenderDurationWindowSize;
+    }
+    if (count == 0u) {
+        return QStringLiteral("(empty)");
+    }
+
+    uint32_t peak = 1u;
+    for (uint32_t i = 0u; i < count; ++i) {
+        peak = std::max(peak, telemetry.renderDurationWindowUs[i]);
+    }
+
+    QString line;
+    line.reserve(static_cast<int>(count));
+    for (uint32_t i = 0u; i < count; ++i) {
+        const uint32_t value = telemetry.renderDurationWindowUs[i];
+        const int idx = static_cast<int>((static_cast<uint64_t>(value) * static_cast<uint64_t>(levelCount - 1)) / peak);
+        line.append(QChar::fromLatin1(levels[idx]));
+    }
+
+    return line;
 }
 
 class DiagnosticsDialog : public QDialog {
@@ -190,7 +223,7 @@ public:
         layout->addWidget(healthLabel_);
 
         telemetryLabel_ = new QLabel(
-            QStringLiteral("Telemetry:\n  Render Cycles: 0\n  Audio Callbacks: 0\n  XRuns: 0\n  Last Render Us: 0"),
+            QStringLiteral("Telemetry:\n  Render Cycles: 0\n  Audio Callbacks: 0\n  XRuns: 0\n  Last Render Us: 0\n  Max Render Us: 0\n  Last Callback Us: 0\n  Max Callback Us: 0\n  Sparkline: (empty)"),
             this);
         telemetryLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(telemetryLabel_);
@@ -225,11 +258,15 @@ public:
     void setTelemetry(const UIEngineTelemetrySnapshot& telemetry)
     {
         telemetryLabel_->setText(
-            QStringLiteral("Telemetry:\n  Render Cycles: %1\n  Audio Callbacks: %2\n  XRuns: %3\n  Last Render Us: %4")
+            QStringLiteral("Telemetry:\n  Render Cycles: %1\n  Audio Callbacks: %2\n  XRuns: %3\n  Last Render Us: %4\n  Max Render Us: %5\n  Last Callback Us: %6\n  Max Callback Us: %7\n  Sparkline: %8")
                 .arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)),
                      QString::number(static_cast<qulonglong>(telemetry.audioCallbacks)),
                      QString::number(static_cast<qulonglong>(telemetry.xruns)),
-                     QString::number(telemetry.lastRenderDurationUs)));
+                     QString::number(telemetry.lastRenderDurationUs),
+                     QString::number(telemetry.maxRenderDurationUs),
+                     QString::number(telemetry.lastCallbackDurationUs),
+                     QString::number(telemetry.maxCallbackDurationUs),
+                     telemetrySparkline(telemetry)));
     }
 
     void refreshLogTail()
@@ -304,7 +341,7 @@ public:
         healthDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(healthDetailsLabel_);
 
-        telemetryDetailsLabel_ = new QLabel(QStringLiteral("TelemetryRenderCycles=0 TelemetryXRuns=0 TelemetryLastRenderUs=0"), root);
+        telemetryDetailsLabel_ = new QLabel(QStringLiteral("TelemetryRenderCycles=0 TelemetryAudioCallbacks=0 TelemetryXRuns=0 TelemetryLastRenderUs=0 TelemetryMaxRenderUs=0 TelemetryLastCallbackUs=0 TelemetryMaxCallbackUs=0"), root);
         telemetryDetailsLabel_->setWordWrap(true);
         telemetryDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(telemetryDetailsLabel_);
@@ -400,12 +437,22 @@ private:
         if (!telemetryTickLogged_) {
             qInfo() << "TelemetryPollTick=PASS";
             qInfo().noquote() << QStringLiteral("TelemetryRenderCycles=%1").arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)));
+            qInfo().noquote() << QStringLiteral("TelemetryAudioCallbacks=%1").arg(QString::number(static_cast<qulonglong>(telemetry.audioCallbacks)));
             qInfo().noquote() << QStringLiteral("TelemetryXRuns=%1").arg(QString::number(static_cast<qulonglong>(telemetry.xruns)));
             qInfo().noquote() << QStringLiteral("TelemetryLastRenderUs=%1").arg(QString::number(telemetry.lastRenderDurationUs));
+            qInfo().noquote() << QStringLiteral("TelemetryMaxRenderUs=%1").arg(QString::number(telemetry.maxRenderDurationUs));
+            qInfo().noquote() << QStringLiteral("TelemetryLastCallbackUs=%1").arg(QString::number(telemetry.lastCallbackDurationUs));
+            qInfo().noquote() << QStringLiteral("TelemetryMaxCallbackUs=%1").arg(QString::number(telemetry.maxCallbackDurationUs));
+            qInfo().noquote() << QStringLiteral("TelemetrySparkline=%1").arg(telemetrySparkline(telemetry));
             qInfo() << "=== Telemetry Snapshot ===";
             qInfo().noquote() << QStringLiteral("RenderCycles=%1").arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)));
+            qInfo().noquote() << QStringLiteral("AudioCallbacks=%1").arg(QString::number(static_cast<qulonglong>(telemetry.audioCallbacks)));
             qInfo().noquote() << QStringLiteral("XRuns=%1").arg(QString::number(static_cast<qulonglong>(telemetry.xruns)));
             qInfo().noquote() << QStringLiteral("LastRenderUs=%1").arg(QString::number(telemetry.lastRenderDurationUs));
+            qInfo().noquote() << QStringLiteral("MaxRenderUs=%1").arg(QString::number(telemetry.maxRenderDurationUs));
+            qInfo().noquote() << QStringLiteral("LastCallbackUs=%1").arg(QString::number(telemetry.lastCallbackDurationUs));
+            qInfo().noquote() << QStringLiteral("MaxCallbackUs=%1").arg(QString::number(telemetry.maxCallbackDurationUs));
+            qInfo().noquote() << QStringLiteral("Sparkline=%1").arg(telemetrySparkline(telemetry));
             qInfo() << "==========================";
             telemetryTickLogged_ = true;
         }

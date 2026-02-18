@@ -58,6 +58,13 @@ bool EngineBridge::tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcep
     out.audioCallbacks = telemetry.audioCallbacks;
     out.xruns = telemetry.xruns;
     out.lastRenderDurationUs = telemetry.lastRenderDurationUs;
+    out.maxRenderDurationUs = telemetry.maxRenderDurationUs;
+    out.lastCallbackDurationUs = telemetry.lastCallbackDurationUs;
+    out.maxCallbackDurationUs = telemetry.maxCallbackDurationUs;
+    out.renderDurationWindowCount = telemetry.renderDurationWindowCount;
+    for (uint32_t i = 0u; i < UIEngineTelemetrySnapshot::kRenderDurationWindowSize; ++i) {
+        out.renderDurationWindowUs[i] = telemetry.renderDurationWindowUs[i];
+    }
     return true;
 }
 

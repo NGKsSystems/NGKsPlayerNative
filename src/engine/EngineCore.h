@@ -19,10 +19,17 @@ class AudioIOJuce;
 
 struct EngineTelemetrySnapshot
 {
+    static constexpr uint32_t kRenderDurationWindowSize = 64u;
+
     uint64_t renderCycles{0};
     uint64_t audioCallbacks{0};
     uint64_t xruns{0};
     uint32_t lastRenderDurationUs{0};
+    uint32_t maxRenderDurationUs{0};
+    uint32_t lastCallbackDurationUs{0};
+    uint32_t maxCallbackDurationUs{0};
+    uint32_t renderDurationWindowCount{0};
+    uint32_t renderDurationWindowUs[kRenderDurationWindowSize] {};
 };
 
 class EngineCore
@@ -42,10 +49,18 @@ public:
 
     struct EngineTelemetry
     {
+        static constexpr uint32_t kRenderDurationHistorySize = 64u;
+
         std::atomic<uint64_t> renderCycles { 0 };
         std::atomic<uint64_t> audioCallbacks { 0 };
         std::atomic<uint64_t> xruns { 0 };
         std::atomic<uint32_t> lastRenderDurationUs { 0 };
+        std::atomic<uint32_t> maxRenderDurationUs { 0 };
+        std::atomic<uint32_t> lastCallbackDurationUs { 0 };
+        std::atomic<uint32_t> maxCallbackDurationUs { 0 };
+        std::atomic<uint32_t> renderDurationHistoryWriteIndex { 0 };
+        std::atomic<uint32_t> renderDurationHistoryCount { 0 };
+        std::atomic<uint32_t> renderDurationHistoryUs[kRenderDurationHistorySize] {};
     };
 
 private:
@@ -60,6 +75,7 @@ private:
     bool validateTransition(DeckLifecycleState from, DeckLifecycleState to);
     bool isCriticalMutationCommand(const ngks::Command& c);
     bool isDeckMutationCommand(const ngks::Command& c);
+    void pushRenderDurationSample(uint32_t durationUs) noexcept;
 
     std::unique_ptr<AudioIOJuce> audioIO;
     bool offlineMode_ = false;

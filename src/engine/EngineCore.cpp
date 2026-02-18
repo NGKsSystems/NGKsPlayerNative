@@ -24,6 +24,13 @@ constexpr CrossfadeAssignment kDefaultCrossfadeAssignment {
     2
 };
 
+void updateMaxRelaxed(std::atomic<uint32_t>& target, uint32_t value) noexcept
+{
+    uint32_t previous = target.load(std::memory_order_relaxed);
+    while (value > previous && !target.compare_exchange_weak(previous, value, std::memory_order_relaxed)) {
+    }
+}
+
 bool isDeckRoutingActive(const ngks::DeckSnapshot& deck) noexcept
 {
     if (deck.hasTrack == 0) {
@@ -353,7 +360,40 @@ EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
     snapshot.audioCallbacks = telemetry_.audioCallbacks.load(std::memory_order_relaxed);
     snapshot.xruns = telemetry_.xruns.load(std::memory_order_relaxed);
     snapshot.lastRenderDurationUs = telemetry_.lastRenderDurationUs.load(std::memory_order_relaxed);
+    snapshot.maxRenderDurationUs = telemetry_.maxRenderDurationUs.load(std::memory_order_relaxed);
+    snapshot.lastCallbackDurationUs = telemetry_.lastCallbackDurationUs.load(std::memory_order_relaxed);
+    snapshot.maxCallbackDurationUs = telemetry_.maxCallbackDurationUs.load(std::memory_order_relaxed);
+
+    uint32_t count = telemetry_.renderDurationHistoryCount.load(std::memory_order_acquire);
+    if (count > EngineTelemetrySnapshot::kRenderDurationWindowSize) {
+        count = EngineTelemetrySnapshot::kRenderDurationWindowSize;
+    }
+
+    const uint32_t writeIndex = telemetry_.renderDurationHistoryWriteIndex.load(std::memory_order_acquire);
+    snapshot.renderDurationWindowCount = count;
+    if (count > 0u) {
+        const uint32_t windowSize = EngineTelemetrySnapshot::kRenderDurationWindowSize;
+        const uint32_t oldest = (writeIndex + windowSize - count) % windowSize;
+        for (uint32_t i = 0u; i < count; ++i) {
+            const uint32_t sourceIndex = (oldest + i) % windowSize;
+            snapshot.renderDurationWindowUs[i] = telemetry_.renderDurationHistoryUs[sourceIndex].load(std::memory_order_relaxed);
+        }
+    }
+
     return snapshot;
+}
+
+void EngineCore::pushRenderDurationSample(uint32_t durationUs) noexcept
+{
+    const uint32_t writeIndex = telemetry_.renderDurationHistoryWriteIndex.load(std::memory_order_relaxed);
+    const uint32_t slot = writeIndex % EngineTelemetry::kRenderDurationHistorySize;
+    telemetry_.renderDurationHistoryUs[slot].store(durationUs, std::memory_order_relaxed);
+    telemetry_.renderDurationHistoryWriteIndex.store(writeIndex + 1u, std::memory_order_release);
+
+    const uint32_t count = telemetry_.renderDurationHistoryCount.load(std::memory_order_relaxed);
+    if (count < EngineTelemetry::kRenderDurationHistorySize) {
+        telemetry_.renderDurationHistoryCount.store(count + 1u, std::memory_order_release);
+    }
 }
 
 void EngineCore::prepare(double sampleRate, int)
@@ -728,15 +768,23 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
 
 void EngineCore::process(float* left, float* right, int numSamples) noexcept
 {
+    const auto callbackStart = std::chrono::high_resolution_clock::now();
     telemetry_.audioCallbacks.fetch_add(1u, std::memory_order_relaxed);
-
-    const auto renderStart = std::chrono::high_resolution_clock::now();
 
     if (numSamples <= 0 || left == nullptr || right == nullptr) {
         telemetry_.xruns.fetch_add(1u, std::memory_order_relaxed);
         telemetry_.lastRenderDurationUs.store(0u, std::memory_order_relaxed);
+
+        const auto callbackEnd = std::chrono::high_resolution_clock::now();
+        const auto callbackDurationUs = static_cast<uint32_t>(std::max<int64_t>(0,
+            std::chrono::duration_cast<std::chrono::microseconds>(callbackEnd - callbackStart).count()));
+        telemetry_.lastCallbackDurationUs.store(callbackDurationUs, std::memory_order_relaxed);
+        updateMaxRelaxed(telemetry_.maxCallbackDurationUs, callbackDurationUs);
+        pushRenderDurationSample(0u);
         return;
     }
+
+    const auto renderStart = std::chrono::high_resolution_clock::now();
 
     const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
     const uint32_t back = front ^ 1u;
@@ -897,6 +945,15 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
 
     const auto renderEnd = std::chrono::high_resolution_clock::now();
     const auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(renderEnd - renderStart).count();
+    const uint32_t renderDurationUs = static_cast<uint32_t>(std::max<int64_t>(0, durationUs));
     telemetry_.renderCycles.fetch_add(1u, std::memory_order_relaxed);
-    telemetry_.lastRenderDurationUs.store(static_cast<uint32_t>(std::max<int64_t>(0, durationUs)), std::memory_order_relaxed);
+    telemetry_.lastRenderDurationUs.store(renderDurationUs, std::memory_order_relaxed);
+    updateMaxRelaxed(telemetry_.maxRenderDurationUs, renderDurationUs);
+    pushRenderDurationSample(renderDurationUs);
+
+    const auto callbackEnd = std::chrono::high_resolution_clock::now();
+    const auto callbackDurationUs = static_cast<uint32_t>(std::max<int64_t>(0,
+        std::chrono::duration_cast<std::chrono::microseconds>(callbackEnd - callbackStart).count()));
+    telemetry_.lastCallbackDurationUs.store(callbackDurationUs, std::memory_order_relaxed);
+    updateMaxRelaxed(telemetry_.maxCallbackDurationUs, callbackDurationUs);
 }

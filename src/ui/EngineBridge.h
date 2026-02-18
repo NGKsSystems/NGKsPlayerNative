@@ -27,10 +27,17 @@ struct UIHealthSnapshot {
 };
 
 struct UIEngineTelemetrySnapshot {
+    static constexpr uint32_t kRenderDurationWindowSize = 64u;
+
     uint64_t renderCycles;
     uint64_t audioCallbacks;
     uint64_t xruns;
     uint32_t lastRenderDurationUs;
+    uint32_t maxRenderDurationUs;
+    uint32_t lastCallbackDurationUs;
+    uint32_t maxCallbackDurationUs;
+    uint32_t renderDurationWindowCount;
+    uint32_t renderDurationWindowUs[kRenderDurationWindowSize] {};
 };
 
 class EngineBridge final : public QObject
