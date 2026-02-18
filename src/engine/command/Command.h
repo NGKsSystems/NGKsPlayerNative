@@ -15,7 +15,10 @@ enum class CommandType {
     SetDeckFxGain,
     EnableDeckFxSlot,
     SetMasterFxGain,
-    EnableMasterFxSlot
+    EnableMasterFxSlot,
+    RequestAnalyzeTrack,
+    RequestStemsOffline,
+    CancelJob
 };
 
 struct Command {
@@ -26,6 +29,7 @@ struct Command {
     float floatValue{0.0f};
     uint8_t boolValue{0};
     uint8_t slotIndex{0};
+    uint32_t jobId{0};
 };
 
 }

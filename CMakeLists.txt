@@ -22,6 +22,9 @@ add_library(NGKsEngine STATIC
     src/engine/dsp/Limiter.cpp
     src/engine/runtime/fx/DummyGainFx.cpp
     src/engine/runtime/fx/FxChain.cpp
+    src/engine/runtime/jobs/JobQueue.cpp
+    src/engine/runtime/jobs/JobWorker.cpp
+    src/engine/runtime/jobs/JobSystem.cpp
     src/engine/runtime/graph/AudioGraph.cpp
     src/engine/runtime/graph/DeckNode.cpp
     src/engine/runtime/graph/MasterMixNode.cpp

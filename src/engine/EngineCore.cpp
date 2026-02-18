@@ -21,6 +21,8 @@ EngineCore::EngineCore()
         snapshots[0].decks[deck].id = deck;
         snapshots[1].decks[deck].id = deck;
     }
+
+    jobSystem.start();
 }
 
 EngineCore::~EngineCore()
@@ -28,16 +30,33 @@ EngineCore::~EngineCore()
     if (audioIO != nullptr) {
         audioIO->stop();
     }
+
+    jobSystem.stop();
 }
 
-ngks::EngineSnapshot EngineCore::getSnapshot() const
+ngks::EngineSnapshot EngineCore::getSnapshot()
 {
     const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
-    return snapshots[front];
+    const uint32_t back = front ^ 1u;
+
+    ngks::EngineSnapshot working = snapshots[front];
+    appendJobResults(working);
+    snapshots[back] = working;
+    frontSnapshotIndex.store(back, std::memory_order_release);
+
+    return snapshots[back];
 }
 
 void EngineCore::enqueueCommand(const ngks::Command& command)
 {
+    if (command.type == ngks::CommandType::RequestAnalyzeTrack
+        || command.type == ngks::CommandType::RequestStemsOffline
+        || command.type == ngks::CommandType::CancelJob) {
+        const auto result = submitJobCommand(command);
+        publishCommandOutcome(command, result);
+        return;
+    }
+
     if (command.type == ngks::CommandType::Play) {
         startAudioIfNeeded();
     }
@@ -79,6 +98,57 @@ void EngineCore::prepare(double sampleRate, int)
     }
 
     audioGraph.prepare(sampleRateHz, 2048);
+}
+
+ngks::CommandResult EngineCore::submitJobCommand(const ngks::Command& command) noexcept
+{
+    if (command.type == ngks::CommandType::CancelJob) {
+        jobSystem.cancel(command.jobId);
+        return ngks::CommandResult::Applied;
+    }
+
+    if (command.deck >= ngks::MAX_DECKS) {
+        return ngks::CommandResult::RejectedInvalidDeck;
+    }
+
+    ngks::JobRequest request {};
+    request.jobId = command.jobId;
+    request.deckId = command.deck;
+    request.trackId = command.trackUidHash;
+    request.type = (command.type == ngks::CommandType::RequestAnalyzeTrack)
+        ? ngks::JobType::AnalyzeTrack
+        : ngks::JobType::StemsOffline;
+
+    return jobSystem.enqueue(request)
+        ? ngks::CommandResult::Applied
+        : ngks::CommandResult::RejectedQueueFull;
+}
+
+void EngineCore::appendJobResults(ngks::EngineSnapshot& snapshot) noexcept
+{
+    ngks::JobResult result {};
+    while (jobSystem.tryPopResult(result)) {
+        const uint32_t writeSeq = snapshot.jobResultsWriteSeq;
+        const uint32_t slot = writeSeq % static_cast<uint32_t>(ngks::EngineSnapshot::kMaxJobResults);
+        snapshot.jobResults[slot] = result;
+        snapshot.jobResultsWriteSeq = writeSeq + 1u;
+    }
+}
+
+void EngineCore::publishCommandOutcome(const ngks::Command& command, ngks::CommandResult result) noexcept
+{
+    const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
+    const uint32_t back = front ^ 1u;
+
+    ngks::EngineSnapshot updated = snapshots[front];
+    appendJobResults(updated);
+    updated.lastProcessedCommandSeq = command.seq;
+    if (command.deck < ngks::MAX_DECKS) {
+        updated.lastCommandResult[command.deck] = result;
+    }
+
+    snapshots[back] = updated;
+    frontSnapshotIndex.store(back, std::memory_order_release);
 }
 
 ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept
@@ -147,6 +217,10 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
             return ngks::CommandResult::RejectedInvalidSlot;
         }
         return ngks::CommandResult::Applied;
+    case ngks::CommandType::RequestAnalyzeTrack:
+    case ngks::CommandType::RequestStemsOffline:
+    case ngks::CommandType::CancelJob:
+        return ngks::CommandResult::Applied;
     }
 
     return ngks::CommandResult::None;
@@ -175,6 +249,8 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         }
         working.lastProcessedCommandSeq = command.seq;
     }
+
+    appendJobResults(working);
 
     for (uint8_t deckIndex = 0; deckIndex < ngks::MAX_DECKS; ++deckIndex) {
         if (working.decks[deckIndex].transport == ngks::TransportState::Starting) {

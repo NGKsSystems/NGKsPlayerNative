@@ -4,6 +4,7 @@
 
 #include "engine/domain/DeckId.h"
 #include "engine/domain/TransportState.h"
+#include "engine/runtime/jobs/JobResult.h"
 
 namespace ngks {
 
@@ -42,6 +43,8 @@ struct DeckSnapshot {
 };
 
 struct EngineSnapshot {
+    static constexpr int kMaxJobResults = 16;
+
     uint32_t flags{0};
     uint32_t warmupCounter{0};
 
@@ -53,6 +56,8 @@ struct EngineSnapshot {
 
     DeckSnapshot decks[MAX_DECKS] {};
     uint8_t masterFxSlotEnabled[8]{};
+    JobResult jobResults[kMaxJobResults] {};
+    uint32_t jobResultsWriteSeq{0};
 
     uint32_t lastProcessedCommandSeq{0};
     CommandResult lastCommandResult[MAX_DECKS] {

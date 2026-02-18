@@ -3,10 +3,12 @@
 #include <atomic>
 #include <memory>
 
+#include "engine/command/Command.h"
 #include "engine/runtime/EngineSnapshot.h"
 #include "engine/runtime/RoutingMatrix.h"
 #include "engine/runtime/SPSCCommandRing.h"
 #include "engine/runtime/graph/AudioGraph.h"
+#include "engine/runtime/jobs/JobSystem.h"
 
 class AudioIOJuce;
 
@@ -16,7 +18,7 @@ public:
     EngineCore();
     ~EngineCore();
 
-    ngks::EngineSnapshot getSnapshot() const;
+    ngks::EngineSnapshot getSnapshot();
     void enqueueCommand(const ngks::Command& command);
 
     void prepare(double sampleRate, int blockSize);
@@ -25,6 +27,9 @@ public:
 private:
     void startAudioIfNeeded();
     ngks::CommandResult applyCommand(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept;
+    ngks::CommandResult submitJobCommand(const ngks::Command& command) noexcept;
+    void appendJobResults(ngks::EngineSnapshot& snapshot) noexcept;
+    void publishCommandOutcome(const ngks::Command& command, ngks::CommandResult result) noexcept;
 
     std::unique_ptr<AudioIOJuce> audioIO;
     std::atomic<bool> audioOpened { false };
@@ -34,6 +39,7 @@ private:
     ngks::SPSCCommandRing<1024> commandRing;
     ngks::RoutingMatrix routingMatrix;
     ngks::AudioGraph audioGraph;
+    ngks::JobSystem jobSystem;
 
     double sampleRateHz = 48000.0;
     int fadeSamplesTotal = 9600;

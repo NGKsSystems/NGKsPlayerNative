@@ -6,6 +6,21 @@
 #include "engine/EngineCore.h"
 #include "engine/command/Command.h"
 
+namespace {
+bool findCompletedJobResult(const ngks::EngineSnapshot& snapshot, uint32_t jobId, ngks::JobResult& resultOut)
+{
+    for (int i = 0; i < ngks::EngineSnapshot::kMaxJobResults; ++i) {
+        const auto& result = snapshot.jobResults[i];
+        if (result.jobId == jobId && result.status == ngks::JobStatus::Complete) {
+            resultOut = result;
+            return true;
+        }
+    }
+
+    return false;
+}
+}
+
 int main()
 {
     EngineCore engine;
@@ -40,6 +55,44 @@ int main()
         std::cout << "RunResult=FAIL" << std::endl;
         return 1;
     }
+
+    ngks::JobResult analyzeResult {};
+    engine.enqueueCommand({ ngks::CommandType::RequestAnalyzeTrack, ngks::DECK_A, seq++, 123ULL, 0.0f, 0, 0, 1u });
+    bool analyzeCompleted = false;
+    for (int attempt = 0; attempt < 300; ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        const auto pollSnapshot = engine.getSnapshot();
+        if (findCompletedJobResult(pollSnapshot, 1u, analyzeResult)) {
+            analyzeCompleted = true;
+            break;
+        }
+    }
+
+    std::cout << "AnalyzeJobCompleted=" << analyzeCompleted << std::endl;
+    std::cout << "Analyze_bpmFixed=" << analyzeResult.bpmFixed << std::endl;
+    std::cout << "Analyze_loudness=" << analyzeResult.loudness << std::endl;
+    std::cout << "Analyze_deadAirMs=" << analyzeResult.deadAirMs << std::endl;
+    std::cout << "Analyze_stemsReady=" << static_cast<int>(analyzeResult.stemsReady) << std::endl;
+    pass = pass && analyzeCompleted;
+    pass = pass && (analyzeResult.bpmFixed == 12800);
+    pass = pass && (analyzeResult.stemsReady == 0);
+
+    ngks::JobResult stemsResult {};
+    engine.enqueueCommand({ ngks::CommandType::RequestStemsOffline, ngks::DECK_A, seq++, 123ULL, 0.0f, 0, 0, 2u });
+    bool stemsCompleted = false;
+    for (int attempt = 0; attempt < 300; ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        const auto pollSnapshot = engine.getSnapshot();
+        if (findCompletedJobResult(pollSnapshot, 2u, stemsResult)) {
+            stemsCompleted = true;
+            break;
+        }
+    }
+
+    std::cout << "StemsJobCompleted=" << stemsCompleted << std::endl;
+    std::cout << "Stems_stemsReady=" << static_cast<int>(stemsResult.stemsReady) << std::endl;
+    pass = pass && stemsCompleted;
+    pass = pass && (stemsResult.stemsReady == 1);
 
     auto snapshot = engine.getSnapshot();
     std::cout << "DeckCount=" << static_cast<int>(ngks::MAX_DECKS) << std::endl;
