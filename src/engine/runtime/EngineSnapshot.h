@@ -46,6 +46,8 @@ struct DeckSnapshot {
     float rmsR{0.0f};
     float peakL{0.0f};
     float peakR{0.0f};
+    float masterWeight{0.0f};
+    float cueWeight{0.0f};
 
     bool audible{false};
     bool publicFacing{false};

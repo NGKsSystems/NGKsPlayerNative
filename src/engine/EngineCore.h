@@ -6,7 +6,7 @@
 
 #include "engine/command/Command.h"
 #include "engine/runtime/EngineSnapshot.h"
-#include "engine/runtime/RoutingMatrix.h"
+#include "engine/runtime/MixMatrix.h"
 #include "engine/runtime/SPSCCommandRing.h"
 #include "engine/runtime/graph/AudioGraph.h"
 #include "engine/runtime/jobs/JobSystem.h"
@@ -23,6 +23,7 @@ public:
 
     ngks::EngineSnapshot getSnapshot();
     void enqueueCommand(const ngks::Command& command);
+    void updateCrossfader(float x);
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;
@@ -44,7 +45,7 @@ private:
 
     ngks::EngineSnapshot snapshots[2] {};
     ngks::SPSCCommandRing<1024> commandRing;
-    ngks::RoutingMatrix routingMatrix;
+    MixMatrix mixMatrix_ {};
     ngks::AudioGraph audioGraph;
     ngks::JobSystem jobSystem;
     ngks::TrackRegistry trackRegistry;

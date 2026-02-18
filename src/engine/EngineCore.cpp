@@ -3,6 +3,7 @@
 #include "engine/audio/AudioIO_Juce.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 namespace
@@ -26,6 +27,8 @@ EngineCore::EngineCore()
 
     const size_t loadedCount = registryStore.load(trackRegistry);
     std::cout << "CACHE_LOAD_OK count=" << loadedCount << std::endl;
+
+    updateCrossfader(0.5f);
 
     jobSystem.start();
     lastRegistryPersist = std::chrono::steady_clock::now();
@@ -154,6 +157,30 @@ void EngineCore::prepare(double sampleRate, int)
     }
 
     audioGraph.prepare(sampleRateHz, 2048);
+}
+
+void EngineCore::updateCrossfader(float x)
+{
+    if (x < 0.0f) {
+        x = 0.0f;
+    }
+    if (x > 1.0f) {
+        x = 1.0f;
+    }
+
+    const float a = std::cos(x * 1.57079632679f);
+    const float b = std::sin(x * 1.57079632679f);
+
+    mixMatrix_.decks[0].masterWeight = a;
+    mixMatrix_.decks[1].masterWeight = b;
+
+    mixMatrix_.decks[0].cueWeight = 1.0f;
+    mixMatrix_.decks[1].cueWeight = 1.0f;
+
+    for (int i = 2; i < MAX_DECKS; ++i) {
+        mixMatrix_.decks[i].masterWeight = 0.0f;
+        mixMatrix_.decks[i].cueWeight = 0.0f;
+    }
 }
 
 ngks::CommandResult EngineCore::submitJobCommand(const ngks::Command& command) noexcept
@@ -499,7 +526,7 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         }
     }
 
-    const auto graphStats = audioGraph.render(working, routingMatrix, numSamples, left, right);
+    const auto graphStats = audioGraph.render(working, mixMatrix_, numSamples, left, right);
 
     masterRmsSmoothing = masterRmsSmoothing + rmsSmoothingAlpha * (graphStats.masterRms - masterRmsSmoothing);
     working.masterRmsL = masterRmsSmoothing;
@@ -531,10 +558,13 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
             deck.transport = ngks::TransportState::Stopped;
         }
 
-        const float masterWeight = routingMatrix.get(deckIndex).toMasterWeight;
+        const float masterWeight = mixMatrix_.decks[deckIndex].masterWeight;
+        const float cueWeight = mixMatrix_.decks[deckIndex].cueWeight;
+        deck.masterWeight = masterWeight;
+        deck.cueWeight = cueWeight;
         const bool deckAudible =
             (deck.lifecycle == DeckLifecycleState::Playing)
-            && (masterWeight > 0.0f)
+            && (masterWeight > 0.001f)
             && (std::max(deck.rmsL, deck.rmsR) > audibleRmsThresholdLinear);
         deck.audible = deckAudible;
         deck.publicFacing = deckAudible;

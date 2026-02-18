@@ -76,7 +76,7 @@ bool AudioGraph::isMasterFxSlotEnabled(int slotIndex) const noexcept
 }
 
 GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
-                                    const RoutingMatrix& routing,
+                                    const MixMatrix& mixMatrix,
                                     int numSamples,
                                     float* outLeft,
                                     float* outRight) noexcept
@@ -121,20 +121,14 @@ GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
         stats.decks[deckIndex].rms = rms;
         stats.decks[deckIndex].peak = peak;
 
-        const auto route = routing.get(deckIndex);
-        masterMixNode.accumulate(deckBufferL[deckIndex].data(),
-                                 deckBufferR[deckIndex].data(),
-                                 masterBusL.data(),
-                                 masterBusR.data(),
-                                 safeSamples,
-                                 route.toMasterWeight);
-
-        cueMixNode.accumulate(deckBufferL[deckIndex].data(),
-                              deckBufferR[deckIndex].data(),
-                              cueBusL.data(),
-                              cueBusR.data(),
-                              safeSamples,
-                              route.toCueWeight);
+        const float masterWeight = mixMatrix.decks[deckIndex].masterWeight;
+        const float cueWeight = mixMatrix.decks[deckIndex].cueWeight;
+        for (int sample = 0; sample < safeSamples; ++sample) {
+            masterBusL[sample] += deckBufferL[deckIndex][sample] * masterWeight;
+            masterBusR[sample] += deckBufferR[deckIndex][sample] * masterWeight;
+            cueBusL[sample] += deckBufferL[deckIndex][sample] * cueWeight;
+            cueBusR[sample] += deckBufferR[deckIndex][sample] * cueWeight;
+        }
     }
 
     float sumSquares = 0.0f;

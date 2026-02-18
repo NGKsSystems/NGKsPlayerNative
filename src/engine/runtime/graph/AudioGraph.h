@@ -4,7 +4,7 @@
 
 #include "engine/runtime/EngineSnapshot.h"
 #include "engine/runtime/fx/FxChain.h"
-#include "engine/runtime/RoutingMatrix.h"
+#include "engine/runtime/MixMatrix.h"
 #include "engine/runtime/graph/CueMixNode.h"
 #include "engine/runtime/graph/DeckNode.h"
 #include "engine/runtime/graph/MasterMixNode.h"
@@ -35,7 +35,7 @@ public:
     bool isMasterFxSlotEnabled(int slotIndex) const noexcept;
 
     GraphRenderStats render(const EngineSnapshot& state,
-                            const RoutingMatrix& routing,
+                            const MixMatrix& mixMatrix,
                             int numSamples,
                             float* outLeft,
                             float* outRight) noexcept;
