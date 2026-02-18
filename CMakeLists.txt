@@ -20,6 +20,8 @@ add_library(NGKsEngine STATIC
     src/engine/audio/AudioIO_Juce.cpp
     src/engine/dsp/Meter.cpp
     src/engine/dsp/Limiter.cpp
+    src/engine/runtime/fx/DummyGainFx.cpp
+    src/engine/runtime/fx/FxChain.cpp
     src/engine/runtime/graph/AudioGraph.cpp
     src/engine/runtime/graph/DeckNode.cpp
     src/engine/runtime/graph/MasterMixNode.cpp

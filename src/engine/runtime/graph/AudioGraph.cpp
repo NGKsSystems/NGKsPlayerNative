@@ -33,6 +33,48 @@ bool AudioGraph::isDeckStopFadeActive(DeckId deckId) const noexcept
     return deckNodes[deckId].isStopFadeActive();
 }
 
+bool AudioGraph::setDeckFxSlotEnabled(DeckId deckId, int slotIndex, bool enabled) noexcept
+{
+    if (deckId >= MAX_DECKS) {
+        return false;
+    }
+
+    return deckFxChains[deckId].setSlotEnabled(slotIndex, enabled);
+}
+
+bool AudioGraph::setDeckFxGain(DeckId deckId, int slotIndex, float gainLinear) noexcept
+{
+    if (deckId >= MAX_DECKS) {
+        return false;
+    }
+
+    return deckFxChains[deckId].setSlotGain(slotIndex, gainLinear);
+}
+
+bool AudioGraph::setMasterFxSlotEnabled(int slotIndex, bool enabled) noexcept
+{
+    return masterFxChain.setSlotEnabled(slotIndex, enabled);
+}
+
+bool AudioGraph::setMasterFxGain(int slotIndex, float gainLinear) noexcept
+{
+    return masterFxChain.setSlotGain(slotIndex, gainLinear);
+}
+
+bool AudioGraph::isDeckFxSlotEnabled(DeckId deckId, int slotIndex) const noexcept
+{
+    if (deckId >= MAX_DECKS) {
+        return false;
+    }
+
+    return deckFxChains[deckId].isSlotEnabled(slotIndex);
+}
+
+bool AudioGraph::isMasterFxSlotEnabled(int slotIndex) const noexcept
+{
+    return masterFxChain.isSlotEnabled(slotIndex);
+}
+
 GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
                                     const RoutingMatrix& routing,
                                     int numSamples,
@@ -61,6 +103,21 @@ GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
                                     rms,
                                     peak);
 
+        deckFxChains[deckIndex].process(deckBufferL[deckIndex].data(),
+                                        deckBufferR[deckIndex].data(),
+                                        safeSamples);
+
+        float postFxSumSquares = 0.0f;
+        float postFxPeak = 0.0f;
+        for (int sample = 0; sample < safeSamples; ++sample) {
+            const float mono = 0.5f * (deckBufferL[deckIndex][sample] + deckBufferR[deckIndex][sample]);
+            postFxSumSquares += mono * mono;
+            postFxPeak = std::max(postFxPeak, std::abs(mono));
+        }
+
+        rms = std::sqrt(postFxSumSquares / static_cast<float>(safeSamples));
+        peak = postFxPeak;
+
         stats.decks[deckIndex].rms = rms;
         stats.decks[deckIndex].peak = peak;
 
@@ -87,6 +144,15 @@ GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
     }
 
     stats.masterRms = std::sqrt(sumSquares / static_cast<float>(safeSamples));
+
+    masterFxChain.process(masterBusL.data(), masterBusR.data(), safeSamples);
+
+    float postMasterSumSquares = 0.0f;
+    for (int sample = 0; sample < safeSamples; ++sample) {
+        const float mono = 0.5f * (masterBusL[sample] + masterBusR[sample]);
+        postMasterSumSquares += mono * mono;
+    }
+    stats.masterRms = std::sqrt(postMasterSumSquares / static_cast<float>(safeSamples));
 
     outputNode.renderToDevice(masterBusL.data(),
                               masterBusR.data(),

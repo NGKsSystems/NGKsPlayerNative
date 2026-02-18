@@ -13,7 +13,8 @@ enum class CommandResult : uint8_t {
     RejectedPublicFacing = 2,
     RejectedNoTrack = 3,
     RejectedInvalidDeck = 4,
-    RejectedQueueFull = 5
+    RejectedQueueFull = 5,
+    RejectedInvalidSlot = 6
 };
 
 struct DeckSnapshot {
@@ -34,6 +35,7 @@ struct DeckSnapshot {
 
     uint8_t cueEnabled{0};
     uint8_t publicFacing{0};
+    uint8_t fxSlotEnabled[8]{};
 };
 
 struct EngineSnapshot {
@@ -44,6 +46,7 @@ struct EngineSnapshot {
     float masterPeakR{0.0f};
 
     DeckSnapshot decks[MAX_DECKS] {};
+    uint8_t masterFxSlotEnabled[8]{};
 
     uint32_t lastProcessedCommandSeq{0};
     CommandResult lastCommandResult[MAX_DECKS] {

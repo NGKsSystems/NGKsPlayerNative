@@ -3,6 +3,7 @@
 #include <array>
 
 #include "engine/runtime/EngineSnapshot.h"
+#include "engine/runtime/fx/FxChain.h"
 #include "engine/runtime/RoutingMatrix.h"
 #include "engine/runtime/graph/CueMixNode.h"
 #include "engine/runtime/graph/DeckNode.h"
@@ -26,6 +27,12 @@ public:
     void prepare(double sampleRate, int maxBlockSize);
     void beginDeckStopFade(DeckId deckId, int fadeSamples);
     bool isDeckStopFadeActive(DeckId deckId) const noexcept;
+    bool setDeckFxSlotEnabled(DeckId deckId, int slotIndex, bool enabled) noexcept;
+    bool setDeckFxGain(DeckId deckId, int slotIndex, float gainLinear) noexcept;
+    bool setMasterFxSlotEnabled(int slotIndex, bool enabled) noexcept;
+    bool setMasterFxGain(int slotIndex, float gainLinear) noexcept;
+    bool isDeckFxSlotEnabled(DeckId deckId, int slotIndex) const noexcept;
+    bool isMasterFxSlotEnabled(int slotIndex) const noexcept;
 
     GraphRenderStats render(const EngineSnapshot& state,
                             const RoutingMatrix& routing,
@@ -37,6 +44,8 @@ private:
     static constexpr int maxGraphBlock = 2048;
 
     std::array<DeckNode, MAX_DECKS> deckNodes {};
+    std::array<FxChain, MAX_DECKS> deckFxChains {};
+    FxChain masterFxChain;
     MasterMixNode masterMixNode;
     CueMixNode cueMixNode;
     OutputNode outputNode;

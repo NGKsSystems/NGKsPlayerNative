@@ -125,6 +125,26 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
         }
         deck.cueEnabled = command.boolValue ? 1 : 0;
         return ngks::CommandResult::Applied;
+    case ngks::CommandType::SetDeckFxGain:
+        if (!audioGraph.setDeckFxGain(command.deck, command.slotIndex, command.floatValue)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
+    case ngks::CommandType::EnableDeckFxSlot:
+        if (!audioGraph.setDeckFxSlotEnabled(command.deck, command.slotIndex, command.boolValue != 0)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
+    case ngks::CommandType::SetMasterFxGain:
+        if (!audioGraph.setMasterFxGain(command.slotIndex, command.floatValue)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
+    case ngks::CommandType::EnableMasterFxSlot:
+        if (!audioGraph.setMasterFxSlotEnabled(command.slotIndex, command.boolValue != 0)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
     }
 
     return ngks::CommandResult::None;
@@ -200,6 +220,14 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
                 deck.playheadSeconds = deck.lengthSeconds;
             }
         }
+
+        for (int slot = 0; slot < 8; ++slot) {
+            deck.fxSlotEnabled[slot] = audioGraph.isDeckFxSlotEnabled(deckIndex, slot) ? 1 : 0;
+        }
+    }
+
+    for (int slot = 0; slot < 8; ++slot) {
+        working.masterFxSlotEnabled[slot] = audioGraph.isMasterFxSlotEnabled(slot) ? 1 : 0;
     }
 
     if (instantaneousMasterPeak >= masterPeakSmoothing) {

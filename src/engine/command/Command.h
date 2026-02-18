@@ -11,7 +11,11 @@ enum class CommandType {
     Stop,
     SetDeckGain,
     SetMasterGain,
-    SetCue
+    SetCue,
+    SetDeckFxGain,
+    EnableDeckFxSlot,
+    SetMasterFxGain,
+    EnableMasterFxSlot
 };
 
 struct Command {
@@ -21,6 +25,7 @@ struct Command {
     uint64_t trackUidHash{0};
     float floatValue{0.0f};
     uint8_t boolValue{0};
+    uint8_t slotIndex{0};
 };
 
 }
