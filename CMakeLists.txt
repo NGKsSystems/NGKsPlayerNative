@@ -9,7 +9,7 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_PREFIX_PATH "C:/Qt/6.10.2/msvc2022_64" CACHE PATH "Qt 6.10.2 MSVC 2022 path" FORCE)
 
-find_package(Qt6 6.10 REQUIRED COMPONENTS Quick)
+find_package(Qt6 6.10 REQUIRED COMPONENTS Quick Widgets)
 set(JUCE_DIR "C:/JUCE")
 add_subdirectory(${JUCE_DIR} JUCE)
 
@@ -78,6 +78,7 @@ target_compile_definitions(NGKsPlayerNative
 target_link_libraries(NGKsPlayerNative
     PRIVATE
         Qt6::Quick
+    Qt6::Widgets
         NGKsEngine
 )
 

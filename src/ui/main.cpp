@@ -1,12 +1,19 @@
-#include <QGuiApplication>
-#include <QDir>
+#include <QAction>
+#include <QApplication>
+#include <QDialog>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QMainWindow>
+#include <QMenuBar>
 #include <QMessageLogContext>
 #include <QMutex>
 #include <QMutexLocker>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QShortcut>
+#include <QStringList>
+#include <QVBoxLayout>
 #include <QDateTime>
-#include <QUrl>
 
 #include <cstdlib>
 #include <filesystem>
@@ -28,6 +35,11 @@ namespace {
 QMutex gLogMutex;
 std::string gLogPath;
 bool gConsoleEcho = false;
+
+QString uiLogAbsolutePath()
+{
+    return QString::fromStdString(std::filesystem::absolute(gLogPath).string());
+}
 
 const char* levelToText(QtMsgType type)
 {
@@ -97,33 +109,144 @@ void initializeUiRuntimeLog()
     writeLine(banner);
 }
 
+class DiagnosticsDialog : public QDialog {
+public:
+    explicit DiagnosticsDialog(QWidget* parent = nullptr)
+        : QDialog(parent)
+    {
+        setWindowTitle(QStringLiteral("Diagnostics"));
+        resize(760, 360);
+
+        auto* layout = new QVBoxLayout(this);
+
+        auto* pathLabel = new QLabel(QStringLiteral("ui_qt.log: %1").arg(uiLogAbsolutePath()), this);
+        pathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(pathLabel);
+
+        auto* row = new QHBoxLayout();
+        auto* refreshButton = new QPushButton(QStringLiteral("Refresh Log Tail"), this);
+        row->addWidget(refreshButton);
+        row->addStretch(1);
+        layout->addLayout(row);
+
+        logTailBox_ = new QPlainTextEdit(this);
+        logTailBox_->setReadOnly(true);
+        layout->addWidget(logTailBox_);
+
+        QObject::connect(refreshButton, &QPushButton::clicked, this, &DiagnosticsDialog::refreshLogTail);
+
+        qInfo() << "DiagnosticsDialogConstructed";
+        refreshLogTail();
+    }
+
+    void refreshLogTail()
+    {
+        std::ifstream stream(gLogPath);
+        if (!stream.is_open()) {
+            logTailBox_->setPlainText(QStringLiteral("log missing"));
+            return;
+        }
+
+        std::vector<std::string> lines;
+        std::string line;
+        while (std::getline(stream, line)) {
+            lines.push_back(line);
+        }
+
+        const size_t start = (lines.size() > 20u) ? (lines.size() - 20u) : 0u;
+        QStringList tail;
+        for (size_t i = start; i < lines.size(); ++i) {
+            tail.push_back(QString::fromStdString(lines[i]));
+        }
+
+        if (tail.isEmpty()) {
+            logTailBox_->setPlainText(QStringLiteral("log missing"));
+        } else {
+            logTailBox_->setPlainText(tail.join('\n'));
+        }
+    }
+
+private:
+    QPlainTextEdit* logTailBox_{nullptr};
+};
+
+class MainWindow : public QMainWindow {
+public:
+    explicit MainWindow(EngineBridge& engineBridge)
+    {
+        setWindowTitle(QStringLiteral("NGKsPlayerNative (Dev)"));
+        resize(760, 300);
+
+        auto* root = new QWidget(this);
+        auto* layout = new QVBoxLayout(root);
+
+        auto* title = new QLabel(QStringLiteral("NGKsPlayerNative (Dev)"), root);
+        layout->addWidget(title);
+
+        auto* buildInfo = new QLabel(
+            QStringLiteral("BuildStamp=%1  GitSHA=%2").arg(QStringLiteral(NGKS_BUILD_STAMP), QStringLiteral(NGKS_GIT_SHA)),
+            root);
+        buildInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(buildInfo);
+
+        auto* bridgeStatus = new QLabel(QStringLiteral("EngineBridge: OK"), root);
+        layout->addWidget(bridgeStatus);
+
+        auto* placeholderState = new QLabel(QStringLiteral("State: UI_SANITY_V1"), root);
+        layout->addWidget(placeholderState);
+
+        layout->addStretch(1);
+        setCentralWidget(root);
+
+        auto* diagnosticsAction = menuBar()->addAction(QStringLiteral("Diagnostics"));
+        QObject::connect(diagnosticsAction, &QAction::triggered, this, &MainWindow::showDiagnostics);
+
+        auto* shortcut = new QShortcut(QKeySequence(QStringLiteral("Ctrl+D")), this);
+        QObject::connect(shortcut, &QShortcut::activated, this, &MainWindow::showDiagnostics);
+
+        Q_UNUSED(engineBridge);
+        qInfo() << "MainWindowConstructed";
+    }
+
+private:
+    void showDiagnostics()
+    {
+        if (!diagnosticsDialog_) {
+            diagnosticsDialog_ = new DiagnosticsDialog(this);
+        }
+        diagnosticsDialog_->refreshLogTail();
+        diagnosticsDialog_->show();
+        diagnosticsDialog_->raise();
+        diagnosticsDialog_->activateWindow();
+    }
+
+public:
+    void autoShowDiagnosticsIfRequested()
+    {
+        const QString autoshow = qEnvironmentVariable("NGKS_DIAG_AUTOSHOW").trimmed().toLower();
+        if (autoshow == QStringLiteral("1") || autoshow == QStringLiteral("true") || autoshow == QStringLiteral("yes")) {
+            showDiagnostics();
+        }
+    }
+
+private:
+    DiagnosticsDialog* diagnosticsDialog_{nullptr};
+};
+
 } // namespace
 
 int main(int argc, char* argv[])
 {
     initializeUiRuntimeLog();
 
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     writeLine(QStringLiteral("UI app initialized pid=%1").arg(QString::number(QCoreApplication::applicationPid())));
 
     EngineBridge engineBridge;
 
-    QQmlApplicationEngine engine;
-    const QString qmlPath = QDir(app.applicationDirPath()).filePath("qml/Main.qml");
-    engine.rootContext()->setContextProperty("engine", &engineBridge);
-
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        &app,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
-
-    engine.load(QUrl::fromLocalFile(qmlPath));
-
-    if (engine.rootObjects().isEmpty()) {
-        return -1;
-    }
+    MainWindow window(engineBridge);
+    window.show();
+    window.autoShowDiagnosticsIfRequested();
 
     return app.exec();
 }
