@@ -43,8 +43,12 @@ struct UIEngineTelemetrySnapshot {
     bool rtDeviceOpenOk{false};
     int32_t rtSampleRate{0};
     int32_t rtBufferFrames{0};
+    int32_t rtRequestedSampleRate{0};
+    int32_t rtRequestedBufferFrames{0};
+    int32_t rtRequestedChannelsOut{2};
     int32_t rtChannelsIn{0};
     int32_t rtChannelsOut{0};
+    bool rtAgFallback{false};
     uint64_t rtDeviceIdHash{0};
     uint64_t rtCallbackCount{0};
     uint64_t rtXRunCount{0};
@@ -65,6 +69,7 @@ struct UIEngineTelemetrySnapshot {
     bool rtRecoveryRequested{false};
     bool rtRecoveryFailedState{false};
     int64_t rtLastCallbackTickMs{0};
+    char rtDeviceId[160] {};
     char rtDeviceName[96] {};
 };
 

@@ -376,6 +376,8 @@ bool EngineCore::startAudioIfNeeded(bool forceReopen)
     telemetry_.rtAgFallback.store(result.fallbackUsed ? 1u : 0u, std::memory_order_relaxed);
     telemetry_.rtDeviceIdHash.store(result.deviceIdHash, std::memory_order_relaxed);
     telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
+    std::strncpy(rtDeviceId_, result.deviceId.c_str(), sizeof(rtDeviceId_) - 1u);
+    rtDeviceId_[sizeof(rtDeviceId_) - 1u] = '\0';
     std::strncpy(rtDeviceName_, result.deviceName.c_str(), sizeof(rtDeviceName_) - 1u);
     rtDeviceName_[sizeof(rtDeviceName_) - 1u] = '\0';
     return true;
@@ -449,6 +451,8 @@ EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
     snapshot.rtRecoveryRequested = telemetry_.rtRecoveryRequested.load(std::memory_order_relaxed) != 0u;
     snapshot.rtRecoveryFailedState = telemetry_.rtRecoveryFailedState.load(std::memory_order_relaxed) != 0u;
     snapshot.rtLastCallbackTickMs = telemetry_.rtLastCallbackTickMs.load(std::memory_order_relaxed);
+    std::strncpy(snapshot.rtDeviceId, rtDeviceId_, sizeof(snapshot.rtDeviceId) - 1u);
+    snapshot.rtDeviceId[sizeof(snapshot.rtDeviceId) - 1u] = '\0';
     std::strncpy(snapshot.rtDeviceName, rtDeviceName_, sizeof(snapshot.rtDeviceName) - 1u);
     snapshot.rtDeviceName[sizeof(snapshot.rtDeviceName) - 1u] = '\0';
 

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -169,6 +170,11 @@ struct CliOptions {
     bool aeRequireNoRestarts = false;
     bool aeAllowStallTrips = false;
     bool listDevices = false;
+    bool profileList = false;
+    bool profileUse = false;
+    bool profileSave = false;
+    bool profileDelete = false;
+    std::string profileName;
     std::string deviceId;
     std::string deviceName;
     bool setPreferredDeviceId = false;
@@ -187,7 +193,13 @@ struct AudioDeviceProfile {
     int channelsOut = 0;
 };
 
-const std::filesystem::path kAudioProfilePath = std::filesystem::path("data") / "runtime" / "audio_device_profile.json";
+struct AudioDeviceProfilesStore {
+    std::string activeProfile;
+    std::map<std::string, AudioDeviceProfile> profiles;
+};
+
+const std::filesystem::path kAudioProfilesPath = std::filesystem::path("data") / "runtime" / "audio_device_profiles.json";
+const std::string kDefaultProfileName = "default";
 
 std::string jsonEscape(const std::string& value)
 {
@@ -257,11 +269,12 @@ int extractJsonInt(const std::string& text, const std::string& key)
 
 bool loadAudioDeviceProfile(AudioDeviceProfile& outProfile)
 {
-    if (!std::filesystem::exists(kAudioProfilePath)) {
+    AudioDeviceProfilesStore store {};
+    if (!std::filesystem::exists(kAudioProfilesPath)) {
         return false;
     }
 
-    std::ifstream stream(kAudioProfilePath, std::ios::in | std::ios::binary);
+    std::ifstream stream(kAudioProfilesPath, std::ios::in | std::ios::binary);
     if (!stream.is_open()) {
         return false;
     }
@@ -269,19 +282,101 @@ bool loadAudioDeviceProfile(AudioDeviceProfile& outProfile)
     std::ostringstream oss;
     oss << stream.rdbuf();
     const std::string text = oss.str();
-    outProfile.preferredDeviceId = extractJsonString(text, "preferred_device_id");
-    outProfile.preferredDeviceName = extractJsonString(text, "preferred_device_name");
-    outProfile.sampleRate = extractJsonInt(text, "sample_rate");
-    outProfile.bufferFrames = extractJsonInt(text, "buffer_frames");
-    outProfile.channelsIn = extractJsonInt(text, "channels_in");
-    outProfile.channelsOut = extractJsonInt(text, "channels_out");
+
+    const std::string active = extractJsonString(text, "active_profile");
+    const std::string marker = "\"profiles\"";
+    const size_t markerPos = text.find(marker);
+    if (markerPos == std::string::npos) {
+        return false;
+    }
+
+    const size_t openPos = text.find('{', markerPos + marker.size());
+    if (openPos == std::string::npos) {
+        return false;
+    }
+
+    int depth = 0;
+    size_t closePos = std::string::npos;
+    for (size_t i = openPos; i < text.size(); ++i) {
+        if (text[i] == '{') {
+            ++depth;
+        } else if (text[i] == '}') {
+            --depth;
+            if (depth == 0) {
+                closePos = i;
+                break;
+            }
+        }
+    }
+    if (closePos == std::string::npos || closePos <= openPos) {
+        return false;
+    }
+
+    const std::string profilesBody = text.substr(openPos + 1, closePos - openPos - 1);
+    size_t pos = 0;
+    while (pos < profilesBody.size()) {
+        const size_t keyStart = profilesBody.find('"', pos);
+        if (keyStart == std::string::npos) {
+            break;
+        }
+        const size_t keyEnd = profilesBody.find('"', keyStart + 1);
+        if (keyEnd == std::string::npos) {
+            break;
+        }
+        const std::string profileName = profilesBody.substr(keyStart + 1, keyEnd - keyStart - 1);
+
+        const size_t objectStart = profilesBody.find('{', keyEnd);
+        if (objectStart == std::string::npos) {
+            break;
+        }
+
+        int objectDepth = 0;
+        size_t objectEnd = std::string::npos;
+        for (size_t i = objectStart; i < profilesBody.size(); ++i) {
+            if (profilesBody[i] == '{') {
+                ++objectDepth;
+            } else if (profilesBody[i] == '}') {
+                --objectDepth;
+                if (objectDepth == 0) {
+                    objectEnd = i;
+                    break;
+                }
+            }
+        }
+        if (objectEnd == std::string::npos) {
+            break;
+        }
+
+        const std::string objectText = profilesBody.substr(objectStart, objectEnd - objectStart + 1);
+        AudioDeviceProfile parsed {};
+        parsed.preferredDeviceId = extractJsonString(objectText, "device_id");
+        parsed.preferredDeviceName = extractJsonString(objectText, "device_name");
+        parsed.sampleRate = extractJsonInt(objectText, "sample_rate");
+        parsed.bufferFrames = extractJsonInt(objectText, "buffer_frames");
+        parsed.channelsIn = extractJsonInt(objectText, "channels_in");
+        parsed.channelsOut = extractJsonInt(objectText, "channels_out");
+        store.profiles[profileName] = parsed;
+
+        pos = objectEnd + 1;
+    }
+
+    store.activeProfile = active.empty() ? kDefaultProfileName : active;
+    if (store.profiles.empty()) {
+        return false;
+    }
+
+    auto activeIt = store.profiles.find(store.activeProfile);
+    if (activeIt == store.profiles.end()) {
+        activeIt = store.profiles.begin();
+    }
+    outProfile = activeIt->second;
     return true;
 }
 
-bool saveAudioDeviceProfile(const AudioDeviceProfile& profile)
+bool saveAudioDeviceProfilesStore(const AudioDeviceProfilesStore& store)
 {
-    std::filesystem::create_directories(kAudioProfilePath.parent_path());
-    std::ofstream stream(kAudioProfilePath, std::ios::trunc | std::ios::binary);
+    std::filesystem::create_directories(kAudioProfilesPath.parent_path());
+    std::ofstream stream(kAudioProfilesPath, std::ios::trunc | std::ios::binary);
     if (!stream.is_open()) {
         return false;
     }
@@ -298,14 +393,182 @@ bool saveAudioDeviceProfile(const AudioDeviceProfile& profile)
     std::strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%dT%H:%M:%SZ", &utcTm);
 
     stream << "{\n"
-           << "  \"preferred_device_id\": \"" << jsonEscape(profile.preferredDeviceId) << "\",\n"
-           << "  \"preferred_device_name\": \"" << jsonEscape(profile.preferredDeviceName) << "\",\n"
-           << "  \"sample_rate\": " << profile.sampleRate << ",\n"
-           << "  \"buffer_frames\": " << profile.bufferFrames << ",\n"
-           << "  \"channels_in\": " << profile.channelsIn << ",\n"
-           << "  \"channels_out\": " << profile.channelsOut << ",\n"
+           << "  \"active_profile\": \"" << jsonEscape(store.activeProfile.empty() ? kDefaultProfileName : store.activeProfile) << "\",\n"
+           << "  \"profiles\": {\n";
+
+    bool first = true;
+    for (const auto& entry : store.profiles) {
+        if (!first) {
+            stream << ",\n";
+        }
+        const auto& name = entry.first;
+        const auto& profile = entry.second;
+        stream << "    \"" << jsonEscape(name) << "\": {\n"
+               << "      \"device_id\": \"" << jsonEscape(profile.preferredDeviceId) << "\",\n"
+               << "      \"device_name\": \"" << jsonEscape(profile.preferredDeviceName) << "\",\n"
+               << "      \"sample_rate\": " << profile.sampleRate << ",\n"
+               << "      \"buffer_frames\": " << profile.bufferFrames << ",\n"
+               << "      \"channels_in\": " << profile.channelsIn << ",\n"
+               << "      \"channels_out\": " << profile.channelsOut << "\n"
+               << "    }";
+        first = false;
+    }
+
+    stream << "\n"
+           << "  },\n"
            << "  \"updated_utc\": \"" << timeBuf << "\"\n"
            << "}\n";
+    return true;
+}
+
+bool saveAudioDeviceProfile(const AudioDeviceProfile& profile)
+{
+    AudioDeviceProfilesStore store {};
+    store.activeProfile = kDefaultProfileName;
+
+    if (std::filesystem::exists(kAudioProfilesPath)) {
+        std::ifstream stream(kAudioProfilesPath, std::ios::in | std::ios::binary);
+        if (stream.is_open()) {
+            std::ostringstream oss;
+            oss << stream.rdbuf();
+            const std::string text = oss.str();
+            store.activeProfile = extractJsonString(text, "active_profile");
+            if (store.activeProfile.empty()) {
+                store.activeProfile = kDefaultProfileName;
+            }
+        }
+    }
+
+    store.profiles[store.activeProfile] = profile;
+    return saveAudioDeviceProfilesStore(store);
+}
+
+bool loadAudioDeviceProfilesStore(AudioDeviceProfilesStore& outStore)
+{
+    outStore = {};
+    if (!std::filesystem::exists(kAudioProfilesPath)) {
+        outStore.activeProfile = kDefaultProfileName;
+        return true;
+    }
+
+    std::ifstream stream(kAudioProfilesPath, std::ios::in | std::ios::binary);
+    if (!stream.is_open()) {
+        return false;
+    }
+
+    std::ostringstream oss;
+    oss << stream.rdbuf();
+    const std::string text = oss.str();
+    outStore.activeProfile = extractJsonString(text, "active_profile");
+    if (outStore.activeProfile.empty()) {
+        outStore.activeProfile = kDefaultProfileName;
+    }
+
+    const std::string marker = "\"profiles\"";
+    const size_t markerPos = text.find(marker);
+    if (markerPos == std::string::npos) {
+        return true;
+    }
+
+    const size_t openPos = text.find('{', markerPos + marker.size());
+    if (openPos == std::string::npos) {
+        return true;
+    }
+
+    int depth = 0;
+    size_t closePos = std::string::npos;
+    for (size_t i = openPos; i < text.size(); ++i) {
+        if (text[i] == '{') {
+            ++depth;
+        } else if (text[i] == '}') {
+            --depth;
+            if (depth == 0) {
+                closePos = i;
+                break;
+            }
+        }
+    }
+    if (closePos == std::string::npos || closePos <= openPos) {
+        return true;
+    }
+
+    const std::string profilesBody = text.substr(openPos + 1, closePos - openPos - 1);
+    size_t pos = 0;
+    while (pos < profilesBody.size()) {
+        const size_t keyStart = profilesBody.find('"', pos);
+        if (keyStart == std::string::npos) {
+            break;
+        }
+        const size_t keyEnd = profilesBody.find('"', keyStart + 1);
+        if (keyEnd == std::string::npos) {
+            break;
+        }
+        const std::string profileName = profilesBody.substr(keyStart + 1, keyEnd - keyStart - 1);
+
+        const size_t objectStart = profilesBody.find('{', keyEnd);
+        if (objectStart == std::string::npos) {
+            break;
+        }
+
+        int objectDepth = 0;
+        size_t objectEnd = std::string::npos;
+        for (size_t i = objectStart; i < profilesBody.size(); ++i) {
+            if (profilesBody[i] == '{') {
+                ++objectDepth;
+            } else if (profilesBody[i] == '}') {
+                --objectDepth;
+                if (objectDepth == 0) {
+                    objectEnd = i;
+                    break;
+                }
+            }
+        }
+        if (objectEnd == std::string::npos) {
+            break;
+        }
+
+        const std::string objectText = profilesBody.substr(objectStart, objectEnd - objectStart + 1);
+        AudioDeviceProfile parsed {};
+        parsed.preferredDeviceId = extractJsonString(objectText, "device_id");
+        parsed.preferredDeviceName = extractJsonString(objectText, "device_name");
+        parsed.sampleRate = extractJsonInt(objectText, "sample_rate");
+        parsed.bufferFrames = extractJsonInt(objectText, "buffer_frames");
+        parsed.channelsIn = extractJsonInt(objectText, "channels_in");
+        parsed.channelsOut = extractJsonInt(objectText, "channels_out");
+        outStore.profiles[profileName] = parsed;
+
+        pos = objectEnd + 1;
+    }
+
+    return true;
+}
+
+bool resolveEffectiveProfile(const CliOptions& options, AudioDeviceProfile& outProfile, std::string& outProfileName)
+{
+    AudioDeviceProfilesStore store {};
+    if (!loadAudioDeviceProfilesStore(store)) {
+        return false;
+    }
+
+    outProfileName = options.profileName.empty()
+        ? (store.activeProfile.empty() ? kDefaultProfileName : store.activeProfile)
+        : options.profileName;
+
+    auto it = store.profiles.find(outProfileName);
+    if (it == store.profiles.end()) {
+        if (store.profiles.empty()) {
+            outProfile = {};
+            return true;
+        }
+        if (options.profileName.empty()) {
+            it = store.profiles.begin();
+            outProfileName = it->first;
+        } else {
+            return false;
+        }
+    }
+
+    outProfile = it->second;
     return true;
 }
 
@@ -337,7 +600,8 @@ bool resolveDeviceFromOptions(const CliOptions& options,
     }
 
     AudioDeviceProfile profile {};
-    if (loadAudioDeviceProfile(profile)) {
+    std::string profileName;
+    if (resolveEffectiveProfile(options, profile, profileName)) {
         if (!profile.preferredDeviceId.empty()) {
             for (const auto& d : devices) {
                 if (d.deviceId == profile.preferredDeviceId) {
@@ -412,6 +676,38 @@ bool parseCliOptions(int argc, char* argv[], CliOptions& options)
 
         if (arg == "--list_devices") {
             options.listDevices = true;
+            continue;
+        }
+
+        if (arg == "--profile_list") {
+            options.profileList = true;
+            continue;
+        }
+
+        if (arg == "--profile_use") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.profileUse = true;
+            options.profileName = argv[++i];
+            continue;
+        }
+
+        if (arg == "--profile_save") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.profileSave = true;
+            options.profileName = argv[++i];
+            continue;
+        }
+
+        if (arg == "--profile_delete") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.profileDelete = true;
+            options.profileName = argv[++i];
             continue;
         }
 
@@ -714,8 +1010,21 @@ int runSetPreferredDevice(const CliOptions& options)
         return 1;
     }
 
+    AudioDeviceProfilesStore store {};
+    if (!loadAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileStoreRead=FAIL" << std::endl;
+        return 1;
+    }
+    std::string targetProfile = options.profileName.empty()
+        ? (store.activeProfile.empty() ? kDefaultProfileName : store.activeProfile)
+        : options.profileName;
+
     AudioDeviceProfile profile {};
-    loadAudioDeviceProfile(profile);
+    const auto existing = store.profiles.find(targetProfile);
+    if (existing != store.profiles.end()) {
+        profile = existing->second;
+    }
+
     profile.preferredDeviceId = resolvedId;
     profile.preferredDeviceName = resolvedName;
     if (options.requestedSampleRate > 0) {
@@ -727,7 +1036,10 @@ int runSetPreferredDevice(const CliOptions& options)
     if (options.requestedChannelsOut > 0) {
         profile.channelsOut = options.requestedChannelsOut;
     }
-    if (!saveAudioDeviceProfile(profile)) {
+
+    store.activeProfile = targetProfile;
+    store.profiles[targetProfile] = profile;
+    if (!saveAudioDeviceProfilesStore(store)) {
         std::cout << "RTAudioDeviceProfileWrite=FAIL" << std::endl;
         return 1;
     }
@@ -735,7 +1047,146 @@ int runSetPreferredDevice(const CliOptions& options)
     std::cout << "RTAudioDeviceSelect=PASS" << std::endl;
     std::cout << "RTAudioDeviceId=" << resolvedId << std::endl;
     std::cout << "RTAudioDeviceName=" << resolvedName << std::endl;
-    std::cout << "RTAudioDeviceProfileWrite=PASS path=" << kAudioProfilePath.string() << std::endl;
+    std::cout << "RTAudioProfileName=" << targetProfile << std::endl;
+    std::cout << "RTAudioDeviceProfileWrite=PASS path=" << kAudioProfilesPath.string() << std::endl;
+    return 0;
+}
+
+int runProfileList()
+{
+    AudioDeviceProfilesStore store {};
+    if (!loadAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileList=FAIL" << std::endl;
+        return 1;
+    }
+
+    std::cout << "RTAudioProfileList=BEGIN" << std::endl;
+    std::cout << "RTAudioProfileActive=" << (store.activeProfile.empty() ? kDefaultProfileName : store.activeProfile) << std::endl;
+    for (const auto& entry : store.profiles) {
+        const auto& p = entry.second;
+        std::cout << "RTAudioProfile name=" << entry.first
+                  << " device_id=" << p.preferredDeviceId
+                  << " device_name=" << p.preferredDeviceName
+                  << " sr=" << p.sampleRate
+                  << " buffer=" << p.bufferFrames
+                  << " ch_out=" << p.channelsOut
+                  << std::endl;
+    }
+    std::cout << "RTAudioProfileCount=" << store.profiles.size() << std::endl;
+    std::cout << "RTAudioProfileList=PASS" << std::endl;
+    return 0;
+}
+
+int runProfileUse(const CliOptions& options)
+{
+    AudioDeviceProfilesStore store {};
+    if (!loadAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileUse=FAIL" << std::endl;
+        return 1;
+    }
+    if (options.profileName.empty()) {
+        std::cout << "RTAudioProfileUse=FAIL" << std::endl;
+        return 1;
+    }
+    if (store.profiles.find(options.profileName) == store.profiles.end()) {
+        std::cout << "RTAudioProfileUse=FAIL" << std::endl;
+        return 1;
+    }
+
+    store.activeProfile = options.profileName;
+    if (!saveAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileUse=FAIL" << std::endl;
+        return 1;
+    }
+
+    std::cout << "RTAudioProfileUse=PASS" << std::endl;
+    std::cout << "RTAudioProfileActive=" << store.activeProfile << std::endl;
+    return 0;
+}
+
+int runProfileSave(const CliOptions& options)
+{
+    if (options.profileName.empty()) {
+        std::cout << "RTAudioProfileSave=FAIL" << std::endl;
+        return 1;
+    }
+
+    const auto devices = AudioIOJuce::listAudioDevices();
+    std::string resolvedId = options.deviceId;
+    std::string resolvedName = options.deviceName;
+    if (resolvedId.empty() && resolvedName.empty()) {
+        resolveDeviceFromOptions(options, devices, resolvedId, resolvedName);
+    }
+
+    AudioDeviceProfilesStore store {};
+    if (!loadAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileSave=FAIL" << std::endl;
+        return 1;
+    }
+
+    AudioDeviceProfile base {};
+    const std::string activeName = store.activeProfile.empty() ? kDefaultProfileName : store.activeProfile;
+    const auto activeIt = store.profiles.find(activeName);
+    if (activeIt != store.profiles.end()) {
+        base = activeIt->second;
+    }
+
+    AudioDeviceProfile toSave = base;
+    toSave.preferredDeviceId = resolvedId;
+    toSave.preferredDeviceName = resolvedName;
+    if (options.requestedSampleRate > 0) {
+        toSave.sampleRate = options.requestedSampleRate;
+    }
+    if (options.requestedBufferFrames > 0) {
+        toSave.bufferFrames = options.requestedBufferFrames;
+    }
+    if (options.requestedChannelsOut > 0) {
+        toSave.channelsOut = options.requestedChannelsOut;
+    }
+
+    store.activeProfile = options.profileName;
+    store.profiles[options.profileName] = toSave;
+    if (!saveAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileSave=FAIL" << std::endl;
+        return 1;
+    }
+
+    std::cout << "RTAudioProfileSave=PASS" << std::endl;
+    std::cout << "RTAudioProfileActive=" << store.activeProfile << std::endl;
+    std::cout << "RTAudioProfilePath=" << kAudioProfilesPath.string() << std::endl;
+    return 0;
+}
+
+int runProfileDelete(const CliOptions& options)
+{
+    if (options.profileName.empty()) {
+        std::cout << "RTAudioProfileDelete=FAIL" << std::endl;
+        return 1;
+    }
+
+    AudioDeviceProfilesStore store {};
+    if (!loadAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileDelete=FAIL" << std::endl;
+        return 1;
+    }
+
+    const auto it = store.profiles.find(options.profileName);
+    if (it == store.profiles.end()) {
+        std::cout << "RTAudioProfileDelete=FAIL" << std::endl;
+        return 1;
+    }
+    store.profiles.erase(it);
+    if (store.activeProfile == options.profileName) {
+        store.activeProfile = store.profiles.empty() ? kDefaultProfileName : store.profiles.begin()->first;
+    }
+
+    if (!saveAudioDeviceProfilesStore(store)) {
+        std::cout << "RTAudioProfileDelete=FAIL" << std::endl;
+        return 1;
+    }
+
+    std::cout << "RTAudioProfileDelete=PASS" << std::endl;
+    std::cout << "RTAudioProfileActive=" << store.activeProfile << std::endl;
     return 0;
 }
 
@@ -746,7 +1197,11 @@ int runRtAudioProbe(const CliOptions& options)
     std::cout << "RTAudioAG=BEGIN" << std::endl;
 
     AudioDeviceProfile profile {};
-    loadAudioDeviceProfile(profile);
+    std::string profileName;
+    if (!resolveEffectiveProfile(options, profile, profileName)) {
+        std::cout << "RTAudioProfileResolve=FAIL" << std::endl;
+        return 1;
+    }
 
     int requestedSampleRate = 0;
     int requestedBufferFrames = 0;
@@ -872,7 +1327,12 @@ int runAeSoak(const CliOptions& options)
     }
 
     AudioDeviceProfile profile {};
-    loadAudioDeviceProfile(profile);
+    std::string profileName;
+    if (!resolveEffectiveProfile(options, profile, profileName)) {
+        std::cout << "RTAudioProfileResolve=FAIL" << std::endl;
+        std::cout << "RTAudioAE=FAIL" << std::endl;
+        return 1;
+    }
 
     int requestedSampleRate = 0;
     int requestedBufferFrames = 0;
@@ -1147,6 +1607,22 @@ int main(int argc, char* argv[])
 
     if (options.listDevices) {
         return runListDevices();
+    }
+
+    if (options.profileList) {
+        return runProfileList();
+    }
+
+    if (options.profileSave) {
+        return runProfileSave(options);
+    }
+
+    if (options.profileDelete) {
+        return runProfileDelete(options);
+    }
+
+    if (options.profileUse && !options.rtAudioProbe && !options.aeSoak) {
+        return runProfileUse(options);
     }
 
     if (options.setPreferredDeviceId || options.setPreferredDeviceName) {

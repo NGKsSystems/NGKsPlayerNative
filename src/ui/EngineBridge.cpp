@@ -80,8 +80,12 @@ bool EngineBridge::tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcep
     out.rtDeviceOpenOk = telemetry.rtDeviceOpenOk;
     out.rtSampleRate = telemetry.rtSampleRate;
     out.rtBufferFrames = telemetry.rtBufferFrames;
+    out.rtRequestedSampleRate = telemetry.rtRequestedSampleRate;
+    out.rtRequestedBufferFrames = telemetry.rtRequestedBufferFrames;
+    out.rtRequestedChannelsOut = telemetry.rtRequestedChannelsOut;
     out.rtChannelsIn = telemetry.rtChannelsIn;
     out.rtChannelsOut = telemetry.rtChannelsOut;
+    out.rtAgFallback = telemetry.rtAgFallback;
     out.rtDeviceIdHash = telemetry.rtDeviceIdHash;
     out.rtCallbackCount = telemetry.rtCallbackCount;
     out.rtXRunCount = telemetry.rtXRunCount;
@@ -102,6 +106,8 @@ bool EngineBridge::tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcep
     out.rtRecoveryRequested = telemetry.rtRecoveryRequested;
     out.rtRecoveryFailedState = telemetry.rtRecoveryFailedState;
     out.rtLastCallbackTickMs = telemetry.rtLastCallbackTickMs;
+    std::strncpy(out.rtDeviceId, telemetry.rtDeviceId, sizeof(out.rtDeviceId) - 1u);
+    out.rtDeviceId[sizeof(out.rtDeviceId) - 1u] = '\0';
     std::strncpy(out.rtDeviceName, telemetry.rtDeviceName, sizeof(out.rtDeviceName) - 1u);
     out.rtDeviceName[sizeof(out.rtDeviceName) - 1u] = '\0';
     return true;

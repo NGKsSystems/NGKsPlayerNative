@@ -363,6 +363,20 @@ QString telemetrySummaryLine(const UIEngineTelemetrySnapshot& telemetry)
              QString::number(telemetry.maxCallbackDurationUs));
 }
 
+QString agSummaryLine(const UIEngineTelemetrySnapshot& telemetry)
+{
+    return QStringLiteral("RTAudioDeviceId=%1 RTAudioDeviceName=%2 RTAudioAGRequestedSR=%3 RTAudioAGRequestedBufferFrames=%4 RTAudioAGRequestedChOut=%5 RTAudioAGAppliedSR=%6 RTAudioAGAppliedBufferFrames=%7 RTAudioAGAppliedChOut=%8 RTAudioAGFallback=%9")
+        .arg(QString::fromUtf8(telemetry.rtDeviceId),
+             QString::fromUtf8(telemetry.rtDeviceName),
+             QString::number(telemetry.rtRequestedSampleRate),
+             QString::number(telemetry.rtRequestedBufferFrames),
+             QString::number(telemetry.rtRequestedChannelsOut),
+             QString::number(telemetry.rtSampleRate),
+             QString::number(telemetry.rtBufferFrames),
+             QString::number(telemetry.rtChannelsOut),
+             telemetry.rtAgFallback ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
+}
+
 QString telemetrySparkline(const UIEngineTelemetrySnapshot& telemetry)
 {
     static const char* levels = " .:-=+*#%@";
@@ -590,12 +604,17 @@ public:
     {
         const double peakDb = static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0;
         rtAudioLabel_->setText(
-            QStringLiteral("RT Audio:\n  DeviceOpen: %1\n  Device: %2\n  SampleRate: %3\n  BufferFrames: %4\n  ChannelsOut: %5\n  CallbackCount: %6\n  XRuns: %7\n  XRunsTotal: %8\n  XRunsWindow: %9\n  JitterMaxNsWindow: %10\n  RestartCount: %11\n  WatchdogState: %12\n  LastDeviceErrorCode: %13\n  PeakDb: %14\n  Watchdog: %15")
+            QStringLiteral("RT Audio:\n  DeviceOpen: %1\n  DeviceId: %2\n  DeviceName: %3\n  Requested: sr=%4 buffer=%5 ch_out=%6\n  Applied: sr=%7 buffer=%8 ch_out=%9\n  Fallback: %10\n  CallbackCount: %11\n  XRuns: %12\n  XRunsTotal: %13\n  XRunsWindow: %14\n  JitterMaxNsWindow: %15\n  RestartCount: %16\n  WatchdogState: %17\n  LastDeviceErrorCode: %18\n  PeakDb: %19\n  Watchdog: %20")
                 .arg(boolToFlag(telemetry.rtDeviceOpenOk),
+                     QString::fromUtf8(telemetry.rtDeviceId),
                      QString::fromUtf8(telemetry.rtDeviceName),
+                     QString::number(telemetry.rtRequestedSampleRate),
+                     QString::number(telemetry.rtRequestedBufferFrames),
+                     QString::number(telemetry.rtRequestedChannelsOut),
                      QString::number(telemetry.rtSampleRate),
                      QString::number(telemetry.rtBufferFrames),
                      QString::number(telemetry.rtChannelsOut),
+                     telemetry.rtAgFallback ? QStringLiteral("TRUE") : QStringLiteral("FALSE"),
                      QString::number(static_cast<qulonglong>(telemetry.rtCallbackCount)),
                      QString::number(static_cast<qulonglong>(telemetry.rtXRunCount)),
                      QString::number(static_cast<qulonglong>(telemetry.rtXRunCountTotal)),
@@ -675,6 +694,11 @@ public:
         telemetryDetailsLabel_->setWordWrap(true);
         telemetryDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(telemetryDetailsLabel_);
+
+        agDetailsLabel_ = new QLabel(QStringLiteral("RTAudioDeviceId=<none> RTAudioDeviceName=<none> RTAudioAGRequestedSR=0 RTAudioAGRequestedBufferFrames=0 RTAudioAGRequestedChOut=0 RTAudioAGAppliedSR=0 RTAudioAGAppliedBufferFrames=0 RTAudioAGAppliedChOut=0 RTAudioAGFallback=FALSE"), root);
+        agDetailsLabel_->setWordWrap(true);
+        agDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        layout->addWidget(agDetailsLabel_);
 
         layout->addStretch(1);
         setCentralWidget(root);
@@ -768,6 +792,7 @@ private:
         statusDetailsLabel_->setText(statusSummaryLine(status));
         healthDetailsLabel_->setText(healthSummaryLine(health));
         telemetryDetailsLabel_->setText(telemetrySummaryLine(telemetry));
+        agDetailsLabel_->setText(agSummaryLine(telemetry));
 
         if (diagnosticsDialog_) {
             diagnosticsDialog_->setStatus(status);
@@ -841,6 +866,23 @@ private:
         if (!telemetry.rtWatchdogOk) {
             qInfo().noquote() << QStringLiteral("RTAudioWatchdogStallMs=%1").arg(QString::number(stallMs));
         }
+
+        if (telemetry.rtDeviceOpenOk) {
+            const QString markerKey = QStringLiteral("%1|%2|%3|%4|%5|%6|%7")
+                .arg(QString::fromUtf8(telemetry.rtDeviceId),
+                     QString::number(telemetry.rtRequestedSampleRate),
+                     QString::number(telemetry.rtRequestedBufferFrames),
+                     QString::number(telemetry.rtRequestedChannelsOut),
+                     QString::number(telemetry.rtSampleRate),
+                     QString::number(telemetry.rtBufferFrames),
+                     QString::number(telemetry.rtChannelsOut));
+            if (markerKey != lastAgMarkerKey_) {
+                qInfo().noquote() << QStringLiteral("RTAudioAGRequestedSR=%1").arg(QString::number(telemetry.rtRequestedSampleRate));
+                qInfo().noquote() << QStringLiteral("RTAudioAGAppliedSR=%1").arg(QString::number(telemetry.rtSampleRate));
+                qInfo().noquote() << QStringLiteral("RTAudioAGFallback=%1").arg(telemetry.rtAgFallback ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
+                lastAgMarkerKey_ = markerKey;
+            }
+        }
     }
 
     void runFoundationSelfTests()
@@ -891,6 +933,7 @@ private:
     QLabel* statusDetailsLabel_{nullptr};
     QLabel* healthDetailsLabel_{nullptr};
     QLabel* telemetryDetailsLabel_{nullptr};
+    QLabel* agDetailsLabel_{nullptr};
     UIStatus lastStatus_ {};
     UIHealthSnapshot lastHealth_ {};
     UIEngineTelemetrySnapshot lastTelemetry_ {};
@@ -904,6 +947,7 @@ private:
     bool telemetryTickLogged_{false};
     bool foundationTickLogged_{false};
     bool foundationSelfTestLogged_{false};
+    QString lastAgMarkerKey_ {};
 };
 
 } // namespace

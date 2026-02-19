@@ -63,6 +63,7 @@ struct EngineTelemetrySnapshot
     bool rtRecoveryRequested{false};
     bool rtRecoveryFailedState{false};
     int64_t rtLastCallbackTickMs{0};
+    char rtDeviceId[160] {};
     char rtDeviceName[96] {};
 };
 
@@ -191,5 +192,6 @@ private:
     int64_t rtLastProgressTickMs_ = 0;
     int64_t rtLastRecoveryAttemptMs_ = 0;
     uint32_t rtConsecutiveRecoveryFailures_ = 0;
+    char rtDeviceId_[160] {};
     char rtDeviceName_[96] {};
 };
