@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 
 namespace
@@ -17,6 +18,7 @@ constexpr float peakDecayFactor = 0.96f;
 constexpr int peakHoldBlocks = 8;
 constexpr std::chrono::seconds registryPersistInterval(1);
 constexpr float kPublicFacingWeightThreshold = 0.15f;
+constexpr float kTwoPi = 6.28318530718f;
 constexpr CrossfadeAssignment kDefaultCrossfadeAssignment {
     { 0, 1 },
     { 2, 3 },
@@ -27,6 +29,13 @@ constexpr CrossfadeAssignment kDefaultCrossfadeAssignment {
 void updateMaxRelaxed(std::atomic<uint32_t>& target, uint32_t value) noexcept
 {
     uint32_t previous = target.load(std::memory_order_relaxed);
+    while (value > previous && !target.compare_exchange_weak(previous, value, std::memory_order_relaxed)) {
+    }
+}
+
+void updateMaxRelaxedInt(std::atomic<int32_t>& target, int32_t value) noexcept
+{
+    int32_t previous = target.load(std::memory_order_relaxed);
     while (value > previous && !target.compare_exchange_weak(previous, value, std::memory_order_relaxed)) {
     }
 }
@@ -305,24 +314,32 @@ bool EngineCore::validateTransition(DeckLifecycleState from, DeckLifecycleState 
     return false;
 }
 
-void EngineCore::startAudioIfNeeded()
+bool EngineCore::startAudioIfNeeded()
 {
     if (offlineMode_) {
         audioOpened.store(true, std::memory_order_release);
-        return;
+        return true;
     }
 
     if (audioOpened.load(std::memory_order_acquire)) {
-        return;
+        return true;
     }
 
     const auto result = audioIO->start();
     if (!result.ok) {
-        return;
+        telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+        return false;
     }
 
     sampleRateHz = result.sampleRate;
     audioOpened.store(true, std::memory_order_release);
+    telemetry_.rtDeviceOpenOk.store(1u, std::memory_order_relaxed);
+    telemetry_.rtSampleRate.store(static_cast<int32_t>(std::max(0.0, result.sampleRate)), std::memory_order_relaxed);
+    telemetry_.rtBufferFrames.store(result.actualBufferSize, std::memory_order_relaxed);
+    telemetry_.rtChannelsOut.store(result.outputChannels, std::memory_order_relaxed);
+    std::strncpy(rtDeviceName_, result.deviceName.c_str(), sizeof(rtDeviceName_) - 1u);
+    rtDeviceName_[sizeof(rtDeviceName_) - 1u] = '\0';
+    return true;
 }
 
 bool EngineCore::renderOfflineBlock(float* outInterleavedLR, uint32_t frames)
@@ -363,6 +380,20 @@ EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
     snapshot.maxRenderDurationUs = telemetry_.maxRenderDurationUs.load(std::memory_order_relaxed);
     snapshot.lastCallbackDurationUs = telemetry_.lastCallbackDurationUs.load(std::memory_order_relaxed);
     snapshot.maxCallbackDurationUs = telemetry_.maxCallbackDurationUs.load(std::memory_order_relaxed);
+    snapshot.rtAudioEnabled = telemetry_.rtAudioEnabled.load(std::memory_order_relaxed) != 0u;
+    snapshot.rtDeviceOpenOk = telemetry_.rtDeviceOpenOk.load(std::memory_order_relaxed) != 0u;
+    snapshot.rtSampleRate = telemetry_.rtSampleRate.load(std::memory_order_relaxed);
+    snapshot.rtBufferFrames = telemetry_.rtBufferFrames.load(std::memory_order_relaxed);
+    snapshot.rtChannelsOut = telemetry_.rtChannelsOut.load(std::memory_order_relaxed);
+    snapshot.rtCallbackCount = telemetry_.rtCallbackCount.load(std::memory_order_relaxed);
+    snapshot.rtXRunCount = telemetry_.rtXRunCount.load(std::memory_order_relaxed);
+    snapshot.rtLastCallbackUs = telemetry_.rtLastCallbackUs.load(std::memory_order_relaxed);
+    snapshot.rtMaxCallbackUs = telemetry_.rtMaxCallbackUs.load(std::memory_order_relaxed);
+    snapshot.rtMeterPeakDb10 = telemetry_.rtMeterPeakDb10.load(std::memory_order_relaxed);
+    snapshot.rtWatchdogOk = telemetry_.rtWatchdogOk.load(std::memory_order_relaxed) != 0u;
+    snapshot.rtLastCallbackTickMs = telemetry_.rtLastCallbackTickMs.load(std::memory_order_relaxed);
+    std::strncpy(snapshot.rtDeviceName, rtDeviceName_, sizeof(snapshot.rtDeviceName) - 1u);
+    snapshot.rtDeviceName[sizeof(snapshot.rtDeviceName) - 1u] = '\0';
 
     uint32_t count = telemetry_.renderDurationHistoryCount.load(std::memory_order_acquire);
     if (count > EngineTelemetrySnapshot::kRenderDurationWindowSize) {
@@ -381,6 +412,52 @@ EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
     }
 
     return snapshot;
+}
+
+bool EngineCore::startRtAudioProbe(float toneHz, float toneDb) noexcept
+{
+    if (toneHz < 20.0f) {
+        toneHz = 20.0f;
+    }
+    if (toneHz > 20000.0f) {
+        toneHz = 20000.0f;
+    }
+
+    const float toneLinear = std::pow(10.0f, toneDb / 20.0f);
+    rtToneHz_.store(toneHz, std::memory_order_relaxed);
+    rtToneLinear_.store(toneLinear, std::memory_order_relaxed);
+    rtTonePhase_ = 0.0f;
+    telemetry_.rtAudioEnabled.store(1u, std::memory_order_relaxed);
+    telemetry_.rtWatchdogOk.store(1u, std::memory_order_relaxed);
+    return startAudioIfNeeded();
+}
+
+void EngineCore::stopRtAudioProbe() noexcept
+{
+    telemetry_.rtAudioEnabled.store(0u, std::memory_order_relaxed);
+}
+
+bool EngineCore::pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexcept
+{
+    outStallMs = 0;
+    if (telemetry_.rtAudioEnabled.load(std::memory_order_relaxed) == 0u
+        || telemetry_.rtDeviceOpenOk.load(std::memory_order_relaxed) == 0u) {
+        telemetry_.rtWatchdogOk.store(1u, std::memory_order_relaxed);
+        return true;
+    }
+
+    const int64_t lastTickMs = telemetry_.rtLastCallbackTickMs.load(std::memory_order_relaxed);
+    if (lastTickMs <= 0) {
+        telemetry_.rtWatchdogOk.store(1u, std::memory_order_relaxed);
+        return true;
+    }
+
+    const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    outStallMs = std::max<int64_t>(0, nowMs - lastTickMs);
+    const bool ok = outStallMs <= thresholdMs;
+    telemetry_.rtWatchdogOk.store(ok ? 1u : 0u, std::memory_order_relaxed);
+    return ok;
 }
 
 void EngineCore::pushRenderDurationSample(uint32_t durationUs) noexcept
@@ -773,6 +850,7 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
 
     if (numSamples <= 0 || left == nullptr || right == nullptr) {
         telemetry_.xruns.fetch_add(1u, std::memory_order_relaxed);
+        telemetry_.rtXRunCount.fetch_add(1u, std::memory_order_relaxed);
         telemetry_.lastRenderDurationUs.store(0u, std::memory_order_relaxed);
 
         const auto callbackEnd = std::chrono::high_resolution_clock::now();
@@ -780,9 +858,16 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
             std::chrono::duration_cast<std::chrono::microseconds>(callbackEnd - callbackStart).count()));
         telemetry_.lastCallbackDurationUs.store(callbackDurationUs, std::memory_order_relaxed);
         updateMaxRelaxed(telemetry_.maxCallbackDurationUs, callbackDurationUs);
+        telemetry_.rtLastCallbackUs.store(static_cast<int32_t>(callbackDurationUs), std::memory_order_relaxed);
+        updateMaxRelaxedInt(telemetry_.rtMaxCallbackUs, static_cast<int32_t>(callbackDurationUs));
         pushRenderDurationSample(0u);
         return;
     }
+
+    telemetry_.rtCallbackCount.fetch_add(1u, std::memory_order_relaxed);
+    const int64_t callbackTickMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    telemetry_.rtLastCallbackTickMs.store(callbackTickMs, std::memory_order_relaxed);
 
     const auto renderStart = std::chrono::high_resolution_clock::now();
 
@@ -821,6 +906,21 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
     computeCrossfadeWeights(working, crossfaderPosition_, mixMatrix_);
 
     const auto graphStats = audioGraph.render(working, mixMatrix_, numSamples, left, right);
+
+    if (telemetry_.rtAudioEnabled.load(std::memory_order_relaxed) != 0u) {
+        const float toneHz = rtToneHz_.load(std::memory_order_relaxed);
+        const float toneLinear = rtToneLinear_.load(std::memory_order_relaxed);
+        const float phaseStep = (sampleRateHz > 1.0) ? (kTwoPi * toneHz / static_cast<float>(sampleRateHz)) : 0.0f;
+        for (int i = 0; i < numSamples; ++i) {
+            const float sample = std::sin(rtTonePhase_) * toneLinear;
+            rtTonePhase_ += phaseStep;
+            if (rtTonePhase_ >= kTwoPi) {
+                rtTonePhase_ -= kTwoPi;
+            }
+            left[i] += sample;
+            right[i] += sample;
+        }
+    }
 
     masterBus_.setGainTrim(static_cast<float>(working.masterGain));
     const auto masterMeters = masterBus_.process(left, right, numSamples);
@@ -956,4 +1056,11 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         std::chrono::duration_cast<std::chrono::microseconds>(callbackEnd - callbackStart).count()));
     telemetry_.lastCallbackDurationUs.store(callbackDurationUs, std::memory_order_relaxed);
     updateMaxRelaxed(telemetry_.maxCallbackDurationUs, callbackDurationUs);
+    telemetry_.rtLastCallbackUs.store(static_cast<int32_t>(callbackDurationUs), std::memory_order_relaxed);
+    updateMaxRelaxedInt(telemetry_.rtMaxCallbackUs, static_cast<int32_t>(callbackDurationUs));
+
+    const float peak = std::max(std::abs(masterMeters.masterPeakL), std::abs(masterMeters.masterPeakR));
+    const float safePeak = std::max(peak, 0.0000001f);
+    const int32_t peakDb10 = static_cast<int32_t>(std::lround(20.0f * std::log10(safePeak) * 10.0f));
+    telemetry_.rtMeterPeakDb10.store(peakDb10, std::memory_order_relaxed);
 }

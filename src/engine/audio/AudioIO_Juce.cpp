@@ -41,6 +41,8 @@ AudioIOJuce::StartResult AudioIOJuce::start()
 
     result.actualBufferSize = currentDevice->getCurrentBufferSizeSamples();
     result.sampleRate = currentDevice->getCurrentSampleRate();
+    result.outputChannels = currentDevice->getOutputChannelNames().size();
+    result.deviceName = currentDevice->getName().toStdString();
     result.ok = true;
     result.message = "OK";
 

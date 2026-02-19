@@ -13,8 +13,10 @@ public:
     {
         bool ok = false;
         std::string message;
+        std::string deviceName;
         int requestedBufferSize = 128;
         int actualBufferSize = 0;
+        int outputChannels = 0;
         double sampleRate = 0.0;
     };
 

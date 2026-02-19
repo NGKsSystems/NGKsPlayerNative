@@ -38,6 +38,20 @@ struct UIEngineTelemetrySnapshot {
     uint32_t maxCallbackDurationUs;
     uint32_t renderDurationWindowCount;
     uint32_t renderDurationWindowUs[kRenderDurationWindowSize] {};
+
+    bool rtAudioEnabled{false};
+    bool rtDeviceOpenOk{false};
+    int32_t rtSampleRate{0};
+    int32_t rtBufferFrames{0};
+    int32_t rtChannelsOut{0};
+    uint64_t rtCallbackCount{0};
+    uint64_t rtXRunCount{0};
+    int32_t rtLastCallbackUs{0};
+    int32_t rtMaxCallbackUs{0};
+    int32_t rtMeterPeakDb10{-1200};
+    bool rtWatchdogOk{true};
+    int64_t rtLastCallbackTickMs{0};
+    char rtDeviceName[96] {};
 };
 
 struct UISelfTestSnapshot {
@@ -72,10 +86,13 @@ public:
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void setMasterGain(double linear01);
+    Q_INVOKABLE bool startRtProbe(double toneHz, double toneDb);
+    Q_INVOKABLE void stopRtProbe();
 
     bool tryGetStatus(UIStatus& out);
     bool tryGetHealth(UIHealthSnapshot& out) const;
     bool tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcept;
+    bool pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexcept;
     bool runSelfTests(UISelfTestSnapshot& out) noexcept;
     bool tryGetFoundation(UIFoundationSnapshot& out) const noexcept;
 

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 #include "engine/command/Command.h"
 
@@ -30,6 +31,16 @@ void EngineBridge::stop()
 void EngineBridge::setMasterGain(double linear01)
 {
     engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_A, nextCommandSeq++, 0, static_cast<float>(std::clamp(linear01, 0.0, 1.0)), 0 });
+}
+
+bool EngineBridge::startRtProbe(double toneHz, double toneDb)
+{
+    return engine.startRtAudioProbe(static_cast<float>(toneHz), static_cast<float>(toneDb));
+}
+
+void EngineBridge::stopRtProbe()
+{
+    engine.stopRtAudioProbe();
 }
 
 bool EngineBridge::tryGetStatus(UIStatus& out)
@@ -65,7 +76,26 @@ bool EngineBridge::tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcep
     for (uint32_t i = 0u; i < UIEngineTelemetrySnapshot::kRenderDurationWindowSize; ++i) {
         out.renderDurationWindowUs[i] = telemetry.renderDurationWindowUs[i];
     }
+    out.rtAudioEnabled = telemetry.rtAudioEnabled;
+    out.rtDeviceOpenOk = telemetry.rtDeviceOpenOk;
+    out.rtSampleRate = telemetry.rtSampleRate;
+    out.rtBufferFrames = telemetry.rtBufferFrames;
+    out.rtChannelsOut = telemetry.rtChannelsOut;
+    out.rtCallbackCount = telemetry.rtCallbackCount;
+    out.rtXRunCount = telemetry.rtXRunCount;
+    out.rtLastCallbackUs = telemetry.rtLastCallbackUs;
+    out.rtMaxCallbackUs = telemetry.rtMaxCallbackUs;
+    out.rtMeterPeakDb10 = telemetry.rtMeterPeakDb10;
+    out.rtWatchdogOk = telemetry.rtWatchdogOk;
+    out.rtLastCallbackTickMs = telemetry.rtLastCallbackTickMs;
+    std::strncpy(out.rtDeviceName, telemetry.rtDeviceName, sizeof(out.rtDeviceName) - 1u);
+    out.rtDeviceName[sizeof(out.rtDeviceName) - 1u] = '\0';
     return true;
+}
+
+bool EngineBridge::pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexcept
+{
+    return engine.pollRtWatchdog(thresholdMs, outStallMs);
 }
 
 bool EngineBridge::runSelfTests(UISelfTestSnapshot& out) noexcept

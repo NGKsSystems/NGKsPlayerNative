@@ -30,6 +30,20 @@ struct EngineTelemetrySnapshot
     uint32_t maxCallbackDurationUs{0};
     uint32_t renderDurationWindowCount{0};
     uint32_t renderDurationWindowUs[kRenderDurationWindowSize] {};
+
+    bool rtAudioEnabled{false};
+    bool rtDeviceOpenOk{false};
+    int32_t rtSampleRate{0};
+    int32_t rtBufferFrames{0};
+    int32_t rtChannelsOut{0};
+    uint64_t rtCallbackCount{0};
+    uint64_t rtXRunCount{0};
+    int32_t rtLastCallbackUs{0};
+    int32_t rtMaxCallbackUs{0};
+    int32_t rtMeterPeakDb10{-1200};
+    bool rtWatchdogOk{true};
+    int64_t rtLastCallbackTickMs{0};
+    char rtDeviceName[96] {};
 };
 
 class EngineCore
@@ -43,6 +57,9 @@ public:
     void updateCrossfader(float x);
     bool renderOfflineBlock(float* outInterleavedLR, uint32_t frames);
     EngineTelemetrySnapshot getTelemetrySnapshot() const noexcept;
+    bool startRtAudioProbe(float toneHz, float toneDb) noexcept;
+    void stopRtAudioProbe() noexcept;
+    bool pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexcept;
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;
@@ -61,10 +78,23 @@ public:
         std::atomic<uint32_t> renderDurationHistoryWriteIndex { 0 };
         std::atomic<uint32_t> renderDurationHistoryCount { 0 };
         std::atomic<uint32_t> renderDurationHistoryUs[kRenderDurationHistorySize] {};
+
+        std::atomic<uint8_t> rtAudioEnabled { 0 };
+        std::atomic<uint8_t> rtDeviceOpenOk { 0 };
+        std::atomic<int32_t> rtSampleRate { 0 };
+        std::atomic<int32_t> rtBufferFrames { 0 };
+        std::atomic<int32_t> rtChannelsOut { 0 };
+        std::atomic<uint64_t> rtCallbackCount { 0 };
+        std::atomic<uint64_t> rtXRunCount { 0 };
+        std::atomic<int32_t> rtLastCallbackUs { 0 };
+        std::atomic<int32_t> rtMaxCallbackUs { 0 };
+        std::atomic<int32_t> rtMeterPeakDb10 { -1200 };
+        std::atomic<uint8_t> rtWatchdogOk { 1 };
+        std::atomic<int64_t> rtLastCallbackTickMs { 0 };
     };
 
 private:
-    void startAudioIfNeeded();
+    bool startAudioIfNeeded();
     ngks::CommandResult applyCommand(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept;
     ngks::CommandResult submitJobCommand(const ngks::Command& command) noexcept;
     void appendJobResults(ngks::EngineSnapshot& snapshot) noexcept;
@@ -104,4 +134,8 @@ private:
     float masterPeakSmoothing = 0.0f;
     int masterPeakHoldBlocks = 0;
     EngineTelemetry telemetry_ {};
+    std::atomic<float> rtToneHz_ { 440.0f };
+    std::atomic<float> rtToneLinear_ { 0.25f };
+    float rtTonePhase_ = 0.0f;
+    char rtDeviceName_[96] {};
 };

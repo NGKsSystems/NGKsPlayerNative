@@ -32,6 +32,7 @@
 #include <fstream>
 #include <iostream>
 #include <atomic>
+#include <functional>
 #include <vector>
 
 #ifdef _WIN32
@@ -428,8 +429,9 @@ QString foundationBlockText(const UIFoundationSnapshot& foundation, const UISelf
 
 class DiagnosticsDialog : public QDialog {
 public:
-    explicit DiagnosticsDialog(QWidget* parent = nullptr)
+    explicit DiagnosticsDialog(EngineBridge& engineBridge, QWidget* parent = nullptr)
         : QDialog(parent)
+        , bridge_(engineBridge)
     {
         setWindowTitle(QStringLiteral("Diagnostics"));
         resize(780, 430);
@@ -443,8 +445,10 @@ public:
         auto* row = new QHBoxLayout();
         auto* refreshButton = new QPushButton(QStringLiteral("Refresh Log Tail"), this);
         auto* copyButton = new QPushButton(QStringLiteral("Copy Report"), this);
+        auto* rtProbeButton = new QPushButton(QStringLiteral("Start RT Probe (440Hz/5s)"), this);
         row->addWidget(refreshButton);
         row->addWidget(copyButton);
+        row->addWidget(rtProbeButton);
         row->addStretch(1);
         layout->addLayout(row);
 
@@ -480,12 +484,23 @@ public:
         foundationLabel_->setWordWrap(true);
         layout->addWidget(foundationLabel_);
 
+        rtAudioLabel_ = new QLabel(
+            QStringLiteral("RT Audio:\n  DeviceOpen: FALSE\n  Device: <none>\n  SampleRate: 0\n  BufferFrames: 0\n  ChannelsOut: 0\n  CallbackCount: 0\n  XRuns: 0\n  PeakDb: -120.0\n  Watchdog: FALSE"),
+            this);
+        rtAudioLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        rtAudioLabel_->setWordWrap(true);
+        layout->addWidget(rtAudioLabel_);
+
         logTailBox_ = new QPlainTextEdit(this);
         logTailBox_->setReadOnly(true);
         layout->addWidget(logTailBox_);
 
         QObject::connect(refreshButton, &QPushButton::clicked, this, &DiagnosticsDialog::refreshLogTail);
         QObject::connect(copyButton, &QPushButton::clicked, this, &DiagnosticsDialog::copyReportToClipboard);
+        QObject::connect(rtProbeButton, &QPushButton::clicked, this, [this]() {
+            bridge_.startRtProbe(440.0, -12.0);
+            QTimer::singleShot(5000, this, [this]() { bridge_.stopRtProbe(); });
+        });
 
         qInfo() << "DiagnosticsDialogConstructed=PASS";
         refreshLogTail();
@@ -555,6 +570,22 @@ public:
         foundationLabel_->setText(foundationText_);
     }
 
+    void setRtAudio(const UIEngineTelemetrySnapshot& telemetry)
+    {
+        const double peakDb = static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0;
+        rtAudioLabel_->setText(
+            QStringLiteral("RT Audio:\n  DeviceOpen: %1\n  Device: %2\n  SampleRate: %3\n  BufferFrames: %4\n  ChannelsOut: %5\n  CallbackCount: %6\n  XRuns: %7\n  PeakDb: %8\n  Watchdog: %9")
+                .arg(boolToFlag(telemetry.rtDeviceOpenOk),
+                     QString::fromUtf8(telemetry.rtDeviceName),
+                     QString::number(telemetry.rtSampleRate),
+                     QString::number(telemetry.rtBufferFrames),
+                     QString::number(telemetry.rtChannelsOut),
+                     QString::number(static_cast<qulonglong>(telemetry.rtCallbackCount)),
+                     QString::number(static_cast<qulonglong>(telemetry.rtXRunCount)),
+                     QString::number(peakDb, 'f', 1),
+                     boolToFlag(telemetry.rtWatchdogOk)));
+    }
+
     void copyReportToClipboard()
     {
         QString report;
@@ -563,18 +594,21 @@ public:
         report += healthLabel_->text() + '\n';
         report += telemetryLabel_->text() + '\n';
         report += foundationText_;
+        report += '\n' + rtAudioLabel_->text();
         if (QGuiApplication::clipboard() != nullptr) {
             QGuiApplication::clipboard()->setText(report);
         }
     }
 
 private:
+    EngineBridge& bridge_;
     QLabel* statusLabel_{nullptr};
     QLabel* detailsLabel_{nullptr};
     QLabel* lastUpdateLabel_{nullptr};
     QLabel* healthLabel_{nullptr};
     QLabel* telemetryLabel_{nullptr};
     QLabel* foundationLabel_{nullptr};
+    QLabel* rtAudioLabel_{nullptr};
     QPlainTextEdit* logTailBox_{nullptr};
     QString foundationText_;
 };
@@ -635,11 +669,16 @@ public:
 
         const QString autorun = qEnvironmentVariable("NGKS_SELFTEST_AUTORUN").trimmed().toLower();
         selfTestAutorun_ = (autorun == QStringLiteral("1") || autorun == QStringLiteral("true") || autorun == QStringLiteral("yes"));
+        const QString rtAutorun = qEnvironmentVariable("NGKS_RT_AUDIO_AUTORUN").trimmed().toLower();
+        rtProbeAutorun_ = (rtAutorun == QStringLiteral("1") || rtAutorun == QStringLiteral("true") || rtAutorun == QStringLiteral("yes"));
 
         qInfo() << "MainWindowConstructed=PASS";
 
         if (selfTestAutorun_) {
             QTimer::singleShot(0, this, &MainWindow::runFoundationSelfTests);
+        }
+        if (rtProbeAutorun_) {
+            QTimer::singleShot(0, this, &MainWindow::startRtProbeAutorun);
         }
     }
 
@@ -647,7 +686,7 @@ private:
     void showDiagnostics()
     {
         if (!diagnosticsDialog_) {
-            diagnosticsDialog_ = new DiagnosticsDialog(this);
+            diagnosticsDialog_ = new DiagnosticsDialog(bridge_, this);
         }
         if (!lastStatus_.lastUpdateUtc.empty()) {
             diagnosticsDialog_->setStatus(lastStatus_);
@@ -655,6 +694,7 @@ private:
         diagnosticsDialog_->setHealth(lastHealth_);
         diagnosticsDialog_->setTelemetry(lastTelemetry_);
         diagnosticsDialog_->setFoundation(lastFoundation_, selfTestsRan_ ? &lastSelfTests_ : nullptr);
+        diagnosticsDialog_->setRtAudio(lastTelemetry_);
         diagnosticsDialog_->refreshLogTail();
         diagnosticsDialog_->show();
         diagnosticsDialog_->raise();
@@ -688,6 +728,10 @@ private:
             telemetry = {};
         }
 
+        int64_t stallMs = 0;
+        const bool watchdogOk = bridge_.pollRtWatchdog(500, stallMs);
+        telemetry.rtWatchdogOk = watchdogOk;
+
         UIFoundationSnapshot foundation {};
         const bool foundationReady = bridge_.tryGetFoundation(foundation);
         if (!foundationReady) {
@@ -708,6 +752,7 @@ private:
             diagnosticsDialog_->setHealth(health);
             diagnosticsDialog_->setTelemetry(telemetry);
             diagnosticsDialog_->setFoundation(foundation, selfTestsRan_ ? &lastSelfTests_ : nullptr);
+            diagnosticsDialog_->setRtAudio(telemetry);
         }
 
         if (!statusTickLogged_) {
@@ -759,6 +804,16 @@ private:
             qInfo().noquote() << QStringLiteral("FoundationSelfTestSummary=%1").arg(passFail(lastSelfTests_.allPass));
             foundationSelfTestLogged_ = true;
         }
+
+        qInfo() << "RTAudioPollTick=PASS";
+        qInfo().noquote() << QStringLiteral("RTAudioDeviceOpen=%1").arg(boolToFlag(telemetry.rtDeviceOpenOk));
+        qInfo().noquote() << QStringLiteral("RTAudioCallbackCount=%1").arg(QString::number(static_cast<qulonglong>(telemetry.rtCallbackCount)));
+        qInfo().noquote() << QStringLiteral("RTAudioXRuns=%1").arg(QString::number(static_cast<qulonglong>(telemetry.rtXRunCount)));
+        qInfo().noquote() << QStringLiteral("RTAudioPeakDb=%1").arg(QString::number(static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0, 'f', 1));
+        qInfo().noquote() << QStringLiteral("RTAudioWatchdog=%1").arg(boolToFlag(telemetry.rtWatchdogOk));
+        if (!telemetry.rtWatchdogOk) {
+            qInfo().noquote() << QStringLiteral("RTAudioWatchdogStallMs=%1").arg(QString::number(stallMs));
+        }
     }
 
     void runFoundationSelfTests()
@@ -783,6 +838,12 @@ private:
                 diagnosticsDialog_->setFoundation(lastFoundation_, &lastSelfTests_);
             }
         }
+    }
+
+    void startRtProbeAutorun()
+    {
+        bridge_.startRtProbe(440.0, -12.0);
+        QTimer::singleShot(5000, this, [this]() { bridge_.stopRtProbe(); });
     }
 
 public:
@@ -810,6 +871,7 @@ private:
     UISelfTestSnapshot lastSelfTests_ {};
     bool selfTestsRan_{false};
     bool selfTestAutorun_{false};
+    bool rtProbeAutorun_{false};
     bool statusTickLogged_{false};
     bool healthTickLogged_{false};
     bool telemetryTickLogged_{false};

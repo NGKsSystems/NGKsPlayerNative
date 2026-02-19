@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "engine/EngineCore.h"
@@ -135,6 +136,10 @@ struct CliOptions {
     bool foundationReport = false;
     bool foundationJson = false;
     bool selfTest = false;
+    bool rtAudioProbe = false;
+    int rtSeconds = 5;
+    float rtToneHz = 440.0f;
+    float rtToneDb = -12.0f;
 };
 
 bool parseCliOptions(int argc, char* argv[], CliOptions& options)
@@ -153,6 +158,50 @@ bool parseCliOptions(int argc, char* argv[], CliOptions& options)
 
         if (arg == "--selftest") {
             options.selfTest = true;
+            continue;
+        }
+
+        if (arg == "--rt_audio_probe") {
+            options.rtAudioProbe = true;
+            continue;
+        }
+
+        if (arg == "--seconds") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.rtSeconds = std::stoi(argv[++i]);
+            } catch (...) {
+                return false;
+            }
+            if (options.rtSeconds <= 0) {
+                return false;
+            }
+            continue;
+        }
+
+        if (arg == "--tone_hz") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.rtToneHz = std::stof(argv[++i]);
+            } catch (...) {
+                return false;
+            }
+            continue;
+        }
+
+        if (arg == "--tone_db") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.rtToneDb = std::stof(argv[++i]);
+            } catch (...) {
+                return false;
+            }
             continue;
         }
 
@@ -247,6 +296,66 @@ int runTelemetryCsvMode(const CliOptions& options)
     std::cout << "TelemetryCsvRows=" << (ticks + 1) << std::endl;
     std::cout << "RunResult=PASS" << std::endl;
     return 0;
+}
+
+int runRtAudioProbe(const CliOptions& options)
+{
+    std::cout << "RTAudioProbe=BEGIN" << std::endl;
+
+    EngineCore engine(false);
+    const bool openOk = engine.startRtAudioProbe(options.rtToneHz, options.rtToneDb);
+    auto telemetry = engine.getTelemetrySnapshot();
+
+    if (openOk && telemetry.rtDeviceOpenOk) {
+        std::cout << "RTAudioDeviceOpen=PASS"
+                  << " name=" << telemetry.rtDeviceName
+                  << " sr=" << telemetry.rtSampleRate
+                  << " buffer=" << telemetry.rtBufferFrames
+                  << " channels=" << telemetry.rtChannelsOut
+                  << std::endl;
+    } else {
+        std::cout << "RTAudioDeviceOpen=FAIL" << std::endl;
+    }
+
+    const auto start = std::chrono::steady_clock::now();
+    bool watchdogOk = true;
+    int64_t worstStallMs = 0;
+    while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count() < options.rtSeconds) {
+        int64_t stallMs = 0;
+        const bool tickOk = engine.pollRtWatchdog(500, stallMs);
+        watchdogOk = watchdogOk && tickOk;
+        if (stallMs > worstStallMs) {
+            worstStallMs = stallMs;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    }
+
+    engine.stopRtAudioProbe();
+    telemetry = engine.getTelemetrySnapshot();
+
+    const uint64_t callbackTicks = telemetry.rtCallbackCount;
+    const int64_t conservativeMinTicks = static_cast<int64_t>(options.rtSeconds) * 2;
+    const bool callbackPass = callbackTicks >= static_cast<uint64_t>(std::max<int64_t>(1, conservativeMinTicks));
+    std::cout << "RTAudioCallbackTicks>=" << std::max<int64_t>(1, conservativeMinTicks)
+              << '=' << (callbackPass ? "PASS" : "FAIL")
+              << " value=" << callbackTicks << std::endl;
+
+    const bool xrunPass = telemetry.rtXRunCount == 0u;
+    if (xrunPass) {
+        std::cout << "RTAudioXRuns=0" << std::endl;
+    } else {
+        std::cout << "RTAudioXRuns=" << telemetry.rtXRunCount << " FAIL" << std::endl;
+    }
+
+    const double peakDb = static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0;
+    std::cout << "RTAudioMeterPeakDb=" << peakDb << std::endl;
+
+    std::cout << "RTAudioWatchdog=" << (watchdogOk ? "PASS" : "FAIL")
+              << " StallMs=" << worstStallMs << std::endl;
+
+    const bool pass = openOk && telemetry.rtDeviceOpenOk && callbackPass && xrunPass && watchdogOk;
+    std::cout << "RTAudioProbe=" << (pass ? "PASS" : "FAIL") << std::endl;
+    return pass ? 0 : 1;
 }
 
 struct SelfTestResults {
@@ -368,6 +477,10 @@ int main(int argc, char* argv[])
     if (!parseCliOptions(argc, argv, options)) {
         std::cerr << "Usage: NGKsPlayerHeadless [--telemetry_csv <path>] [--telemetry_seconds <int>]" << std::endl;
         return 1;
+    }
+
+    if (options.rtAudioProbe) {
+        return runRtAudioProbe(options);
     }
 
     if (!options.telemetryCsvPath.empty()) {
