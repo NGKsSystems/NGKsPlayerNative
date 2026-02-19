@@ -1,16 +1,19 @@
 #include <cstdint>
 #include <cstring>
+#include <ctime>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "engine/EngineCore.h"
+#include "engine/audio/AudioIO_Juce.h"
 #include "engine/runtime/MasterBus.h"
 #include "engine/runtime/offline/OfflineRenderConfig.h"
 #include "engine/runtime/offline/OfflineRenderer.h"
@@ -161,9 +164,205 @@ struct CliOptions {
     int aeSeconds = 600;
     int aePollMs = 250;
     int aeMaxXruns = 0;
-    uint64_t aeMaxJitterNs = 20000000ull;
+    uint64_t aeMaxJitterNs = 15000000ull;
+    bool aeStrictJitter = false;
     bool aeRequireNoRestarts = false;
+    bool aeAllowStallTrips = false;
+    bool listDevices = false;
+    std::string deviceId;
+    std::string deviceName;
+    bool setPreferredDeviceId = false;
+    bool setPreferredDeviceName = false;
 };
+
+struct AudioDeviceProfile {
+    std::string preferredDeviceId;
+    std::string preferredDeviceName;
+    int sampleRate = 0;
+    int bufferFrames = 0;
+    int channelsIn = 0;
+    int channelsOut = 0;
+};
+
+const std::filesystem::path kAudioProfilePath = std::filesystem::path("data") / "runtime" / "audio_device_profile.json";
+
+std::string jsonEscape(const std::string& value)
+{
+    std::string out;
+    out.reserve(value.size() + 8u);
+    for (char c : value) {
+        if (c == '\\' || c == '"') {
+            out.push_back('\\');
+        }
+        out.push_back(c);
+    }
+    return out;
+}
+
+std::string extractJsonString(const std::string& text, const std::string& key)
+{
+    const std::string needle = "\"" + key + "\"";
+    const size_t keyPos = text.find(needle);
+    if (keyPos == std::string::npos) {
+        return {};
+    }
+    size_t colonPos = text.find(':', keyPos + needle.size());
+    if (colonPos == std::string::npos) {
+        return {};
+    }
+    size_t start = text.find('"', colonPos + 1u);
+    if (start == std::string::npos) {
+        return {};
+    }
+    ++start;
+    size_t end = start;
+    while (end < text.size()) {
+        if (text[end] == '"' && text[end - 1] != '\\') {
+            break;
+        }
+        ++end;
+    }
+    if (end >= text.size()) {
+        return {};
+    }
+    return text.substr(start, end - start);
+}
+
+int extractJsonInt(const std::string& text, const std::string& key)
+{
+    const std::string needle = "\"" + key + "\"";
+    const size_t keyPos = text.find(needle);
+    if (keyPos == std::string::npos) {
+        return 0;
+    }
+    size_t colonPos = text.find(':', keyPos + needle.size());
+    if (colonPos == std::string::npos) {
+        return 0;
+    }
+    size_t begin = text.find_first_of("-0123456789", colonPos + 1u);
+    if (begin == std::string::npos) {
+        return 0;
+    }
+    size_t end = text.find_first_not_of("-0123456789", begin);
+    const std::string value = text.substr(begin, end - begin);
+    try {
+        return std::stoi(value);
+    } catch (...) {
+        return 0;
+    }
+}
+
+bool loadAudioDeviceProfile(AudioDeviceProfile& outProfile)
+{
+    if (!std::filesystem::exists(kAudioProfilePath)) {
+        return false;
+    }
+
+    std::ifstream stream(kAudioProfilePath, std::ios::in | std::ios::binary);
+    if (!stream.is_open()) {
+        return false;
+    }
+
+    std::ostringstream oss;
+    oss << stream.rdbuf();
+    const std::string text = oss.str();
+    outProfile.preferredDeviceId = extractJsonString(text, "preferred_device_id");
+    outProfile.preferredDeviceName = extractJsonString(text, "preferred_device_name");
+    outProfile.sampleRate = extractJsonInt(text, "sample_rate");
+    outProfile.bufferFrames = extractJsonInt(text, "buffer_frames");
+    outProfile.channelsIn = extractJsonInt(text, "channels_in");
+    outProfile.channelsOut = extractJsonInt(text, "channels_out");
+    return true;
+}
+
+bool saveAudioDeviceProfile(const AudioDeviceProfile& profile)
+{
+    std::filesystem::create_directories(kAudioProfilePath.parent_path());
+    std::ofstream stream(kAudioProfilePath, std::ios::trunc | std::ios::binary);
+    if (!stream.is_open()) {
+        return false;
+    }
+
+    const auto now = std::chrono::system_clock::now();
+    const auto nowT = std::chrono::system_clock::to_time_t(now);
+    std::tm utcTm {};
+#ifdef _WIN32
+    gmtime_s(&utcTm, &nowT);
+#else
+    gmtime_r(&nowT, &utcTm);
+#endif
+    char timeBuf[64] {};
+    std::strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%dT%H:%M:%SZ", &utcTm);
+
+    stream << "{\n"
+           << "  \"preferred_device_id\": \"" << jsonEscape(profile.preferredDeviceId) << "\",\n"
+           << "  \"preferred_device_name\": \"" << jsonEscape(profile.preferredDeviceName) << "\",\n"
+           << "  \"sample_rate\": " << profile.sampleRate << ",\n"
+           << "  \"buffer_frames\": " << profile.bufferFrames << ",\n"
+           << "  \"channels_in\": " << profile.channelsIn << ",\n"
+           << "  \"channels_out\": " << profile.channelsOut << ",\n"
+           << "  \"updated_utc\": \"" << timeBuf << "\"\n"
+           << "}\n";
+    return true;
+}
+
+bool resolveDeviceFromOptions(const CliOptions& options,
+                              const std::vector<AudioIOJuce::DeviceInfo>& devices,
+                              std::string& outId,
+                              std::string& outName)
+{
+    if (!options.deviceId.empty()) {
+        for (const auto& d : devices) {
+            if (d.deviceId == options.deviceId) {
+                outId = d.deviceId;
+                outName = d.deviceName;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    if (!options.deviceName.empty()) {
+        for (const auto& d : devices) {
+            if (d.deviceName == options.deviceName) {
+                outId = d.deviceId;
+                outName = d.deviceName;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    AudioDeviceProfile profile {};
+    if (loadAudioDeviceProfile(profile)) {
+        if (!profile.preferredDeviceId.empty()) {
+            for (const auto& d : devices) {
+                if (d.deviceId == profile.preferredDeviceId) {
+                    outId = d.deviceId;
+                    outName = d.deviceName;
+                    return true;
+                }
+            }
+        }
+
+        if (!profile.preferredDeviceName.empty()) {
+            for (const auto& d : devices) {
+                if (d.deviceName == profile.preferredDeviceName) {
+                    outId = d.deviceId;
+                    outName = d.deviceName;
+                    return true;
+                }
+            }
+        }
+    }
+
+    if (!devices.empty()) {
+        outId = devices.front().deviceId;
+        outName = devices.front().deviceName;
+        return true;
+    }
+    return false;
+}
 
 bool parseCliOptions(int argc, char* argv[], CliOptions& options)
 {
@@ -186,6 +385,11 @@ bool parseCliOptions(int argc, char* argv[], CliOptions& options)
 
         if (arg == "--rt_audio_probe") {
             options.rtAudioProbe = true;
+            continue;
+        }
+
+        if (arg == "--list_devices") {
+            options.listDevices = true;
             continue;
         }
 
@@ -252,8 +456,53 @@ bool parseCliOptions(int argc, char* argv[], CliOptions& options)
             continue;
         }
 
+        if (arg == "--strict_jitter") {
+            options.aeStrictJitter = true;
+            options.aeMaxJitterNs = 2000000ull;
+            continue;
+        }
+
         if (arg == "--require_no_restarts") {
             options.aeRequireNoRestarts = true;
+            continue;
+        }
+
+        if (arg == "--allow_stall_trips") {
+            options.aeAllowStallTrips = true;
+            continue;
+        }
+
+        if (arg == "--device_id") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.deviceId = argv[++i];
+            continue;
+        }
+
+        if (arg == "--device_name") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.deviceName = argv[++i];
+            continue;
+        }
+
+        if (arg == "--set_preferred_device_id") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.setPreferredDeviceId = true;
+            options.deviceId = argv[++i];
+            continue;
+        }
+
+        if (arg == "--set_preferred_device_name") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            options.setPreferredDeviceName = true;
+            options.deviceName = argv[++i];
             continue;
         }
 
@@ -374,14 +623,84 @@ int runTelemetryCsvMode(const CliOptions& options)
     return 0;
 }
 
+int runListDevices()
+{
+    const auto devices = AudioIOJuce::listAudioDevices();
+    if (devices.empty()) {
+        std::cout << "RTAudioDeviceList=FAIL reason=none" << std::endl;
+        return 1;
+    }
+
+    std::cout << "RTAudioDeviceList=BEGIN" << std::endl;
+    for (const auto& d : devices) {
+        std::cout << "RTAudioDevice id=" << d.deviceId
+                  << " name=" << d.deviceName
+                  << " backend=" << d.backendType
+                  << " in=" << d.inputChannels
+                  << " out=" << d.outputChannels
+                  << std::endl;
+    }
+    std::cout << "RTAudioDeviceListCount=" << devices.size() << std::endl;
+    std::cout << "RTAudioDeviceList=PASS" << std::endl;
+    return 0;
+}
+
+int runSetPreferredDevice(const CliOptions& options)
+{
+    const auto devices = AudioIOJuce::listAudioDevices();
+    std::string resolvedId;
+    std::string resolvedName;
+    const bool resolved = resolveDeviceFromOptions(options, devices, resolvedId, resolvedName);
+    if (!resolved || resolvedId.empty() || resolvedName.empty()) {
+        std::cout << "RTAudioDeviceSelect=FAIL" << std::endl;
+        return 1;
+    }
+
+    AudioDeviceProfile profile {};
+    profile.preferredDeviceId = resolvedId;
+    profile.preferredDeviceName = resolvedName;
+    if (!saveAudioDeviceProfile(profile)) {
+        std::cout << "RTAudioDeviceProfileWrite=FAIL" << std::endl;
+        return 1;
+    }
+
+    std::cout << "RTAudioDeviceSelect=PASS" << std::endl;
+    std::cout << "RTAudioDeviceId=" << resolvedId << std::endl;
+    std::cout << "RTAudioDeviceName=" << resolvedName << std::endl;
+    std::cout << "RTAudioDeviceProfileWrite=PASS path=" << kAudioProfilePath.string() << std::endl;
+    return 0;
+}
+
 int runRtAudioProbe(const CliOptions& options)
 {
     std::cout << "RTAudioProbe=BEGIN" << std::endl;
     std::cout << "RTAudioAD=BEGIN" << std::endl;
 
+    const auto devices = AudioIOJuce::listAudioDevices();
+    std::string selectedDeviceId;
+    std::string selectedDeviceName;
+    if (!resolveDeviceFromOptions(options, devices, selectedDeviceId, selectedDeviceName)) {
+        std::cout << "RTAudioDeviceSelect=FAIL" << std::endl;
+        return 1;
+    }
+
     EngineCore engine(false);
+    if (!selectedDeviceId.empty()) {
+        engine.setPreferredAudioDeviceId(selectedDeviceId);
+    } else if (!selectedDeviceName.empty()) {
+        engine.setPreferredAudioDeviceName(selectedDeviceName);
+    }
+
     const bool openOk = engine.startRtAudioProbe(options.rtToneHz, options.rtToneDb);
     auto telemetry = engine.getTelemetrySnapshot();
+
+    std::cout << "RTAudioDeviceSelect=" << (openOk ? "PASS" : "FAIL") << std::endl;
+    std::cout << "RTAudioDeviceId=" << selectedDeviceId << std::endl;
+    std::cout << "RTAudioDeviceName=" << selectedDeviceName << std::endl;
+    std::cout << "RTAudioSampleRate=" << telemetry.rtSampleRate << std::endl;
+    std::cout << "RTAudioBufferFrames=" << telemetry.rtBufferFrames << std::endl;
+    std::cout << "RTAudioChannelsIn=" << telemetry.rtChannelsIn << std::endl;
+    std::cout << "RTAudioChannelsOut=" << telemetry.rtChannelsOut << std::endl;
 
     if (openOk && telemetry.rtDeviceOpenOk) {
         std::cout << "RTAudioDeviceOpen=PASS"
@@ -446,10 +765,36 @@ int runAeSoak(const CliOptions& options)
 {
     std::cout << "RTAudioAE=BEGIN" << std::endl;
     std::cout << "RTAudioAESeconds=" << options.aeSeconds << std::endl;
+    std::cout << "RTAudioAEJitterLimitNs=" << options.aeMaxJitterNs << std::endl;
+    std::cout << "RTAudioAEXRunLimit=" << options.aeMaxXruns << std::endl;
+    std::cout << "RTAudioAERestartPolicy=" << (options.aeRequireNoRestarts ? "strict" : "allow") << std::endl;
+
+    const auto devices = AudioIOJuce::listAudioDevices();
+    std::string selectedDeviceId;
+    std::string selectedDeviceName;
+    if (!resolveDeviceFromOptions(options, devices, selectedDeviceId, selectedDeviceName)) {
+        std::cout << "RTAudioDeviceSelect=FAIL" << std::endl;
+        std::cout << "RTAudioAE=FAIL" << std::endl;
+        return 1;
+    }
 
     EngineCore engine(false);
+    if (!selectedDeviceId.empty()) {
+        engine.setPreferredAudioDeviceId(selectedDeviceId);
+    } else if (!selectedDeviceName.empty()) {
+        engine.setPreferredAudioDeviceName(selectedDeviceName);
+    }
+
     const bool openOk = engine.startRtAudioProbe(options.rtToneHz, options.rtToneDb);
     auto telemetry = engine.getTelemetrySnapshot();
+
+    std::cout << "RTAudioDeviceSelect=" << (openOk ? "PASS" : "FAIL") << std::endl;
+    std::cout << "RTAudioDeviceId=" << selectedDeviceId << std::endl;
+    std::cout << "RTAudioDeviceName=" << selectedDeviceName << std::endl;
+    std::cout << "RTAudioSampleRate=" << telemetry.rtSampleRate << std::endl;
+    std::cout << "RTAudioBufferFrames=" << telemetry.rtBufferFrames << std::endl;
+    std::cout << "RTAudioChannelsIn=" << telemetry.rtChannelsIn << std::endl;
+    std::cout << "RTAudioChannelsOut=" << telemetry.rtChannelsOut << std::endl;
 
     uint64_t initialCallbackCount = telemetry.rtCallbackCount;
     uint64_t previousCallbackCount = initialCallbackCount;
@@ -459,6 +804,7 @@ int runAeSoak(const CliOptions& options)
     uint32_t restartCount = telemetry.rtDeviceRestartCount;
     int32_t lastState = telemetry.rtWatchdogStateCode;
     uint32_t stateTransitions = 0u;
+    uint32_t stallTripCount = (lastState == 2) ? 1u : 0u;
     bool watchdogFailedSeen = (lastState == 3);
 
     const auto start = std::chrono::steady_clock::now();
@@ -488,6 +834,9 @@ int runAeSoak(const CliOptions& options)
         restartCount = std::max<uint32_t>(restartCount, telemetry.rtDeviceRestartCount);
         if (telemetry.rtWatchdogStateCode != lastState) {
             ++stateTransitions;
+            if (telemetry.rtWatchdogStateCode == 2) {
+                ++stallTripCount;
+            }
             lastState = telemetry.rtWatchdogStateCode;
         }
         if (telemetry.rtWatchdogStateCode == 3) {
@@ -512,10 +861,11 @@ int runAeSoak(const CliOptions& options)
     }
 
     const bool callbackProgressPass = telemetry.rtCallbackCount > initialCallbackCount
-        && longestStagnantMs <= static_cast<int64_t>(std::max(2000, options.aePollMs * 12));
+        && longestStagnantMs <= 2000;
     const bool xrunPass = xrunTotal <= static_cast<uint64_t>(options.aeMaxXruns);
     const bool jitterPass = maxJitterNsObserved <= options.aeMaxJitterNs;
     const bool restartPass = !options.aeRequireNoRestarts || (restartCount == 0u);
+    const bool stallTripPass = options.aeAllowStallTrips || (stallTripCount == 0u);
     const bool watchdogPass = !watchdogFailedSeen && telemetry.rtWatchdogStateCode != 3;
 
     std::cout << "RTAudioAECallbackProgress=" << (callbackProgressPass ? "PASS" : "FAIL")
@@ -534,6 +884,9 @@ int runAeSoak(const CliOptions& options)
 
     std::cout << "RTAudioAEIntervalMaxNs=" << maxIntervalNsObserved << std::endl;
     std::cout << "RTAudioAEWatchdogTransitions=" << stateTransitions << std::endl;
+    std::cout << "RTAudioAEStallTrips=" << stallTripCount << std::endl;
+    std::cout << "RTAudioAEStallTripCheck=" << (stallTripPass ? "PASS" : "FAIL")
+              << " allow=" << (options.aeAllowStallTrips ? 1 : 0) << std::endl;
 
     std::cout << "RTAudioAERestarts=" << restartCount << std::endl;
     std::cout << "RTAudioAERestartsCheck=" << (restartPass ? "PASS" : "FAIL")
@@ -548,6 +901,7 @@ int runAeSoak(const CliOptions& options)
         && xrunPass
         && jitterPass
         && restartPass
+        && stallTripPass
         && watchdogPass;
 
     std::cout << "RTAudioAE=" << (pass ? "PASS" : "FAIL") << std::endl;
@@ -673,6 +1027,14 @@ int main(int argc, char* argv[])
     if (!parseCliOptions(argc, argv, options)) {
         std::cerr << "Usage: NGKsPlayerHeadless [--telemetry_csv <path>] [--telemetry_seconds <int>]" << std::endl;
         return 1;
+    }
+
+    if (options.listDevices) {
+        return runListDevices();
+    }
+
+    if (options.setPreferredDeviceId || options.setPreferredDeviceName) {
+        return runSetPreferredDevice(options);
     }
 
     if (options.rtAudioProbe) {

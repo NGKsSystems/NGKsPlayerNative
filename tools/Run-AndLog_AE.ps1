@@ -9,8 +9,10 @@ param(
   [int]$Seconds = 600,
   [int]$PollMs = 250,
   [int]$MaxXruns = 0,
-  [UInt64]$MaxJitterNs = 20000000,
+  [UInt64]$MaxJitterNs = 15000000,
+  [switch]$StrictJitter,
   [switch]$RequireNoRestarts,
+  [switch]$AllowStallTrips,
   [int]$ToneHz = 440,
   [int]$ToneDb = -12
 )
@@ -86,6 +88,12 @@ $args = @(
 if($RequireNoRestarts){
   $args += '--require_no_restarts'
 }
+if($StrictJitter){
+  $args += '--strict_jitter'
+}
+if($AllowStallTrips){
+  $args += '--allow_stall_trips'
+}
 
 & $exe @args 2>&1 | Tee-Object -FilePath $headLog | Add-Content $runLog
 
@@ -95,15 +103,20 @@ if($RequireNoRestarts){
 $need = @(
   'RTAudioAE=BEGIN',
   'RTAudioAESeconds=',
-  'RTAudioAECallbackProgress=',
+  'RTAudioAEJitterLimitNs=',
+  'RTAudioAEXRunLimit=',
+  'RTAudioAERestartPolicy=',
+  'RTAudioAECallbackProgress=PASS',
   'RTAudioAEXRunsTotal=',
-  'RTAudioAEXRunsCheck=',
+  'RTAudioAEXRunsCheck=PASS',
   'RTAudioAEJitterMaxNs=',
-  'RTAudioAEJitterCheck=',
+  'RTAudioAEJitterCheck=PASS',
   'RTAudioAERestarts=',
+  'RTAudioAEStallTrips=',
+  'RTAudioAEStallTripCheck=PASS',
   'RTAudioAEWatchdogFinal=',
-  'RTAudioAEWatchdogCheck=',
-  'RTAudioAE='
+  'RTAudioAEWatchdogCheck=PASS',
+  'RTAudioAE=PASS'
 )
 
 "# AE runtime marker checklist" | Out-File $checkLog -Encoding ascii

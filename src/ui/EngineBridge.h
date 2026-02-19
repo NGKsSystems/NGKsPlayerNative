@@ -43,7 +43,9 @@ struct UIEngineTelemetrySnapshot {
     bool rtDeviceOpenOk{false};
     int32_t rtSampleRate{0};
     int32_t rtBufferFrames{0};
+    int32_t rtChannelsIn{0};
     int32_t rtChannelsOut{0};
+    uint64_t rtDeviceIdHash{0};
     uint64_t rtCallbackCount{0};
     uint64_t rtXRunCount{0};
     uint64_t rtXRunCountTotal{0};

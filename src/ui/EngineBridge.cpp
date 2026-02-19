@@ -80,7 +80,9 @@ bool EngineBridge::tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcep
     out.rtDeviceOpenOk = telemetry.rtDeviceOpenOk;
     out.rtSampleRate = telemetry.rtSampleRate;
     out.rtBufferFrames = telemetry.rtBufferFrames;
+    out.rtChannelsIn = telemetry.rtChannelsIn;
     out.rtChannelsOut = telemetry.rtChannelsOut;
+    out.rtDeviceIdHash = telemetry.rtDeviceIdHash;
     out.rtCallbackCount = telemetry.rtCallbackCount;
     out.rtXRunCount = telemetry.rtXRunCount;
     out.rtXRunCountTotal = telemetry.rtXRunCountTotal;
