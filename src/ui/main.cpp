@@ -1,22 +1,27 @@
 #include <QAction>
 #include <QApplication>
+#include <QComboBox>
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMessageLogContext>
+#include <QMessageBox>
 #include <QMutex>
 #include <QMutexLocker>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSaveFile>
 #include <QShortcut>
+#include <QSignalBlocker>
 #include <QStringList>
 #include <QSysInfo>
 #include <QTimer>
@@ -33,6 +38,7 @@
 #include <iostream>
 #include <atomic>
 #include <functional>
+#include <map>
 #include <vector>
 
 #ifdef _WIN32
@@ -80,6 +86,105 @@ struct DllProbeEntry {
 };
 
 std::vector<DllProbeEntry> gDllProbeEntries;
+
+const QString kAudioProfilesPath = QStringLiteral("data/runtime/audio_device_profiles.json");
+
+struct UiAudioProfile {
+    QString deviceId;
+    QString deviceName;
+    int sampleRate{0};
+    int bufferFrames{0};
+    int channelsOut{2};
+};
+
+struct UiAudioProfilesStore {
+    QString activeProfile;
+    std::map<QString, UiAudioProfile> profiles;
+    QJsonObject root;
+};
+
+bool loadUiAudioProfiles(UiAudioProfilesStore& outStore, QString& outError)
+{
+    outStore = {};
+    outError.clear();
+
+    QFile file(kAudioProfilesPath);
+    if (!file.exists()) {
+        outError = QStringLiteral("No profiles found");
+        return false;
+    }
+    if (!file.open(QIODevice::ReadOnly)) {
+        outError = QStringLiteral("Unable to open profiles file");
+        return false;
+    }
+
+    QJsonParseError parseError {};
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        outError = QStringLiteral("Invalid profiles JSON");
+        return false;
+    }
+
+    outStore.root = doc.object();
+    outStore.activeProfile = outStore.root.value(QStringLiteral("active_profile")).toString();
+
+    const QJsonObject profilesObj = outStore.root.value(QStringLiteral("profiles")).toObject();
+    for (auto it = profilesObj.begin(); it != profilesObj.end(); ++it) {
+        if (!it.value().isObject()) {
+            continue;
+        }
+        const QJsonObject p = it.value().toObject();
+        UiAudioProfile profile {};
+        profile.deviceId = p.value(QStringLiteral("device_id")).toString();
+        profile.deviceName = p.value(QStringLiteral("device_name")).toString();
+        profile.sampleRate = p.value(QStringLiteral("sample_rate")).toInt(p.value(QStringLiteral("sr")).toInt(0));
+        profile.bufferFrames = p.value(QStringLiteral("buffer_frames")).toInt(p.value(QStringLiteral("buffer")).toInt(128));
+        profile.channelsOut = p.value(QStringLiteral("channels_out")).toInt(p.value(QStringLiteral("ch_out")).toInt(2));
+        outStore.profiles[it.key()] = profile;
+    }
+
+    if (outStore.profiles.empty()) {
+        outError = QStringLiteral("No profiles found");
+        return false;
+    }
+
+    if (outStore.activeProfile.isEmpty() || outStore.profiles.find(outStore.activeProfile) == outStore.profiles.end()) {
+        outStore.activeProfile = outStore.profiles.begin()->first;
+    }
+
+    return true;
+}
+
+bool writeUiAudioProfilesActiveProfile(const UiAudioProfilesStore& store, const QString& activeProfile, QString& outError)
+{
+    outError.clear();
+    QJsonObject root = store.root;
+    if (root.isEmpty()) {
+        root.insert(QStringLiteral("profiles"), QJsonObject());
+    }
+
+    root.insert(QStringLiteral("active_profile"), activeProfile);
+
+    QSaveFile saveFile(kAudioProfilesPath);
+    if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        outError = QStringLiteral("Unable to open profiles file for write");
+        return false;
+    }
+
+    const QByteArray payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
+    if (saveFile.write(payload) != payload.size()) {
+        outError = QStringLiteral("Failed writing profiles file");
+        saveFile.cancelWriting();
+        return false;
+    }
+
+    if (!saveFile.commit()) {
+        outError = QStringLiteral("Failed to commit profiles file");
+        return false;
+    }
+
+    return true;
+}
 
 QString uiLogAbsolutePath()
 {
@@ -700,6 +805,30 @@ public:
         agDetailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(agDetailsLabel_);
 
+        auto* profileRow = new QHBoxLayout();
+        auto* profileLabel = new QLabel(QStringLiteral("Audio Profile:"), root);
+        audioProfileCombo_ = new QComboBox(root);
+        audioProfileCombo_->setMinimumWidth(320);
+        refreshAudioProfilesButton_ = new QPushButton(QStringLiteral("Refresh"), root);
+        applyAudioProfileButton_ = new QPushButton(QStringLiteral("Apply"), root);
+        profileRow->addWidget(profileLabel);
+        profileRow->addWidget(audioProfileCombo_, 1);
+        profileRow->addWidget(refreshAudioProfilesButton_);
+        profileRow->addWidget(applyAudioProfileButton_);
+        layout->addLayout(profileRow);
+
+        QObject::connect(refreshAudioProfilesButton_, &QPushButton::clicked, this, [this]() {
+            refreshAudioProfilesUi(true);
+        });
+        QObject::connect(applyAudioProfileButton_, &QPushButton::clicked, this, &MainWindow::applySelectedAudioProfile);
+
+        refreshAudioProfilesUi(true);
+
+        const QString akApplyAutorun = qEnvironmentVariable("NGKS_AK_AUTORUN_APPLY").trimmed().toLower();
+        if (akApplyAutorun == QStringLiteral("1") || akApplyAutorun == QStringLiteral("true") || akApplyAutorun == QStringLiteral("yes")) {
+            QTimer::singleShot(200, this, &MainWindow::applySelectedAudioProfile);
+        }
+
         layout->addStretch(1);
         setCentralWidget(root);
 
@@ -729,6 +858,91 @@ public:
     }
 
 private:
+    void refreshAudioProfilesUi(bool logMarker)
+    {
+        UiAudioProfilesStore store {};
+        QString loadError;
+        const bool loaded = loadUiAudioProfiles(store, loadError);
+
+        {
+            const QSignalBlocker blocker(audioProfileCombo_);
+            audioProfileCombo_->clear();
+            if (loaded) {
+                for (const auto& entry : store.profiles) {
+                    const QString& profileName = entry.first;
+                    const UiAudioProfile& profile = entry.second;
+                    const QString itemText = QStringLiteral("%1 (sr=%2, buf=%3, ch=%4)")
+                                                 .arg(profileName,
+                                                      QString::number(profile.sampleRate),
+                                                      QString::number(profile.bufferFrames),
+                                                      QString::number(profile.channelsOut));
+                    audioProfileCombo_->addItem(itemText, profileName);
+                }
+
+                const int activeIndex = audioProfileCombo_->findData(store.activeProfile);
+                if (activeIndex >= 0) {
+                    audioProfileCombo_->setCurrentIndex(activeIndex);
+                }
+            }
+        }
+
+        audioProfilesStore_ = store;
+        const bool controlsEnabled = loaded && !audioProfilesStore_.profiles.empty();
+        audioProfileCombo_->setEnabled(controlsEnabled);
+        applyAudioProfileButton_->setEnabled(controlsEnabled);
+
+        if (!controlsEnabled) {
+            const QString reason = loadError.isEmpty() ? QStringLiteral("No profiles available") : loadError;
+            qInfo().noquote() << QStringLiteral("RTAudioAKActiveProfile=%1").arg(reason);
+            if (logMarker && diagnosticsDialog_ != nullptr) {
+                diagnosticsDialog_->refreshLogTail();
+            }
+            return;
+        }
+
+        if (logMarker || lastAkActiveProfileMarker_ != audioProfilesStore_.activeProfile) {
+            qInfo().noquote() << QStringLiteral("RTAudioAKActiveProfile=%1").arg(audioProfilesStore_.activeProfile);
+            lastAkActiveProfileMarker_ = audioProfilesStore_.activeProfile;
+        }
+    }
+
+    void applySelectedAudioProfile()
+    {
+        const QString profileName = audioProfileCombo_->currentData().toString();
+        const auto profileIt = audioProfilesStore_.profiles.find(profileName);
+        if (profileName.isEmpty() || profileIt == audioProfilesStore_.profiles.end()) {
+            qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=FAIL");
+            QMessageBox::warning(this, QStringLiteral("Audio Profile"), QStringLiteral("Selected profile is not valid."));
+            return;
+        }
+
+        const UiAudioProfile& profile = profileIt->second;
+        const bool applied = bridge_.applyAudioProfile(profile.deviceId.toStdString(),
+                                                       profile.deviceName.toStdString(),
+                                                       profile.sampleRate,
+                                                       profile.bufferFrames,
+                                                       profile.channelsOut);
+        if (!applied) {
+            qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=FAIL");
+            QMessageBox::warning(this, QStringLiteral("Audio Profile"), QStringLiteral("Failed to apply selected profile."));
+            return;
+        }
+
+        QString saveError;
+        if (!writeUiAudioProfilesActiveProfile(audioProfilesStore_, profileName, saveError)) {
+            qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=FAIL");
+            QMessageBox::warning(this,
+                                 QStringLiteral("Audio Profile"),
+                                 QStringLiteral("Profile applied, but active_profile was not persisted: %1").arg(saveError));
+            return;
+        }
+
+        qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=PASS");
+        qInfo().noquote() << QStringLiteral("RTAudioAKActiveProfile=%1").arg(profileName);
+        lastAgMarkerKey_.clear();
+        refreshAudioProfilesUi(false);
+    }
+
     void showDiagnostics()
     {
         if (!diagnosticsDialog_) {
@@ -934,11 +1148,15 @@ private:
     QLabel* healthDetailsLabel_{nullptr};
     QLabel* telemetryDetailsLabel_{nullptr};
     QLabel* agDetailsLabel_{nullptr};
+    QComboBox* audioProfileCombo_{nullptr};
+    QPushButton* refreshAudioProfilesButton_{nullptr};
+    QPushButton* applyAudioProfileButton_{nullptr};
     UIStatus lastStatus_ {};
     UIHealthSnapshot lastHealth_ {};
     UIEngineTelemetrySnapshot lastTelemetry_ {};
     UIFoundationSnapshot lastFoundation_ {};
     UISelfTestSnapshot lastSelfTests_ {};
+    UiAudioProfilesStore audioProfilesStore_ {};
     bool selfTestsRan_{false};
     bool selfTestAutorun_{false};
     bool rtProbeAutorun_{false};
@@ -948,6 +1166,7 @@ private:
     bool foundationTickLogged_{false};
     bool foundationSelfTestLogged_{false};
     QString lastAgMarkerKey_ {};
+    QString lastAkActiveProfileMarker_ {};
 };
 
 } // namespace

@@ -43,6 +43,32 @@ void EngineBridge::stopRtProbe()
     engine.stopRtAudioProbe();
 }
 
+bool EngineBridge::applyAudioProfile(const std::string& deviceId,
+                                     const std::string& deviceName,
+                                     int sampleRate,
+                                     int bufferFrames,
+                                     int channelsOut)
+{
+    engine.setPreferredAudioFormat(static_cast<double>(sampleRate), bufferFrames, channelsOut);
+
+    if (!deviceId.empty()) {
+        engine.setPreferredAudioDeviceId(deviceId);
+        if (engine.reopenAudioWithPreferredConfig()) {
+            return true;
+        }
+    }
+
+    if (!deviceName.empty()) {
+        engine.setPreferredAudioDeviceName(deviceName);
+        if (engine.reopenAudioWithPreferredConfig()) {
+            return true;
+        }
+    }
+
+    engine.clearPreferredAudioDevice();
+    return engine.reopenAudioWithPreferredConfig();
+}
+
 bool EngineBridge::tryGetStatus(UIStatus& out)
 {
     const auto snapshot = engine.getSnapshot();

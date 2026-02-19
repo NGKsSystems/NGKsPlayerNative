@@ -85,6 +85,7 @@ public:
     void setPreferredAudioDeviceName(const std::string& deviceName);
     void setPreferredAudioFormat(double sampleRate, int bufferFrames, int channelsOut);
     void clearPreferredAudioDevice();
+    bool reopenAudioWithPreferredConfig() noexcept;
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;

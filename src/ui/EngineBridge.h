@@ -107,6 +107,11 @@ public:
     Q_INVOKABLE void setMasterGain(double linear01);
     Q_INVOKABLE bool startRtProbe(double toneHz, double toneDb);
     Q_INVOKABLE void stopRtProbe();
+    bool applyAudioProfile(const std::string& deviceId,
+                           const std::string& deviceName,
+                           int sampleRate,
+                           int bufferFrames,
+                           int channelsOut);
 
     bool tryGetStatus(UIStatus& out);
     bool tryGetHealth(UIHealthSnapshot& out) const;

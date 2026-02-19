@@ -537,6 +537,11 @@ void EngineCore::clearPreferredAudioDevice()
     preferredAudioDeviceName_.clear();
 }
 
+bool EngineCore::reopenAudioWithPreferredConfig() noexcept
+{
+    return startAudioIfNeeded(true);
+}
+
 void EngineCore::stopRtAudioProbe() noexcept
 {
     telemetry_.rtAudioEnabled.store(0u, std::memory_order_relaxed);
