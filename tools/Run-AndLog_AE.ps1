@@ -21,32 +21,20 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-
-function Require-Path([string]$p){
-  if(-not (Test-Path $p)){ throw "Missing required path: $p" }
-}
-
-Require-Path '.git'
+. "$PSScriptRoot\Run-AndLog_Core.ps1"
 
 $proofDir = '_proof\milestone_AE'
-New-Item -ItemType Directory -Force $proofDir | Out-Null
-
-$ts = Get-Date -Format 'yyyyMMdd_HHmmss'
-$runLog = Join-Path $proofDir ("12_run_and_log_AE_{0}.txt" -f $ts)
+$ctx = New-RunLogContext -ProofDir $proofDir -Prefix '12_run_and_log_AE'
+$ts = $ctx.TimeStamp
+$runLog = $ctx.RunLog
 $headLog = Join-Path $proofDir '05_run_headless_AE.txt'
 $checkLog = Join-Path $proofDir '10_runtime_marker_checklist_AE.txt'
-
-"RUN_TS=$ts" | Out-File $runLog -Encoding ascii
-("PWD={0}" -f (Get-Location)) | Add-Content $runLog
-("GIT_TOP={0}" -f (git rev-parse --show-toplevel)) | Add-Content $runLog
-("GIT_BRANCH={0}" -f (git rev-parse --abbrev-ref HEAD)) | Add-Content $runLog
-'' | Add-Content $runLog
 
 if($BuildFirst){
   '## BUILD_FIRST=TRUE' | Add-Content $runLog
 
   $vcvars = 'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat'
-  Require-Path $vcvars
+  Test-RequiredPath $vcvars
 
   $cfgCmd = Join-Path $proofDir 'run_configure_AE.cmd'
   $bldCmd = Join-Path $proofDir 'run_build_AE.cmd'
@@ -75,7 +63,7 @@ cmake --build build --config RelWithDebInfo --target NGKsPlayerHeadless NGKsPlay
   '' | Add-Content $runLog
 }
 
-Require-Path '.\build\NGKsPlayerHeadless.exe'
+Test-RequiredPath '.\build\NGKsPlayerHeadless.exe'
 
 '## AE SOAK' | Add-Content $runLog
 $exe = '.\\build\\NGKsPlayerHeadless.exe'
@@ -140,21 +128,11 @@ $need = @(
   'RTAudioAE=PASS'
 )
 
-"# AE runtime marker checklist" | Out-File $checkLog -Encoding ascii
-"HEADLESS_LOG=$headLog" | Add-Content $checkLog
-'' | Add-Content $checkLog
-$raw = Get-Content $headLog -Raw
-foreach($m in $need){
-  $ok = $raw.Contains($m)
-  ("{0} -> {1}" -f $m, $(if($ok){'PASS'} else {'FAIL'})) | Add-Content $checkLog
-}
-'' | Add-Content $checkLog
-'## Tail(80)' | Add-Content $checkLog
-Get-Content $headLog -Tail 80 | Add-Content $checkLog
+$allMarkersPass = Write-MarkerChecklist -ChecklistPath $checkLog -Header '# AE runtime marker checklist' -TargetLog $headLog -Markers $need -TailLines 80
 
 Get-Content $checkLog | Add-Content $runLog
 
-if((Get-Content $checkLog | Select-String -SimpleMatch '-> FAIL' -Quiet) -or (Get-Content $headLog | Select-String -SimpleMatch 'RTAudioAE=FAIL' -Quiet)){
+if((-not $allMarkersPass) -or (Get-Content $headLog | Select-String -SimpleMatch 'RTAudioAE=FAIL' -Quiet)){
   'AE_CERT=FAIL' | Add-Content $runLog
   throw "AE certification FAILED. See $headLog and $checkLog"
 }

@@ -15,42 +15,20 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-
-function Require-Path([string]$p){
-  if(-not (Test-Path $p)){ throw "Missing required path: $p" }
-}
-
-function Require-Markers([string]$LogPath,[string[]]$Markers,[string]$Title){
-  $raw = Get-Content $LogPath -Raw
-  foreach($m in $Markers){
-    if(-not $raw.Contains($m)){
-      throw "$Title missing marker: $m ($LogPath)"
-    }
-  }
-}
-
-Require-Path '.git'
+. "$PSScriptRoot\Run-AndLog_Core.ps1"
 
 $proofDir = '_proof\milestone_AG'
-New-Item -ItemType Directory -Force $proofDir | Out-Null
-
-$ts = Get-Date -Format 'yyyyMMdd_HHmmss'
-$runLog = Join-Path $proofDir ("12_run_and_log_AG_{0}.txt" -f $ts)
+$ctx = New-RunLogContext -ProofDir $proofDir -Prefix '12_run_and_log_AG'
+$runLog = $ctx.RunLog
 $listLog = Join-Path $proofDir '04_list_devices_AG.txt'
 $case1Log = Join-Path $proofDir '05_case1_normal_AG.txt'
 $case2Log = Join-Path $proofDir '06_case2_fallback_AG.txt'
 $case3Log = Join-Path $proofDir '07_case3_preferred_AG.txt'
 $checkLog = Join-Path $proofDir '10_runtime_marker_checklist_AG.txt'
 
-"RUN_TS=$ts" | Out-File $runLog -Encoding ascii
-("PWD={0}" -f (Get-Location)) | Add-Content $runLog
-("GIT_TOP={0}" -f (git rev-parse --show-toplevel)) | Add-Content $runLog
-("GIT_BRANCH={0}" -f (git rev-parse --abbrev-ref HEAD)) | Add-Content $runLog
-'' | Add-Content $runLog
-
 if($BuildFirst){
   $vcvars = 'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat'
-  Require-Path $vcvars
+  Test-RequiredPath $vcvars
 
   @"
 @echo off
@@ -70,7 +48,7 @@ cmake --build build --config RelWithDebInfo --target NGKsPlayerHeadless NGKsPlay
   cmd /c _proof\milestone_AG\run_build_AG.cmd 2>&1 | Tee-Object -FilePath _proof\milestone_AG\04_build_AG.txt | Add-Content $runLog
 }
 
-Require-Path '.\build\NGKsPlayerHeadless.exe'
+Test-RequiredPath '.\build\NGKsPlayerHeadless.exe'
 $exe = '.\build\NGKsPlayerHeadless.exe'
 
 '## LIST DEVICES' | Add-Content $runLog

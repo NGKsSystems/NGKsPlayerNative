@@ -16,17 +16,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-
-function Require-Path([string]$p){
-  if(-not (Test-Path $p)){ throw "Missing required path: $p" }
-}
-
-Require-Path '.git'
+. "$PSScriptRoot\Run-AndLog_Core.ps1"
 
 $proofDir = '_proof\milestone_AF'
-New-Item -ItemType Directory -Force $proofDir | Out-Null
-$ts = Get-Date -Format 'yyyyMMdd_HHmmss'
-$runLog = Join-Path $proofDir ("12_run_and_log_AF_{0}.txt" -f $ts)
+$ctx = New-RunLogContext -ProofDir $proofDir -Prefix '12_run_and_log_AF'
+$runLog = $ctx.RunLog
 
 "RUN_TS=$ts" | Out-File $runLog -Encoding ascii
 ("PWD={0}" -f (Get-Location)) | Add-Content $runLog
@@ -36,7 +30,7 @@ $runLog = Join-Path $proofDir ("12_run_and_log_AF_{0}.txt" -f $ts)
 
 if($BuildFirst){
   $vcvars = 'C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat'
-  Require-Path $vcvars
+  Test-RequiredPath $vcvars
   @"
 @echo off
 call "$vcvars"
@@ -52,7 +46,7 @@ cmake --build build --config RelWithDebInfo --target NGKsPlayerHeadless NGKsPlay
   cmd /c _proof\milestone_AF\run_build_AF.cmd 2>&1 | Tee-Object -FilePath _proof\milestone_AF\04_build_AF.txt | Add-Content $runLog
 }
 
-Require-Path '.\build\NGKsPlayerHeadless.exe'
+Test-RequiredPath '.\build\NGKsPlayerHeadless.exe'
 
 if($ListDevices){
   .\build\NGKsPlayerHeadless.exe --list_devices 2>&1 | Tee-Object -FilePath _proof\milestone_AF\05_list_devices_AF.txt | Add-Content $runLog
@@ -115,15 +109,10 @@ $need = @(
   'RTAudioAE=PASS'
 )
 
-"# AF runtime marker checklist" | Out-File $check -Encoding ascii
-"TARGET_LOG=$targetLog" | Add-Content $check
+$allMarkersPass = Write-MarkerChecklist -ChecklistPath $check -Header '# AF runtime marker checklist' -TargetLog $targetLog -Markers $need
 $raw = Get-Content $targetLog -Raw
-foreach($m in $need){
-  $ok = $raw.Contains($m)
-  ("{0} -> {1}" -f $m, $(if($ok){'PASS'}else{'FAIL'})) | Add-Content $check
-}
 
-if((Get-Content $check | Select-String -SimpleMatch '-> FAIL' -Quiet) -or ($raw -notmatch 'RTAudioAE=PASS')){
+if((-not $allMarkersPass) -or ($raw -notmatch 'RTAudioAE=PASS')){
   throw "AF checklist failed: $check"
 }
 

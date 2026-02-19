@@ -10,12 +10,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\Run-AndLog_Core.ps1"
 
-function Require-Path([string]$p){
-  if(-not (Test-Path $p)){ throw "Missing required path: $p" }
-}
-
-function Parse-ProfileRows([string]$text){
+function ConvertTo-ProfileRows([string]$text){
   $rows = @{}
   $active = ''
   foreach($line in ($text -split "`r?`n")){
@@ -37,14 +34,14 @@ function Parse-ProfileRows([string]$text){
   return [pscustomobject]@{ rows=$rows; active=$active }
 }
 
-function Extract-Value([string]$text,[string]$prefix){
+function Get-MarkerValue([string]$text,[string]$prefix){
   $m = [regex]::Match($text, [regex]::Escape($prefix) + '([^\r\n]+)')
   if($m.Success){ return $m.Groups[1].Value.Trim() }
   return ''
 }
 
-Require-Path '.git'
-Require-Path '.\build\NGKsPlayerHeadless.exe'
+Test-RequiredPath '.git'
+Test-RequiredPath '.\build\NGKsPlayerHeadless.exe'
 
 $proofDir = '_proof\milestone_AJ'
 $matrixDir = Join-Path $proofDir '05_matrix_runs'
@@ -63,7 +60,7 @@ $exe = '.\build\NGKsPlayerHeadless.exe'
 $profileListText = (& $exe --profile_list 2>&1 | Out-String)
 $profileListText | Add-Content $listLog
 
-$parsed = Parse-ProfileRows $profileListText
+$parsed = ConvertTo-ProfileRows $profileListText
 $profileRows = $parsed.rows
 
 $selectedProfiles = @()
@@ -85,14 +82,14 @@ if($selectedProfiles.Count -eq 0){
 
 $overallFail = $false
 
-foreach($profile in $selectedProfiles){
-  if(-not $profileRows.ContainsKey($profile)){
-    "${profile} | <missing> | - | - | - | FAIL | profile_not_found" | Add-Content $summary
+foreach($profileName in $selectedProfiles){
+  if(-not $profileRows.ContainsKey($profileName)){
+    "${profileName} | <missing> | - | - | - | FAIL | profile_not_found" | Add-Content $summary
     $overallFail = $true
     continue
   }
 
-  $p = $profileRows[$profile]
+  $p = $profileRows[$profileName]
   $requestedSet = @(
     @{ sr=44100; buffer=128; ch_out=2; note='fixed_44100_128_2' },
     @{ sr=48000; buffer=256; ch_out=2; note='fixed_48000_256_2' },
@@ -112,24 +109,24 @@ foreach($profile in $selectedProfiles){
   $i = 0
   foreach($fmt in $runSet){
     $i++
-    $safeProfile = ($profile -replace '[^a-zA-Z0-9_\-]','_')
+    $safeProfile = ($profileName -replace '[^a-zA-Z0-9_\-]','_')
     $runLog = Join-Path $matrixDir ("{0}_{1:D2}.txt" -f $safeProfile,$i)
 
-    $args = @(
+    $runArgs = @(
       '--ae_soak',
       '--seconds', $Seconds,
-      '--profile_use', $profile,
+      '--profile_use', $profileName,
       '--sr', $fmt.sr,
       '--buffer_frames', $fmt.buffer,
       '--ch_out', $fmt.ch_out
     )
 
-    & $exe @args 2>&1 | Tee-Object -FilePath $runLog | Out-Null
+    & $exe @runArgs 2>&1 | Tee-Object -FilePath $runLog | Out-Null
 
     $raw = Get-Content $runLog -Raw
-    $appliedSr = Extract-Value $raw 'RTAudioAGAppliedSR='
-    $appliedBuf = Extract-Value $raw 'RTAudioAGAppliedBufferFrames='
-    $fallback = Extract-Value $raw 'RTAudioAGFallback='
+    $appliedSr = Get-MarkerValue $raw 'RTAudioAGAppliedSR='
+    $appliedBuf = Get-MarkerValue $raw 'RTAudioAGAppliedBufferFrames='
+    $fallback = Get-MarkerValue $raw 'RTAudioAGFallback='
     $aePass = if($raw.Contains('RTAudioAE=PASS')){'PASS'}else{'FAIL'}
 
     $notes = $fmt.note
@@ -137,7 +134,7 @@ foreach($profile in $selectedProfiles){
       $overallFail = $true
     }
 
-    $row = "{0} | {1} | {2}/{3} | {4}/{5} | {6} | {7} | {8}" -f $profile, $p.device_id, $fmt.sr, $fmt.buffer, $(if([string]::IsNullOrWhiteSpace($appliedSr)){'?'}else{$appliedSr}), $(if([string]::IsNullOrWhiteSpace($appliedBuf)){'?'}else{$appliedBuf}), $(if([string]::IsNullOrWhiteSpace($fallback)){'?'}else{$fallback}), $aePass, $notes
+    $row = "{0} | {1} | {2}/{3} | {4}/{5} | {6} | {7} | {8}" -f $profileName, $p.device_id, $fmt.sr, $fmt.buffer, $(if([string]::IsNullOrWhiteSpace($appliedSr)){'?'}else{$appliedSr}), $(if([string]::IsNullOrWhiteSpace($appliedBuf)){'?'}else{$appliedBuf}), $(if([string]::IsNullOrWhiteSpace($fallback)){'?'}else{$fallback}), $aePass, $notes
     Add-Content -Path $summary -Value $row
   }
 }
