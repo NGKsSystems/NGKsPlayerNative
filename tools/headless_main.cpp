@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <thread>
 #include <vector>
@@ -156,6 +157,12 @@ struct CliOptions {
     int rtSeconds = 5;
     float rtToneHz = 440.0f;
     float rtToneDb = -12.0f;
+    bool aeSoak = false;
+    int aeSeconds = 600;
+    int aePollMs = 250;
+    int aeMaxXruns = 0;
+    uint64_t aeMaxJitterNs = 20000000ull;
+    bool aeRequireNoRestarts = false;
 };
 
 bool parseCliOptions(int argc, char* argv[], CliOptions& options)
@@ -182,6 +189,11 @@ bool parseCliOptions(int argc, char* argv[], CliOptions& options)
             continue;
         }
 
+        if (arg == "--ae_soak") {
+            options.aeSoak = true;
+            continue;
+        }
+
         if (arg == "--seconds") {
             if (i + 1 >= argc) {
                 return false;
@@ -194,6 +206,54 @@ bool parseCliOptions(int argc, char* argv[], CliOptions& options)
             if (options.rtSeconds <= 0) {
                 return false;
             }
+            options.aeSeconds = options.rtSeconds;
+            continue;
+        }
+
+        if (arg == "--poll_ms") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.aePollMs = std::stoi(argv[++i]);
+            } catch (...) {
+                return false;
+            }
+            if (options.aePollMs <= 0) {
+                return false;
+            }
+            continue;
+        }
+
+        if (arg == "--max_xruns") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.aeMaxXruns = std::stoi(argv[++i]);
+            } catch (...) {
+                return false;
+            }
+            if (options.aeMaxXruns < 0) {
+                return false;
+            }
+            continue;
+        }
+
+        if (arg == "--max_jitter_ns") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.aeMaxJitterNs = static_cast<uint64_t>(std::stoull(argv[++i]));
+            } catch (...) {
+                return false;
+            }
+            continue;
+        }
+
+        if (arg == "--require_no_restarts") {
+            options.aeRequireNoRestarts = true;
             continue;
         }
 
@@ -382,6 +442,118 @@ int runRtAudioProbe(const CliOptions& options)
     return pass ? 0 : 1;
 }
 
+int runAeSoak(const CliOptions& options)
+{
+    std::cout << "RTAudioAE=BEGIN" << std::endl;
+    std::cout << "RTAudioAESeconds=" << options.aeSeconds << std::endl;
+
+    EngineCore engine(false);
+    const bool openOk = engine.startRtAudioProbe(options.rtToneHz, options.rtToneDb);
+    auto telemetry = engine.getTelemetrySnapshot();
+
+    uint64_t initialCallbackCount = telemetry.rtCallbackCount;
+    uint64_t previousCallbackCount = initialCallbackCount;
+    uint64_t maxJitterNsObserved = telemetry.rtJitterAbsNsMaxWindow;
+    uint64_t maxIntervalNsObserved = telemetry.rtCallbackIntervalNsMaxWindow;
+    uint64_t xrunTotal = telemetry.rtXRunCountTotal;
+    uint32_t restartCount = telemetry.rtDeviceRestartCount;
+    int32_t lastState = telemetry.rtWatchdogStateCode;
+    uint32_t stateTransitions = 0u;
+    bool watchdogFailedSeen = (lastState == 3);
+
+    const auto start = std::chrono::steady_clock::now();
+    const auto startMs = std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count();
+    int64_t stagnantStartMs = startMs;
+    int64_t longestStagnantMs = 0;
+
+    while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count() < options.aeSeconds) {
+        int64_t stallMs = 0;
+        engine.pollRtWatchdog(500, stallMs);
+        telemetry = engine.getTelemetrySnapshot();
+
+        if (telemetry.rtCallbackCount > previousCallbackCount) {
+            previousCallbackCount = telemetry.rtCallbackCount;
+            const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+            const int64_t stagnantMs = nowMs - stagnantStartMs;
+            if (stagnantMs > longestStagnantMs) {
+                longestStagnantMs = stagnantMs;
+            }
+            stagnantStartMs = nowMs;
+        }
+
+        maxJitterNsObserved = std::max<uint64_t>(maxJitterNsObserved, telemetry.rtJitterAbsNsMaxWindow);
+        maxIntervalNsObserved = std::max<uint64_t>(maxIntervalNsObserved, telemetry.rtCallbackIntervalNsMaxWindow);
+        xrunTotal = telemetry.rtXRunCountTotal;
+        restartCount = std::max<uint32_t>(restartCount, telemetry.rtDeviceRestartCount);
+        if (telemetry.rtWatchdogStateCode != lastState) {
+            ++stateTransitions;
+            lastState = telemetry.rtWatchdogStateCode;
+        }
+        if (telemetry.rtWatchdogStateCode == 3) {
+            watchdogFailedSeen = true;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(options.aePollMs));
+    }
+
+    engine.stopRtAudioProbe();
+    telemetry = engine.getTelemetrySnapshot();
+    maxJitterNsObserved = std::max<uint64_t>(maxJitterNsObserved, telemetry.rtJitterAbsNsMaxWindow);
+    maxIntervalNsObserved = std::max<uint64_t>(maxIntervalNsObserved, telemetry.rtCallbackIntervalNsMaxWindow);
+    xrunTotal = telemetry.rtXRunCountTotal;
+    restartCount = std::max<uint32_t>(restartCount, telemetry.rtDeviceRestartCount);
+
+    const auto endMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    const int64_t finalStagnantMs = endMs - stagnantStartMs;
+    if (finalStagnantMs > longestStagnantMs) {
+        longestStagnantMs = finalStagnantMs;
+    }
+
+    const bool callbackProgressPass = telemetry.rtCallbackCount > initialCallbackCount
+        && longestStagnantMs <= static_cast<int64_t>(std::max(2000, options.aePollMs * 12));
+    const bool xrunPass = xrunTotal <= static_cast<uint64_t>(options.aeMaxXruns);
+    const bool jitterPass = maxJitterNsObserved <= options.aeMaxJitterNs;
+    const bool restartPass = !options.aeRequireNoRestarts || (restartCount == 0u);
+    const bool watchdogPass = !watchdogFailedSeen && telemetry.rtWatchdogStateCode != 3;
+
+    std::cout << "RTAudioAECallbackProgress=" << (callbackProgressPass ? "PASS" : "FAIL")
+              << " first=" << initialCallbackCount
+              << " last=" << telemetry.rtCallbackCount
+              << " maxStagnantMs=" << longestStagnantMs
+              << std::endl;
+
+    std::cout << "RTAudioAEXRunsTotal=" << xrunTotal << std::endl;
+    std::cout << "RTAudioAEXRunsCheck=" << (xrunPass ? "PASS" : "FAIL")
+              << " maxAllowed=" << options.aeMaxXruns << std::endl;
+
+    std::cout << "RTAudioAEJitterMaxNs=" << maxJitterNsObserved << std::endl;
+    std::cout << "RTAudioAEJitterCheck=" << (jitterPass ? "PASS" : "FAIL")
+              << " maxAllowed=" << options.aeMaxJitterNs << std::endl;
+
+    std::cout << "RTAudioAEIntervalMaxNs=" << maxIntervalNsObserved << std::endl;
+    std::cout << "RTAudioAEWatchdogTransitions=" << stateTransitions << std::endl;
+
+    std::cout << "RTAudioAERestarts=" << restartCount << std::endl;
+    std::cout << "RTAudioAERestartsCheck=" << (restartPass ? "PASS" : "FAIL")
+              << " requireNoRestarts=" << (options.aeRequireNoRestarts ? 1 : 0) << std::endl;
+
+    std::cout << "RTAudioAEWatchdogFinal=" << rtWatchdogStateText(telemetry.rtWatchdogStateCode) << std::endl;
+    std::cout << "RTAudioAEWatchdogCheck=" << (watchdogPass ? "PASS" : "FAIL") << std::endl;
+
+    const bool pass = openOk
+        && telemetry.rtDeviceOpenOk
+        && callbackProgressPass
+        && xrunPass
+        && jitterPass
+        && restartPass
+        && watchdogPass;
+
+    std::cout << "RTAudioAE=" << (pass ? "PASS" : "FAIL") << std::endl;
+    return pass ? 0 : 1;
+}
+
 struct SelfTestResults {
     bool telemetryReadable = false;
     bool healthReadable = false;
@@ -505,6 +677,10 @@ int main(int argc, char* argv[])
 
     if (options.rtAudioProbe) {
         return runRtAudioProbe(options);
+    }
+
+    if (options.aeSoak) {
+        return runAeSoak(options);
     }
 
     if (!options.telemetryCsvPath.empty()) {
