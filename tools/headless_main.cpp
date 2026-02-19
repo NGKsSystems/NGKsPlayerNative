@@ -173,6 +173,9 @@ struct CliOptions {
     std::string deviceName;
     bool setPreferredDeviceId = false;
     bool setPreferredDeviceName = false;
+    int requestedSampleRate = 0;
+    int requestedBufferFrames = 0;
+    int requestedChannelsOut = 0;
 };
 
 struct AudioDeviceProfile {
@@ -364,6 +367,25 @@ bool resolveDeviceFromOptions(const CliOptions& options,
     return false;
 }
 
+void resolveFormatFromOptions(const CliOptions& options,
+                              const AudioDeviceProfile& profile,
+                              int& outSampleRate,
+                              int& outBufferFrames,
+                              int& outChannelsOut)
+{
+    outSampleRate = (options.requestedSampleRate > 0)
+        ? options.requestedSampleRate
+        : ((profile.sampleRate > 0) ? profile.sampleRate : 0);
+
+    outBufferFrames = (options.requestedBufferFrames > 0)
+        ? options.requestedBufferFrames
+        : ((profile.bufferFrames > 0) ? profile.bufferFrames : 128);
+
+    outChannelsOut = (options.requestedChannelsOut > 0)
+        ? options.requestedChannelsOut
+        : ((profile.channelsOut > 0) ? profile.channelsOut : 2);
+}
+
 bool parseCliOptions(int argc, char* argv[], CliOptions& options)
 {
     for (int i = 1; i < argc; ++i) {
@@ -503,6 +525,42 @@ bool parseCliOptions(int argc, char* argv[], CliOptions& options)
             }
             options.setPreferredDeviceName = true;
             options.deviceName = argv[++i];
+            continue;
+        }
+
+        if (arg == "--sr") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.requestedSampleRate = std::stoi(argv[++i]);
+            } catch (...) {
+                return false;
+            }
+            continue;
+        }
+
+        if (arg == "--buffer_frames") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.requestedBufferFrames = std::stoi(argv[++i]);
+            } catch (...) {
+                return false;
+            }
+            continue;
+        }
+
+        if (arg == "--ch_out") {
+            if (i + 1 >= argc) {
+                return false;
+            }
+            try {
+                options.requestedChannelsOut = std::stoi(argv[++i]);
+            } catch (...) {
+                return false;
+            }
             continue;
         }
 
@@ -657,8 +715,18 @@ int runSetPreferredDevice(const CliOptions& options)
     }
 
     AudioDeviceProfile profile {};
+    loadAudioDeviceProfile(profile);
     profile.preferredDeviceId = resolvedId;
     profile.preferredDeviceName = resolvedName;
+    if (options.requestedSampleRate > 0) {
+        profile.sampleRate = options.requestedSampleRate;
+    }
+    if (options.requestedBufferFrames > 0) {
+        profile.bufferFrames = options.requestedBufferFrames;
+    }
+    if (options.requestedChannelsOut > 0) {
+        profile.channelsOut = options.requestedChannelsOut;
+    }
     if (!saveAudioDeviceProfile(profile)) {
         std::cout << "RTAudioDeviceProfileWrite=FAIL" << std::endl;
         return 1;
@@ -675,6 +743,15 @@ int runRtAudioProbe(const CliOptions& options)
 {
     std::cout << "RTAudioProbe=BEGIN" << std::endl;
     std::cout << "RTAudioAD=BEGIN" << std::endl;
+    std::cout << "RTAudioAG=BEGIN" << std::endl;
+
+    AudioDeviceProfile profile {};
+    loadAudioDeviceProfile(profile);
+
+    int requestedSampleRate = 0;
+    int requestedBufferFrames = 0;
+    int requestedChannelsOut = 0;
+    resolveFormatFromOptions(options, profile, requestedSampleRate, requestedBufferFrames, requestedChannelsOut);
 
     const auto devices = AudioIOJuce::listAudioDevices();
     std::string selectedDeviceId;
@@ -690,9 +767,24 @@ int runRtAudioProbe(const CliOptions& options)
     } else if (!selectedDeviceName.empty()) {
         engine.setPreferredAudioDeviceName(selectedDeviceName);
     }
+    engine.setPreferredAudioFormat(static_cast<double>(requestedSampleRate), requestedBufferFrames, requestedChannelsOut);
 
     const bool openOk = engine.startRtAudioProbe(options.rtToneHz, options.rtToneDb);
     auto telemetry = engine.getTelemetrySnapshot();
+
+    std::cout << "RTAudioAGRequestedSR=" << telemetry.rtRequestedSampleRate << std::endl;
+    std::cout << "RTAudioAGRequestedBufferFrames=" << telemetry.rtRequestedBufferFrames << std::endl;
+    std::cout << "RTAudioAGRequestedChOut=" << telemetry.rtRequestedChannelsOut << std::endl;
+    std::cout << "RTAudioAGAppliedSR=" << telemetry.rtSampleRate << std::endl;
+    std::cout << "RTAudioAGAppliedBufferFrames=" << telemetry.rtBufferFrames << std::endl;
+    std::cout << "RTAudioAGAppliedChOut=" << telemetry.rtChannelsOut << std::endl;
+    std::cout << "RTAudioAGFallback=" << (telemetry.rtAgFallback ? "TRUE" : "FALSE") << std::endl;
+
+    const bool agPass = openOk && telemetry.rtDeviceOpenOk
+        && telemetry.rtSampleRate > 0
+        && telemetry.rtBufferFrames > 0
+        && telemetry.rtChannelsOut > 0;
+    std::cout << "RTAudioAG=" << (agPass ? "PASS" : "FAIL") << std::endl;
 
     std::cout << "RTAudioDeviceSelect=" << (openOk ? "PASS" : "FAIL") << std::endl;
     std::cout << "RTAudioDeviceId=" << selectedDeviceId << std::endl;
@@ -764,6 +856,7 @@ int runRtAudioProbe(const CliOptions& options)
 int runAeSoak(const CliOptions& options)
 {
     std::cout << "RTAudioAE=BEGIN" << std::endl;
+    std::cout << "RTAudioAG=BEGIN" << std::endl;
     std::cout << "RTAudioAESeconds=" << options.aeSeconds << std::endl;
     std::cout << "RTAudioAEJitterLimitNs=" << options.aeMaxJitterNs << std::endl;
     std::cout << "RTAudioAEXRunLimit=" << options.aeMaxXruns << std::endl;
@@ -778,15 +871,38 @@ int runAeSoak(const CliOptions& options)
         return 1;
     }
 
+    AudioDeviceProfile profile {};
+    loadAudioDeviceProfile(profile);
+
+    int requestedSampleRate = 0;
+    int requestedBufferFrames = 0;
+    int requestedChannelsOut = 0;
+    resolveFormatFromOptions(options, profile, requestedSampleRate, requestedBufferFrames, requestedChannelsOut);
+
     EngineCore engine(false);
     if (!selectedDeviceId.empty()) {
         engine.setPreferredAudioDeviceId(selectedDeviceId);
     } else if (!selectedDeviceName.empty()) {
         engine.setPreferredAudioDeviceName(selectedDeviceName);
     }
+    engine.setPreferredAudioFormat(static_cast<double>(requestedSampleRate), requestedBufferFrames, requestedChannelsOut);
 
     const bool openOk = engine.startRtAudioProbe(options.rtToneHz, options.rtToneDb);
     auto telemetry = engine.getTelemetrySnapshot();
+
+    std::cout << "RTAudioAGRequestedSR=" << telemetry.rtRequestedSampleRate << std::endl;
+    std::cout << "RTAudioAGRequestedBufferFrames=" << telemetry.rtRequestedBufferFrames << std::endl;
+    std::cout << "RTAudioAGRequestedChOut=" << telemetry.rtRequestedChannelsOut << std::endl;
+    std::cout << "RTAudioAGAppliedSR=" << telemetry.rtSampleRate << std::endl;
+    std::cout << "RTAudioAGAppliedBufferFrames=" << telemetry.rtBufferFrames << std::endl;
+    std::cout << "RTAudioAGAppliedChOut=" << telemetry.rtChannelsOut << std::endl;
+    std::cout << "RTAudioAGFallback=" << (telemetry.rtAgFallback ? "TRUE" : "FALSE") << std::endl;
+
+    const bool agPass = openOk && telemetry.rtDeviceOpenOk
+        && telemetry.rtSampleRate > 0
+        && telemetry.rtBufferFrames > 0
+        && telemetry.rtChannelsOut > 0;
+    std::cout << "RTAudioAG=" << (agPass ? "PASS" : "FAIL") << std::endl;
 
     std::cout << "RTAudioDeviceSelect=" << (openOk ? "PASS" : "FAIL") << std::endl;
     std::cout << "RTAudioDeviceId=" << selectedDeviceId << std::endl;

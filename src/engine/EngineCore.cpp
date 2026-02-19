@@ -354,6 +354,7 @@ bool EngineCore::startAudioIfNeeded(bool forceReopen)
     request.preferredDeviceName = preferredAudioDeviceName_;
     request.preferredSampleRate = preferredAudioSampleRate_;
     request.preferredBufferSize = preferredAudioBufferFrames_;
+    request.preferredOutputChannels = preferredAudioOutputChannels_;
 
     const auto result = audioIO->start(request);
     if (!result.ok) {
@@ -367,8 +368,12 @@ bool EngineCore::startAudioIfNeeded(bool forceReopen)
     telemetry_.rtDeviceOpenOk.store(1u, std::memory_order_relaxed);
     telemetry_.rtSampleRate.store(static_cast<int32_t>(std::max(0.0, result.sampleRate)), std::memory_order_relaxed);
     telemetry_.rtBufferFrames.store(result.actualBufferSize, std::memory_order_relaxed);
+    telemetry_.rtRequestedSampleRate.store(static_cast<int32_t>(std::max(0.0, result.requestedSampleRate)), std::memory_order_relaxed);
+    telemetry_.rtRequestedBufferFrames.store(result.requestedBufferSize, std::memory_order_relaxed);
+    telemetry_.rtRequestedChannelsOut.store(result.requestedOutputChannels, std::memory_order_relaxed);
     telemetry_.rtChannelsIn.store(result.inputChannels, std::memory_order_relaxed);
     telemetry_.rtChannelsOut.store(result.outputChannels, std::memory_order_relaxed);
+    telemetry_.rtAgFallback.store(result.fallbackUsed ? 1u : 0u, std::memory_order_relaxed);
     telemetry_.rtDeviceIdHash.store(result.deviceIdHash, std::memory_order_relaxed);
     telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
     std::strncpy(rtDeviceName_, result.deviceName.c_str(), sizeof(rtDeviceName_) - 1u);
@@ -418,8 +423,12 @@ EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
     snapshot.rtDeviceOpenOk = telemetry_.rtDeviceOpenOk.load(std::memory_order_relaxed) != 0u;
     snapshot.rtSampleRate = telemetry_.rtSampleRate.load(std::memory_order_relaxed);
     snapshot.rtBufferFrames = telemetry_.rtBufferFrames.load(std::memory_order_relaxed);
+    snapshot.rtRequestedSampleRate = telemetry_.rtRequestedSampleRate.load(std::memory_order_relaxed);
+    snapshot.rtRequestedBufferFrames = telemetry_.rtRequestedBufferFrames.load(std::memory_order_relaxed);
+    snapshot.rtRequestedChannelsOut = telemetry_.rtRequestedChannelsOut.load(std::memory_order_relaxed);
     snapshot.rtChannelsIn = telemetry_.rtChannelsIn.load(std::memory_order_relaxed);
     snapshot.rtChannelsOut = telemetry_.rtChannelsOut.load(std::memory_order_relaxed);
+    snapshot.rtAgFallback = telemetry_.rtAgFallback.load(std::memory_order_relaxed) != 0u;
     snapshot.rtDeviceIdHash = telemetry_.rtDeviceIdHash.load(std::memory_order_relaxed);
     snapshot.rtCallbackCount = telemetry_.rtCallbackCount.load(std::memory_order_relaxed);
     snapshot.rtXRunCount = telemetry_.rtXRunCount.load(std::memory_order_relaxed);
@@ -509,6 +518,13 @@ void EngineCore::setPreferredAudioDeviceName(const std::string& deviceName)
 {
     preferredAudioDeviceName_ = deviceName;
     preferredAudioDeviceId_.clear();
+}
+
+void EngineCore::setPreferredAudioFormat(double sampleRate, int bufferFrames, int channelsOut)
+{
+    preferredAudioSampleRate_ = sampleRate;
+    preferredAudioBufferFrames_ = bufferFrames;
+    preferredAudioOutputChannels_ = channelsOut;
 }
 
 void EngineCore::clearPreferredAudioDevice()

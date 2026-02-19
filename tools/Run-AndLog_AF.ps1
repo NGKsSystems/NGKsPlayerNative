@@ -9,6 +9,9 @@ param(
   [string]$SetPreferredDeviceId,
   [string]$DeviceId,
   [string]$DeviceName,
+  [int]$SampleRate = 0,
+  [int]$BufferFrames = 0,
+  [int]$ChOut = 0,
   [int]$Seconds = 30
 )
 
@@ -56,7 +59,17 @@ if($ListDevices){
 }
 
 if(-not [string]::IsNullOrWhiteSpace($SetPreferredDeviceId)){
-  .\build\NGKsPlayerHeadless.exe --set_preferred_device_id $SetPreferredDeviceId 2>&1 | Tee-Object -FilePath _proof\milestone_AF\07_set_preferred_device_AF.txt | Add-Content $runLog
+  $setArgs = @('--set_preferred_device_id', $SetPreferredDeviceId)
+  if($SampleRate -gt 0){
+    $setArgs += @('--sr', $SampleRate)
+  }
+  if($BufferFrames -gt 0){
+    $setArgs += @('--buffer_frames', $BufferFrames)
+  }
+  if($ChOut -gt 0){
+    $setArgs += @('--ch_out', $ChOut)
+  }
+  .\build\NGKsPlayerHeadless.exe @setArgs 2>&1 | Tee-Object -FilePath _proof\milestone_AF\07_set_preferred_device_AF.txt | Add-Content $runLog
 }
 
 $aeArgs = @('--ae_soak','--seconds',$Seconds)
@@ -65,6 +78,15 @@ if(-not [string]::IsNullOrWhiteSpace($DeviceId)){
 }
 if(-not [string]::IsNullOrWhiteSpace($DeviceName)){
   $aeArgs += @('--device_name',$DeviceName)
+}
+if($SampleRate -gt 0){
+  $aeArgs += @('--sr', $SampleRate)
+}
+if($BufferFrames -gt 0){
+  $aeArgs += @('--buffer_frames', $BufferFrames)
+}
+if($ChOut -gt 0){
+  $aeArgs += @('--ch_out', $ChOut)
 }
 
 $targetLog = '_proof\milestone_AF\08_ae_30s_preferred_AF.txt'
@@ -76,6 +98,15 @@ if(-not [string]::IsNullOrWhiteSpace($DeviceId) -or -not [string]::IsNullOrWhite
 
 $check = '_proof\milestone_AF\10_runtime_marker_checklist_AF.txt'
 $need = @(
+  'RTAudioAG=BEGIN',
+  'RTAudioAGRequestedSR=',
+  'RTAudioAGRequestedBufferFrames=',
+  'RTAudioAGRequestedChOut=',
+  'RTAudioAGAppliedSR=',
+  'RTAudioAGAppliedBufferFrames=',
+  'RTAudioAGAppliedChOut=',
+  'RTAudioAGFallback=',
+  'RTAudioAG=PASS',
   'RTAudioDeviceSelect=PASS',
   'RTAudioDeviceId=',
   'RTAudioDeviceName=',

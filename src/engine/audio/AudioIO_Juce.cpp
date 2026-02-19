@@ -11,6 +11,34 @@ std::string makeDeviceId(const juce::String& backendType, const juce::String& de
 {
     return backendType.toStdString() + "|" + deviceName.toStdString();
 }
+
+template <typename T>
+void appendUnique(std::vector<T>& values, T value)
+{
+    for (const auto& existing : values) {
+        if (existing == value) {
+            return;
+        }
+    }
+    values.push_back(value);
+}
+
+int chooseOutputChannels(int requested, int maxOutput)
+{
+    int normalizedRequested = (requested > 0) ? requested : 2;
+    if (maxOutput <= 0) {
+        return std::clamp(normalizedRequested, 1, 2);
+    }
+
+    if (normalizedRequested <= maxOutput) {
+        return normalizedRequested;
+    }
+
+    if (maxOutput >= 2) {
+        return 2;
+    }
+    return 1;
+}
 }
 
 std::vector<AudioIOJuce::DeviceInfo> AudioIOJuce::listAudioDevices()
@@ -112,35 +140,89 @@ AudioIOJuce::StartResult AudioIOJuce::start(const StartRequest& request)
         }
     }
 
-    auto* currentDevice = deviceManager.getCurrentAudioDevice();
-    if (currentDevice == nullptr) {
-        if (const juce::String initError = deviceManager.initialise(0, 2, nullptr, true); initError.isNotEmpty()) {
-            result.ok = false;
-            result.message = initError.toStdString();
-            return result;
-        }
+    if (const juce::String initError = deviceManager.initialise(0, 2, nullptr, true); initError.isNotEmpty()) {
+        result.ok = false;
+        result.message = initError.toStdString();
+        return result;
+    }
 
-        juce::AudioDeviceManager::AudioDeviceSetup setup;
-        deviceManager.getAudioDeviceSetup(setup);
-        setup.bufferSize = (request.preferredBufferSize > 0) ? request.preferredBufferSize : result.requestedBufferSize;
-        if (request.preferredSampleRate > 0.0) {
-            setup.sampleRate = request.preferredSampleRate;
+    juce::AudioDeviceManager::AudioDeviceSetup baseSetup;
+    deviceManager.getAudioDeviceSetup(baseSetup);
+
+    result.requestedSampleRate = request.preferredSampleRate;
+    result.requestedBufferSize = (request.preferredBufferSize > 0) ? request.preferredBufferSize : baseSetup.bufferSize;
+    result.requestedOutputChannels = (request.preferredOutputChannels > 0) ? request.preferredOutputChannels : 2;
+
+    const int deviceMaxOut = [&]() {
+        for (const auto& d : devices) {
+            if ((!resolvedDeviceId.empty() && d.deviceId == resolvedDeviceId)
+                || (!resolvedDeviceName.empty() && d.deviceName == resolvedDeviceName)) {
+                return d.outputChannels;
+            }
         }
-        if (!resolvedDeviceName.empty()) {
-            setup.outputDeviceName = juce::String(resolvedDeviceName);
+        return 2;
+    }();
+
+    const int desiredOutputChannels = chooseOutputChannels(result.requestedOutputChannels, deviceMaxOut);
+
+    std::vector<double> sampleRateCandidates;
+    if (result.requestedSampleRate > 0.0) {
+        appendUnique(sampleRateCandidates, result.requestedSampleRate);
+    }
+    appendUnique(sampleRateCandidates, 48000.0);
+    appendUnique(sampleRateCandidates, 44100.0);
+    appendUnique(sampleRateCandidates, baseSetup.sampleRate);
+    if (sampleRateCandidates.empty()) {
+        sampleRateCandidates.push_back(44100.0);
+    }
+
+    std::vector<int> bufferCandidates;
+    appendUnique(bufferCandidates, result.requestedBufferSize);
+    appendUnique(bufferCandidates, 512);
+    appendUnique(bufferCandidates, 256);
+    appendUnique(bufferCandidates, 128);
+    appendUnique(bufferCandidates, baseSetup.bufferSize);
+
+    juce::String lastSetupError;
+    auto* currentDevice = static_cast<juce::AudioIODevice*>(nullptr);
+    for (double sr : sampleRateCandidates) {
+        if (sr <= 0.0) {
+            continue;
         }
-        const juce::String setupError = deviceManager.setAudioDeviceSetup(setup, true);
-        if (setupError.isNotEmpty()) {
-            result.ok = false;
-            result.message = setupError.toStdString();
-            return result;
+        for (int buffer : bufferCandidates) {
+            if (buffer <= 0) {
+                continue;
+            }
+
+            juce::AudioDeviceManager::AudioDeviceSetup setup = baseSetup;
+            setup.sampleRate = sr;
+            setup.bufferSize = buffer;
+            if (!resolvedDeviceName.empty()) {
+                setup.outputDeviceName = juce::String(resolvedDeviceName);
+            }
+            setup.outputChannels.clear();
+            for (int ch = 0; ch < desiredOutputChannels; ++ch) {
+                setup.outputChannels.setBit(ch);
+            }
+
+            lastSetupError = deviceManager.setAudioDeviceSetup(setup, true);
+            if (lastSetupError.isNotEmpty()) {
+                continue;
+            }
+
+            currentDevice = deviceManager.getCurrentAudioDevice();
+            if (currentDevice != nullptr) {
+                break;
+            }
         }
-        currentDevice = deviceManager.getCurrentAudioDevice();
+        if (currentDevice != nullptr) {
+            break;
+        }
     }
 
     if (currentDevice == nullptr) {
         result.ok = false;
-        result.message = "No audio device opened";
+        result.message = lastSetupError.isNotEmpty() ? lastSetupError.toStdString() : "No audio device opened";
         return result;
     }
 
@@ -155,6 +237,9 @@ AudioIOJuce::StartResult AudioIOJuce::start(const StartRequest& request)
         result.deviceId = makeDeviceId(currentDevice->getTypeName(), currentDevice->getName());
     }
     result.deviceIdHash = hashDeviceId(result.deviceId);
+    result.fallbackUsed = (result.requestedSampleRate > 0.0 && result.sampleRate != result.requestedSampleRate)
+        || (result.requestedBufferSize > 0 && result.actualBufferSize != result.requestedBufferSize)
+        || (result.outputChannels != result.requestedOutputChannels);
     result.ok = true;
     result.message = "OK";
 

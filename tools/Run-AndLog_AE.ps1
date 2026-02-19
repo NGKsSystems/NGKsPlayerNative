@@ -13,6 +13,9 @@ param(
   [switch]$StrictJitter,
   [switch]$RequireNoRestarts,
   [switch]$AllowStallTrips,
+  [int]$SampleRate = 0,
+  [int]$BufferFrames = 0,
+  [int]$ChOut = 0,
   [int]$ToneHz = 440,
   [int]$ToneDb = -12
 )
@@ -85,6 +88,15 @@ $args = @(
   '--tone_hz', $ToneHz,
   '--tone_db', $ToneDb
 )
+if($SampleRate -gt 0){
+  $args += @('--sr', $SampleRate)
+}
+if($BufferFrames -gt 0){
+  $args += @('--buffer_frames', $BufferFrames)
+}
+if($ChOut -gt 0){
+  $args += @('--ch_out', $ChOut)
+}
 if($RequireNoRestarts){
   $args += '--require_no_restarts'
 }
@@ -101,6 +113,15 @@ if($AllowStallTrips){
 '## AE MARKER CHECKLIST' | Add-Content $runLog
 
 $need = @(
+  'RTAudioAG=BEGIN',
+  'RTAudioAGRequestedSR=',
+  'RTAudioAGRequestedBufferFrames=',
+  'RTAudioAGRequestedChOut=',
+  'RTAudioAGAppliedSR=',
+  'RTAudioAGAppliedBufferFrames=',
+  'RTAudioAGAppliedChOut=',
+  'RTAudioAGFallback=',
+  'RTAudioAG=PASS',
   'RTAudioAE=BEGIN',
   'RTAudioAESeconds=',
   'RTAudioAEJitterLimitNs=',

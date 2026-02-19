@@ -36,7 +36,10 @@ public:
         std::string message;
         std::string deviceId;
         std::string deviceName;
+        double requestedSampleRate = 0.0;
+        int requestedOutputChannels = 2;
         int requestedBufferSize = 128;
+        bool fallbackUsed = false;
         int actualBufferSize = 0;
         int inputChannels = 0;
         int outputChannels = 0;

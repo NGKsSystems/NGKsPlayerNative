@@ -37,8 +37,12 @@ struct EngineTelemetrySnapshot
     bool rtDeviceOpenOk{false};
     int32_t rtSampleRate{0};
     int32_t rtBufferFrames{0};
+    int32_t rtRequestedSampleRate{0};
+    int32_t rtRequestedBufferFrames{0};
+    int32_t rtRequestedChannelsOut{2};
     int32_t rtChannelsIn{0};
     int32_t rtChannelsOut{0};
+    bool rtAgFallback{false};
     uint64_t rtDeviceIdHash{0};
     uint64_t rtCallbackCount{0};
     uint64_t rtXRunCount{0};
@@ -78,6 +82,7 @@ public:
     bool pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexcept;
     void setPreferredAudioDeviceId(const std::string& deviceId);
     void setPreferredAudioDeviceName(const std::string& deviceName);
+    void setPreferredAudioFormat(double sampleRate, int bufferFrames, int channelsOut);
     void clearPreferredAudioDevice();
 
     void prepare(double sampleRate, int blockSize);
@@ -102,8 +107,12 @@ public:
         std::atomic<uint8_t> rtDeviceOpenOk { 0 };
         std::atomic<int32_t> rtSampleRate { 0 };
         std::atomic<int32_t> rtBufferFrames { 0 };
+        std::atomic<int32_t> rtRequestedSampleRate { 0 };
+        std::atomic<int32_t> rtRequestedBufferFrames { 0 };
+        std::atomic<int32_t> rtRequestedChannelsOut { 2 };
         std::atomic<int32_t> rtChannelsIn { 0 };
         std::atomic<int32_t> rtChannelsOut { 0 };
+        std::atomic<uint8_t> rtAgFallback { 0 };
         std::atomic<uint64_t> rtDeviceIdHash { 0 };
         std::atomic<uint64_t> rtCallbackCount { 0 };
         std::atomic<uint64_t> rtXRunCount { 0 };
@@ -175,6 +184,7 @@ private:
     std::string preferredAudioDeviceName_;
     double preferredAudioSampleRate_ = 0.0;
     int preferredAudioBufferFrames_ = 128;
+    int preferredAudioOutputChannels_ = 2;
     uint64_t rtWindowLastXRunTotal_ = 0;
     uint64_t rtLastObservedCallbackCount_ = 0;
     int64_t rtProbeStartTickMs_ = 0;
