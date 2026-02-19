@@ -10,8 +10,12 @@
 #include <QMutexLocker>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QDir>
+#include <QFileInfo>
+#include <QGuiApplication>
 #include <QShortcut>
 #include <QStringList>
+#include <QSysInfo>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QDateTime>
@@ -22,6 +26,13 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 #include "ui/EngineBridge.h"
 
@@ -38,6 +49,10 @@ namespace {
 QMutex gLogMutex;
 std::string gLogPath;
 bool gConsoleEcho = false;
+bool gRuntimeDirReady = false;
+bool gLogWritable = false;
+bool gDllProbePass = false;
+QString gDllProbeMissing;
 
 QString uiLogAbsolutePath()
 {
@@ -77,6 +92,58 @@ void writeLine(const QString& line)
     }
 }
 
+QString truncateForLog(const QString& value, int maxChars)
+{
+    if (value.size() <= maxChars) {
+        return value;
+    }
+    return value.left(maxChars) + QStringLiteral("...(truncated)");
+}
+
+bool runDllProbe(QString& missingDlls)
+{
+#ifdef _WIN32
+    static const wchar_t* kDllNames[] = {
+        L"Qt6Core.dll",
+        L"Qt6Gui.dll",
+        L"Qt6Qml.dll",
+        L"Qt6Quick.dll",
+        L"Qt6Widgets.dll",
+        L"vcruntime140.dll",
+        L"vcruntime140_1.dll",
+        L"msvcp140.dll"
+    };
+
+    QStringList missing;
+    for (const wchar_t* dllName : kDllNames) {
+        HMODULE handle = LoadLibraryW(dllName);
+        if (handle == nullptr) {
+            missing.push_back(QString::fromWCharArray(dllName));
+            continue;
+        }
+        FreeLibrary(handle);
+    }
+
+    missingDlls = missing.join(',');
+    return missing.isEmpty();
+#else
+    missingDlls.clear();
+    return true;
+#endif
+}
+
+QString currentExecutablePathForLog()
+{
+#ifdef _WIN32
+    wchar_t buffer[MAX_PATH] {};
+    const DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+    if (length > 0 && length < MAX_PATH) {
+        return QString::fromWCharArray(buffer, static_cast<int>(length));
+    }
+#endif
+    return QString::fromStdString(std::filesystem::absolute(".").string());
+}
+
 void qtRuntimeMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
     const QString ts = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
@@ -100,6 +167,7 @@ void qtRuntimeMessageHandler(QtMsgType type, const QMessageLogContext& context, 
 void initializeUiRuntimeLog()
 {
     std::filesystem::create_directories("data/runtime");
+    gRuntimeDirReady = std::filesystem::exists("data/runtime") && std::filesystem::is_directory("data/runtime");
     gLogPath = "data/runtime/ui_qt.log";
 
     const QString echoValue = qEnvironmentVariable("NGKS_UI_LOG_ECHO").trimmed().toLower();
@@ -110,6 +178,36 @@ void initializeUiRuntimeLog()
     const QString banner = QStringLiteral("=== UI bootstrap BuildStamp=%1 GitSHA=%2 ===")
                                .arg(QStringLiteral(NGKS_BUILD_STAMP), QStringLiteral(NGKS_GIT_SHA));
     writeLine(banner);
+
+    {
+        std::ofstream stream(gLogPath, std::ios::app);
+        gLogWritable = stream.is_open();
+    }
+
+    gDllProbePass = runDllProbe(gDllProbeMissing);
+
+    const QString exePath = currentExecutablePathForLog();
+    const QString exeDir = QFileInfo(exePath).absolutePath();
+    const QString cwd = QDir::currentPath();
+    const QString pathValue = qEnvironmentVariable("PATH");
+    const QString qtDebugPlugins = qEnvironmentVariable("QT_DEBUG_PLUGINS");
+
+    writeLine(QStringLiteral("EnvReport BuildStamp=%1 GitSHA=%2")
+                  .arg(QStringLiteral(NGKS_BUILD_STAMP), QStringLiteral(NGKS_GIT_SHA)));
+    writeLine(QStringLiteral("EnvReport ExePath=%1").arg(exePath));
+    writeLine(QStringLiteral("EnvReport ExeDir=%1").arg(exeDir));
+    writeLine(QStringLiteral("EnvReport Cwd=%1").arg(cwd));
+    writeLine(QStringLiteral("EnvReport QtVersion=%1").arg(QString::fromLatin1(QT_VERSION_STR)));
+    writeLine(QStringLiteral("EnvReport PlatformProduct=%1").arg(QSysInfo::prettyProductName()));
+    writeLine(QStringLiteral("EnvReport QT_DEBUG_PLUGINS=%1").arg(qtDebugPlugins.isEmpty() ? QStringLiteral("<unset>") : qtDebugPlugins));
+    writeLine(QStringLiteral("EnvReport PATH=%1").arg(truncateForLog(pathValue, 1024)));
+    writeLine(QStringLiteral("EnvReport=PASS"));
+
+    if (gDllProbePass) {
+        writeLine(QStringLiteral("DllProbe=PASS"));
+    } else {
+        writeLine(QStringLiteral("DllProbe=FAIL missing=%1").arg(gDllProbeMissing));
+    }
 }
 
 QString utcNowIso()
@@ -491,6 +589,29 @@ int main(int argc, char* argv[])
     initializeUiRuntimeLog();
 
     QApplication app(argc, argv);
+
+    const QStringList pluginPaths = QCoreApplication::libraryPaths();
+    writeLine(QStringLiteral("QtPluginPaths=%1").arg(pluginPaths.join(';')));
+    writeLine(QStringLiteral("EnvReport PlatformName=%1").arg(QGuiApplication::platformName()));
+
+    const bool uiSelfCheckPass = gRuntimeDirReady && gLogWritable && gDllProbePass;
+    if (uiSelfCheckPass) {
+        writeLine(QStringLiteral("UiSelfCheck=PASS"));
+    } else {
+        QStringList reasons;
+        if (!gRuntimeDirReady) {
+            reasons.push_back(QStringLiteral("runtime_dir_missing"));
+        }
+        if (!gLogWritable) {
+            reasons.push_back(QStringLiteral("log_not_writable"));
+        }
+        if (!gDllProbePass) {
+            reasons.push_back(QStringLiteral("dll_probe_failed"));
+        }
+        writeLine(QStringLiteral("UiSelfCheck=FAIL reasons=%1").arg(reasons.join(',')));
+        return 2;
+    }
+
     writeLine(QStringLiteral("UI app initialized pid=%1").arg(QString::number(QCoreApplication::applicationPid())));
 
     EngineBridge engineBridge;
