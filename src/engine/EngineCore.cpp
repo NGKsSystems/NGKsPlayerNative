@@ -19,6 +19,15 @@ constexpr int peakHoldBlocks = 8;
 constexpr std::chrono::seconds registryPersistInterval(1);
 constexpr float kPublicFacingWeightThreshold = 0.15f;
 constexpr float kTwoPi = 6.28318530718f;
+constexpr int64_t kNsPerMs = 1000000;
+constexpr int64_t kWatchdogGraceMs = 500;
+constexpr uint64_t kWatchdogGraceCallbacks = 3u;
+constexpr int64_t kRecoveryCooldownMs = 2000;
+constexpr uint32_t kMaxRecoveryFailures = 3u;
+constexpr int32_t kWatchdogStateGrace = 0;
+constexpr int32_t kWatchdogStateActive = 1;
+constexpr int32_t kWatchdogStateStall = 2;
+constexpr int32_t kWatchdogStateFailed = 3;
 constexpr CrossfadeAssignment kDefaultCrossfadeAssignment {
     { 0, 1 },
     { 2, 3 },
@@ -36,6 +45,13 @@ void updateMaxRelaxed(std::atomic<uint32_t>& target, uint32_t value) noexcept
 void updateMaxRelaxedInt(std::atomic<int32_t>& target, int32_t value) noexcept
 {
     int32_t previous = target.load(std::memory_order_relaxed);
+    while (value > previous && !target.compare_exchange_weak(previous, value, std::memory_order_relaxed)) {
+    }
+}
+
+void updateMaxRelaxedU64(std::atomic<uint64_t>& target, uint64_t value) noexcept
+{
+    uint64_t previous = target.load(std::memory_order_relaxed);
     while (value > previous && !target.compare_exchange_weak(previous, value, std::memory_order_relaxed)) {
     }
 }
@@ -314,20 +330,29 @@ bool EngineCore::validateTransition(DeckLifecycleState from, DeckLifecycleState 
     return false;
 }
 
-bool EngineCore::startAudioIfNeeded()
+bool EngineCore::startAudioIfNeeded(bool forceReopen)
 {
     if (offlineMode_) {
         audioOpened.store(true, std::memory_order_release);
+        telemetry_.rtDeviceOpenOk.store(1u, std::memory_order_relaxed);
+        telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
         return true;
     }
 
-    if (audioOpened.load(std::memory_order_acquire)) {
+    if (forceReopen && audioIO != nullptr) {
+        audioIO->stop();
+        audioOpened.store(false, std::memory_order_release);
+        telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+    }
+
+    if (!forceReopen && audioOpened.load(std::memory_order_acquire)) {
         return true;
     }
 
     const auto result = audioIO->start();
     if (!result.ok) {
         telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+        telemetry_.rtLastDeviceErrorCode.store(-1, std::memory_order_relaxed);
         return false;
     }
 
@@ -337,6 +362,7 @@ bool EngineCore::startAudioIfNeeded()
     telemetry_.rtSampleRate.store(static_cast<int32_t>(std::max(0.0, result.sampleRate)), std::memory_order_relaxed);
     telemetry_.rtBufferFrames.store(result.actualBufferSize, std::memory_order_relaxed);
     telemetry_.rtChannelsOut.store(result.outputChannels, std::memory_order_relaxed);
+    telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
     std::strncpy(rtDeviceName_, result.deviceName.c_str(), sizeof(rtDeviceName_) - 1u);
     rtDeviceName_[sizeof(rtDeviceName_) - 1u] = '\0';
     return true;
@@ -387,10 +413,22 @@ EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
     snapshot.rtChannelsOut = telemetry_.rtChannelsOut.load(std::memory_order_relaxed);
     snapshot.rtCallbackCount = telemetry_.rtCallbackCount.load(std::memory_order_relaxed);
     snapshot.rtXRunCount = telemetry_.rtXRunCount.load(std::memory_order_relaxed);
+    snapshot.rtXRunCountTotal = telemetry_.rtXRunCount.load(std::memory_order_relaxed);
+    snapshot.rtXRunCountWindow = telemetry_.rtXRunCountWindow.load(std::memory_order_relaxed);
+    snapshot.rtLastCallbackNs = telemetry_.rtLastCallbackNs.load(std::memory_order_relaxed);
+    snapshot.rtJitterAbsNsMaxWindow = telemetry_.rtJitterAbsNsMaxWindow.load(std::memory_order_relaxed);
+    snapshot.rtCallbackIntervalNsLast = telemetry_.rtCallbackIntervalNsLast.load(std::memory_order_relaxed);
+    snapshot.rtCallbackIntervalNsMaxWindow = telemetry_.rtCallbackIntervalNsMaxWindow.load(std::memory_order_relaxed);
     snapshot.rtLastCallbackUs = telemetry_.rtLastCallbackUs.load(std::memory_order_relaxed);
     snapshot.rtMaxCallbackUs = telemetry_.rtMaxCallbackUs.load(std::memory_order_relaxed);
     snapshot.rtMeterPeakDb10 = telemetry_.rtMeterPeakDb10.load(std::memory_order_relaxed);
     snapshot.rtWatchdogOk = telemetry_.rtWatchdogOk.load(std::memory_order_relaxed) != 0u;
+    snapshot.rtWatchdogStateCode = telemetry_.rtWatchdogStateCode.load(std::memory_order_relaxed);
+    snapshot.rtWatchdogTripCount = telemetry_.rtWatchdogTripCount.load(std::memory_order_relaxed);
+    snapshot.rtDeviceRestartCount = telemetry_.rtDeviceRestartCount.load(std::memory_order_relaxed);
+    snapshot.rtLastDeviceErrorCode = telemetry_.rtLastDeviceErrorCode.load(std::memory_order_relaxed);
+    snapshot.rtRecoveryRequested = telemetry_.rtRecoveryRequested.load(std::memory_order_relaxed) != 0u;
+    snapshot.rtRecoveryFailedState = telemetry_.rtRecoveryFailedState.load(std::memory_order_relaxed) != 0u;
     snapshot.rtLastCallbackTickMs = telemetry_.rtLastCallbackTickMs.load(std::memory_order_relaxed);
     std::strncpy(snapshot.rtDeviceName, rtDeviceName_, sizeof(snapshot.rtDeviceName) - 1u);
     snapshot.rtDeviceName[sizeof(snapshot.rtDeviceName) - 1u] = '\0';
@@ -427,8 +465,27 @@ bool EngineCore::startRtAudioProbe(float toneHz, float toneDb) noexcept
     rtToneHz_.store(toneHz, std::memory_order_relaxed);
     rtToneLinear_.store(toneLinear, std::memory_order_relaxed);
     rtTonePhase_ = 0.0f;
+    rtWindowLastXRunTotal_ = 0u;
+    rtLastObservedCallbackCount_ = 0u;
+    rtConsecutiveRecoveryFailures_ = 0u;
+    rtLastRecoveryAttemptMs_ = 0;
+    telemetry_.rtCallbackCount.store(0u, std::memory_order_relaxed);
+    telemetry_.rtXRunCount.store(0u, std::memory_order_relaxed);
+    telemetry_.rtXRunCountWindow.store(0u, std::memory_order_relaxed);
+    telemetry_.rtLastCallbackNs.store(0u, std::memory_order_relaxed);
+    telemetry_.rtJitterAbsNsMaxWindow.store(0u, std::memory_order_relaxed);
+    telemetry_.rtCallbackIntervalNsLast.store(0u, std::memory_order_relaxed);
+    telemetry_.rtCallbackIntervalNsMaxWindow.store(0u, std::memory_order_relaxed);
+    telemetry_.rtWatchdogStateCode.store(kWatchdogStateGrace, std::memory_order_relaxed);
+    telemetry_.rtWatchdogTripCount.store(0u, std::memory_order_relaxed);
+    telemetry_.rtDeviceRestartCount.store(0u, std::memory_order_relaxed);
+    telemetry_.rtRecoveryRequested.store(0u, std::memory_order_relaxed);
+    telemetry_.rtRecoveryFailedState.store(0u, std::memory_order_relaxed);
     telemetry_.rtAudioEnabled.store(1u, std::memory_order_relaxed);
     telemetry_.rtWatchdogOk.store(1u, std::memory_order_relaxed);
+    rtProbeStartTickMs_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    rtLastProgressTickMs_ = rtProbeStartTickMs_;
     return startAudioIfNeeded();
 }
 
@@ -443,21 +500,107 @@ bool EngineCore::pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexce
     if (telemetry_.rtAudioEnabled.load(std::memory_order_relaxed) == 0u
         || telemetry_.rtDeviceOpenOk.load(std::memory_order_relaxed) == 0u) {
         telemetry_.rtWatchdogOk.store(1u, std::memory_order_relaxed);
-        return true;
-    }
-
-    const int64_t lastTickMs = telemetry_.rtLastCallbackTickMs.load(std::memory_order_relaxed);
-    if (lastTickMs <= 0) {
-        telemetry_.rtWatchdogOk.store(1u, std::memory_order_relaxed);
+        telemetry_.rtWatchdogStateCode.store(kWatchdogStateGrace, std::memory_order_relaxed);
         return true;
     }
 
     const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
-    outStallMs = std::max<int64_t>(0, nowMs - lastTickMs);
-    const bool ok = outStallMs <= thresholdMs;
+
+    const uint64_t xrunTotal = telemetry_.rtXRunCount.load(std::memory_order_relaxed);
+    const uint64_t xrunWindow = xrunTotal - rtWindowLastXRunTotal_;
+    rtWindowLastXRunTotal_ = xrunTotal;
+    telemetry_.rtXRunCountWindow.store(xrunWindow, std::memory_order_relaxed);
+
+    const uint64_t jitterWindow = telemetry_.rtJitterAbsNsMaxWindow.exchange(0u, std::memory_order_relaxed);
+    telemetry_.rtJitterAbsNsMaxWindow.store(jitterWindow, std::memory_order_relaxed);
+
+    const uint64_t intervalWindow = telemetry_.rtCallbackIntervalNsMaxWindow.exchange(0u, std::memory_order_relaxed);
+    telemetry_.rtCallbackIntervalNsMaxWindow.store(intervalWindow, std::memory_order_relaxed);
+
+    const uint64_t callbackCount = telemetry_.rtCallbackCount.load(std::memory_order_relaxed);
+    if (callbackCount != rtLastObservedCallbackCount_) {
+        rtLastObservedCallbackCount_ = callbackCount;
+        rtLastProgressTickMs_ = nowMs;
+    }
+
+    int32_t state = telemetry_.rtWatchdogStateCode.load(std::memory_order_relaxed);
+    if (state == kWatchdogStateFailed) {
+        telemetry_.rtWatchdogOk.store(0u, std::memory_order_relaxed);
+        telemetry_.rtRecoveryFailedState.store(1u, std::memory_order_relaxed);
+        return false;
+    }
+
+    const bool graceExpired = (nowMs - rtProbeStartTickMs_) >= kWatchdogGraceMs;
+    if (state == kWatchdogStateGrace) {
+        if (callbackCount >= kWatchdogGraceCallbacks) {
+            state = kWatchdogStateActive;
+        } else if (graceExpired) {
+            state = kWatchdogStateStall;
+            telemetry_.rtWatchdogTripCount.fetch_add(1u, std::memory_order_relaxed);
+            requestRtRecovery(-2);
+        }
+    }
+
+    outStallMs = std::max<int64_t>(0, nowMs - rtLastProgressTickMs_);
+    if (state == kWatchdogStateActive && outStallMs > thresholdMs) {
+        state = kWatchdogStateStall;
+        telemetry_.rtWatchdogTripCount.fetch_add(1u, std::memory_order_relaxed);
+        requestRtRecovery(-3);
+    }
+
+    if (state == kWatchdogStateStall) {
+        performRtRecoveryIfNeeded(nowMs);
+        const uint64_t latestCallbackCount = telemetry_.rtCallbackCount.load(std::memory_order_relaxed);
+        if (latestCallbackCount >= kWatchdogGraceCallbacks && outStallMs <= thresholdMs) {
+            state = kWatchdogStateActive;
+            rtConsecutiveRecoveryFailures_ = 0u;
+            telemetry_.rtRecoveryRequested.store(0u, std::memory_order_relaxed);
+            telemetry_.rtRecoveryFailedState.store(0u, std::memory_order_relaxed);
+        }
+    }
+
+    if (rtConsecutiveRecoveryFailures_ >= kMaxRecoveryFailures) {
+        state = kWatchdogStateFailed;
+        telemetry_.rtRecoveryFailedState.store(1u, std::memory_order_relaxed);
+    }
+
+    telemetry_.rtWatchdogStateCode.store(state, std::memory_order_relaxed);
+    const bool ok = (state != kWatchdogStateStall && state != kWatchdogStateFailed);
     telemetry_.rtWatchdogOk.store(ok ? 1u : 0u, std::memory_order_relaxed);
     return ok;
+}
+
+void EngineCore::requestRtRecovery(int32_t errorCode) noexcept
+{
+    telemetry_.rtRecoveryRequested.store(1u, std::memory_order_relaxed);
+    telemetry_.rtLastDeviceErrorCode.store(errorCode, std::memory_order_relaxed);
+}
+
+bool EngineCore::performRtRecoveryIfNeeded(int64_t nowMs) noexcept
+{
+    if (telemetry_.rtRecoveryRequested.load(std::memory_order_relaxed) == 0u) {
+        return false;
+    }
+
+    if ((nowMs - rtLastRecoveryAttemptMs_) < kRecoveryCooldownMs) {
+        return false;
+    }
+
+    rtLastRecoveryAttemptMs_ = nowMs;
+    telemetry_.rtDeviceRestartCount.fetch_add(1u, std::memory_order_relaxed);
+
+    const bool reopenOk = startAudioIfNeeded(true);
+    if (reopenOk) {
+        rtConsecutiveRecoveryFailures_ = 0u;
+        telemetry_.rtRecoveryRequested.store(0u, std::memory_order_relaxed);
+        telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
+        return true;
+    }
+
+    ++rtConsecutiveRecoveryFailures_;
+    telemetry_.rtLastDeviceErrorCode.store(-4, std::memory_order_relaxed);
+    return false;
 }
 
 void EngineCore::pushRenderDurationSample(uint32_t durationUs) noexcept
@@ -846,7 +989,31 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
 void EngineCore::process(float* left, float* right, int numSamples) noexcept
 {
     const auto callbackStart = std::chrono::high_resolution_clock::now();
+    const auto callbackSteadyNow = std::chrono::steady_clock::now();
     telemetry_.audioCallbacks.fetch_add(1u, std::memory_order_relaxed);
+    telemetry_.rtCallbackCount.fetch_add(1u, std::memory_order_relaxed);
+
+    const uint64_t callbackNowNs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        callbackSteadyNow.time_since_epoch()).count());
+    const uint64_t previousCallbackNs = telemetry_.rtLastCallbackNs.exchange(callbackNowNs, std::memory_order_relaxed);
+    if (previousCallbackNs > 0u && callbackNowNs > previousCallbackNs) {
+        const uint64_t intervalNs = callbackNowNs - previousCallbackNs;
+        telemetry_.rtCallbackIntervalNsLast.store(intervalNs, std::memory_order_relaxed);
+        updateMaxRelaxedU64(telemetry_.rtCallbackIntervalNsMaxWindow, intervalNs);
+
+        const int32_t sampleRate = telemetry_.rtSampleRate.load(std::memory_order_relaxed);
+        const int32_t bufferFrames = telemetry_.rtBufferFrames.load(std::memory_order_relaxed);
+        uint64_t expectedIntervalNs = intervalNs;
+        if (sampleRate > 0 && bufferFrames > 0) {
+            expectedIntervalNs = static_cast<uint64_t>((static_cast<double>(bufferFrames) * 1000000000.0)
+                / static_cast<double>(sampleRate));
+        }
+
+        const uint64_t jitterAbsNs = (intervalNs >= expectedIntervalNs)
+            ? (intervalNs - expectedIntervalNs)
+            : (expectedIntervalNs - intervalNs);
+        updateMaxRelaxedU64(telemetry_.rtJitterAbsNsMaxWindow, jitterAbsNs);
+    }
 
     if (numSamples <= 0 || left == nullptr || right == nullptr) {
         telemetry_.xruns.fetch_add(1u, std::memory_order_relaxed);
@@ -864,7 +1031,6 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         return;
     }
 
-    telemetry_.rtCallbackCount.fetch_add(1u, std::memory_order_relaxed);
     const int64_t callbackTickMs = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
     telemetry_.rtLastCallbackTickMs.store(callbackTickMs, std::memory_order_relaxed);

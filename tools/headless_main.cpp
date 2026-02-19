@@ -19,6 +19,22 @@ constexpr float kSecondsToRender = 2.0f;
 constexpr uint32_t kSampleRate = 48000u;
 constexpr uint32_t kBlockSize = 256u;
 
+const char* rtWatchdogStateText(int32_t code)
+{
+    switch (code) {
+    case 0:
+        return "GRACE";
+    case 1:
+        return "ACTIVE";
+    case 2:
+        return "STALL";
+    case 3:
+        return "FAILED";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 struct WavHeaderInfo {
     uint16_t formatCode = 0;
     uint16_t channels = 0;
@@ -301,6 +317,7 @@ int runTelemetryCsvMode(const CliOptions& options)
 int runRtAudioProbe(const CliOptions& options)
 {
     std::cout << "RTAudioProbe=BEGIN" << std::endl;
+    std::cout << "RTAudioAD=BEGIN" << std::endl;
 
     EngineCore engine(false);
     const bool openOk = engine.startRtAudioProbe(options.rtToneHz, options.rtToneDb);
@@ -350,10 +367,17 @@ int runRtAudioProbe(const CliOptions& options)
     const double peakDb = static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0;
     std::cout << "RTAudioMeterPeakDb=" << peakDb << std::endl;
 
+    std::cout << "RTAudioXRunsTotal=" << telemetry.rtXRunCountTotal << std::endl;
+    std::cout << "RTAudioJitterMaxNsWindow=" << telemetry.rtJitterAbsNsMaxWindow << std::endl;
+    std::cout << "RTAudioDeviceRestartCount=" << telemetry.rtDeviceRestartCount << std::endl;
+    std::cout << "RTAudioWatchdogState=" << rtWatchdogStateText(telemetry.rtWatchdogStateCode) << std::endl;
+
     std::cout << "RTAudioWatchdog=" << (watchdogOk ? "PASS" : "FAIL")
               << " StallMs=" << worstStallMs << std::endl;
 
-    const bool pass = openOk && telemetry.rtDeviceOpenOk && callbackPass && xrunPass && watchdogOk;
+    const bool stateOk = telemetry.rtWatchdogStateCode != 3;
+    const bool pass = openOk && telemetry.rtDeviceOpenOk && callbackPass && xrunPass && watchdogOk && stateOk;
+    std::cout << "RTAudioAD=" << (pass ? "PASS" : "FAIL") << std::endl;
     std::cout << "RTAudioProbe=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }

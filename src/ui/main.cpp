@@ -326,6 +326,22 @@ QString boolToFlag(bool value)
     return value ? QStringLiteral("TRUE") : QStringLiteral("FALSE");
 }
 
+QString rtWatchdogStateText(int32_t code)
+{
+    switch (code) {
+    case 0:
+        return QStringLiteral("GRACE");
+    case 1:
+        return QStringLiteral("ACTIVE");
+    case 2:
+        return QStringLiteral("STALL");
+    case 3:
+        return QStringLiteral("FAILED");
+    default:
+        return QStringLiteral("UNKNOWN");
+    }
+}
+
 QString healthSummaryLine(const UIHealthSnapshot& health)
 {
     return QStringLiteral("HealthEngineInit=%1 HealthAudioReady=%2 HealthRenderOK=%3 RenderCycleCounter=%4")
@@ -574,7 +590,7 @@ public:
     {
         const double peakDb = static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0;
         rtAudioLabel_->setText(
-            QStringLiteral("RT Audio:\n  DeviceOpen: %1\n  Device: %2\n  SampleRate: %3\n  BufferFrames: %4\n  ChannelsOut: %5\n  CallbackCount: %6\n  XRuns: %7\n  PeakDb: %8\n  Watchdog: %9")
+            QStringLiteral("RT Audio:\n  DeviceOpen: %1\n  Device: %2\n  SampleRate: %3\n  BufferFrames: %4\n  ChannelsOut: %5\n  CallbackCount: %6\n  XRuns: %7\n  XRunsTotal: %8\n  XRunsWindow: %9\n  JitterMaxNsWindow: %10\n  RestartCount: %11\n  WatchdogState: %12\n  LastDeviceErrorCode: %13\n  PeakDb: %14\n  Watchdog: %15")
                 .arg(boolToFlag(telemetry.rtDeviceOpenOk),
                      QString::fromUtf8(telemetry.rtDeviceName),
                      QString::number(telemetry.rtSampleRate),
@@ -582,6 +598,12 @@ public:
                      QString::number(telemetry.rtChannelsOut),
                      QString::number(static_cast<qulonglong>(telemetry.rtCallbackCount)),
                      QString::number(static_cast<qulonglong>(telemetry.rtXRunCount)),
+                     QString::number(static_cast<qulonglong>(telemetry.rtXRunCountTotal)),
+                     QString::number(static_cast<qulonglong>(telemetry.rtXRunCountWindow)),
+                     QString::number(static_cast<qulonglong>(telemetry.rtJitterAbsNsMaxWindow)),
+                     QString::number(telemetry.rtDeviceRestartCount),
+                     rtWatchdogStateText(telemetry.rtWatchdogStateCode),
+                     QString::number(telemetry.rtLastDeviceErrorCode),
                      QString::number(peakDb, 'f', 1),
                      boolToFlag(telemetry.rtWatchdogOk)));
     }
@@ -809,6 +831,11 @@ private:
         qInfo().noquote() << QStringLiteral("RTAudioDeviceOpen=%1").arg(boolToFlag(telemetry.rtDeviceOpenOk));
         qInfo().noquote() << QStringLiteral("RTAudioCallbackCount=%1").arg(QString::number(static_cast<qulonglong>(telemetry.rtCallbackCount)));
         qInfo().noquote() << QStringLiteral("RTAudioXRuns=%1").arg(QString::number(static_cast<qulonglong>(telemetry.rtXRunCount)));
+        qInfo().noquote() << QStringLiteral("RTAudioXRunsTotal=%1").arg(QString::number(static_cast<qulonglong>(telemetry.rtXRunCountTotal)));
+        qInfo().noquote() << QStringLiteral("RTAudioXRunsWindow=%1").arg(QString::number(static_cast<qulonglong>(telemetry.rtXRunCountWindow)));
+        qInfo().noquote() << QStringLiteral("RTAudioJitterMaxNsWindow=%1").arg(QString::number(static_cast<qulonglong>(telemetry.rtJitterAbsNsMaxWindow)));
+        qInfo().noquote() << QStringLiteral("RTAudioDeviceRestartCount=%1").arg(QString::number(telemetry.rtDeviceRestartCount));
+        qInfo().noquote() << QStringLiteral("RTAudioWatchdogState=%1").arg(rtWatchdogStateText(telemetry.rtWatchdogStateCode));
         qInfo().noquote() << QStringLiteral("RTAudioPeakDb=%1").arg(QString::number(static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0, 'f', 1));
         qInfo().noquote() << QStringLiteral("RTAudioWatchdog=%1").arg(boolToFlag(telemetry.rtWatchdogOk));
         if (!telemetry.rtWatchdogOk) {

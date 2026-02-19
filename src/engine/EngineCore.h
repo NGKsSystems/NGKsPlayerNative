@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <memory>
 
 #include "engine/command/Command.h"
@@ -38,10 +39,22 @@ struct EngineTelemetrySnapshot
     int32_t rtChannelsOut{0};
     uint64_t rtCallbackCount{0};
     uint64_t rtXRunCount{0};
+    uint64_t rtXRunCountTotal{0};
+    uint64_t rtXRunCountWindow{0};
+    uint64_t rtLastCallbackNs{0};
+    uint64_t rtJitterAbsNsMaxWindow{0};
+    uint64_t rtCallbackIntervalNsLast{0};
+    uint64_t rtCallbackIntervalNsMaxWindow{0};
     int32_t rtLastCallbackUs{0};
     int32_t rtMaxCallbackUs{0};
     int32_t rtMeterPeakDb10{-1200};
     bool rtWatchdogOk{true};
+    int32_t rtWatchdogStateCode{0};
+    uint32_t rtWatchdogTripCount{0};
+    uint32_t rtDeviceRestartCount{0};
+    int32_t rtLastDeviceErrorCode{0};
+    bool rtRecoveryRequested{false};
+    bool rtRecoveryFailedState{false};
     int64_t rtLastCallbackTickMs{0};
     char rtDeviceName[96] {};
 };
@@ -86,15 +99,26 @@ public:
         std::atomic<int32_t> rtChannelsOut { 0 };
         std::atomic<uint64_t> rtCallbackCount { 0 };
         std::atomic<uint64_t> rtXRunCount { 0 };
+        std::atomic<uint64_t> rtXRunCountWindow { 0 };
+        std::atomic<uint64_t> rtLastCallbackNs { 0 };
+        std::atomic<uint64_t> rtJitterAbsNsMaxWindow { 0 };
+        std::atomic<uint64_t> rtCallbackIntervalNsLast { 0 };
+        std::atomic<uint64_t> rtCallbackIntervalNsMaxWindow { 0 };
         std::atomic<int32_t> rtLastCallbackUs { 0 };
         std::atomic<int32_t> rtMaxCallbackUs { 0 };
         std::atomic<int32_t> rtMeterPeakDb10 { -1200 };
         std::atomic<uint8_t> rtWatchdogOk { 1 };
+        std::atomic<int32_t> rtWatchdogStateCode { 0 };
+        std::atomic<uint32_t> rtWatchdogTripCount { 0 };
+        std::atomic<uint32_t> rtDeviceRestartCount { 0 };
+        std::atomic<int32_t> rtLastDeviceErrorCode { 0 };
+        std::atomic<uint8_t> rtRecoveryRequested { 0 };
+        std::atomic<uint8_t> rtRecoveryFailedState { 0 };
         std::atomic<int64_t> rtLastCallbackTickMs { 0 };
     };
 
 private:
-    bool startAudioIfNeeded();
+    bool startAudioIfNeeded(bool forceReopen = false);
     ngks::CommandResult applyCommand(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept;
     ngks::CommandResult submitJobCommand(const ngks::Command& command) noexcept;
     void appendJobResults(ngks::EngineSnapshot& snapshot) noexcept;
@@ -106,6 +130,8 @@ private:
     bool isCriticalMutationCommand(const ngks::Command& c);
     bool isDeckMutationCommand(const ngks::Command& c);
     void pushRenderDurationSample(uint32_t durationUs) noexcept;
+    void requestRtRecovery(int32_t errorCode) noexcept;
+    bool performRtRecoveryIfNeeded(int64_t nowMs) noexcept;
 
     std::unique_ptr<AudioIOJuce> audioIO;
     bool offlineMode_ = false;
@@ -137,5 +163,11 @@ private:
     std::atomic<float> rtToneHz_ { 440.0f };
     std::atomic<float> rtToneLinear_ { 0.25f };
     float rtTonePhase_ = 0.0f;
+    uint64_t rtWindowLastXRunTotal_ = 0;
+    uint64_t rtLastObservedCallbackCount_ = 0;
+    int64_t rtProbeStartTickMs_ = 0;
+    int64_t rtLastProgressTickMs_ = 0;
+    int64_t rtLastRecoveryAttemptMs_ = 0;
+    uint32_t rtConsecutiveRecoveryFailures_ = 0;
     char rtDeviceName_[96] {};
 };
