@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstring>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -131,12 +132,30 @@ bool runFormatCase(ngks::OfflineWavFormat format,
 struct CliOptions {
     std::string telemetryCsvPath;
     int telemetrySeconds = 3;
+    bool foundationReport = false;
+    bool foundationJson = false;
+    bool selfTest = false;
 };
 
 bool parseCliOptions(int argc, char* argv[], CliOptions& options)
 {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
+        if (arg == "--foundation_report") {
+            options.foundationReport = true;
+            continue;
+        }
+
+        if (arg == "--foundation_json") {
+            options.foundationJson = true;
+            continue;
+        }
+
+        if (arg == "--selftest") {
+            options.selfTest = true;
+            continue;
+        }
+
         if (arg == "--telemetry_csv") {
             if (i + 1 >= argc) {
                 return false;
@@ -230,6 +249,117 @@ int runTelemetryCsvMode(const CliOptions& options)
     return 0;
 }
 
+struct SelfTestResults {
+    bool telemetryReadable = false;
+    bool healthReadable = false;
+    bool offlineRenderPasses = false;
+    bool allPass = false;
+};
+
+struct FoundationStatus {
+    bool engineInit = false;
+    bool offlineRender = false;
+    bool telemetry = false;
+    bool healthSnapshot = false;
+    bool diagnostics = false;
+    uint64_t telemetryRenderCycles = 0;
+    bool healthRenderOk = false;
+};
+
+SelfTestResults runSelfTests(bool offlinePass)
+{
+    EngineCore probe(true);
+    probe.prepare(static_cast<double>(kSampleRate), static_cast<int>(kBlockSize));
+
+    float interleaved[kBlockSize * 2u] {};
+    probe.renderOfflineBlock(interleaved, kBlockSize);
+    probe.renderOfflineBlock(interleaved, kBlockSize);
+    probe.renderOfflineBlock(interleaved, kBlockSize);
+
+    const auto telemetry = probe.getTelemetrySnapshot();
+    const auto snapshot = probe.getSnapshot();
+
+    SelfTestResults out {};
+    out.telemetryReadable = telemetry.renderCycles >= 0u
+        && telemetry.audioCallbacks >= 0u
+        && telemetry.xruns >= 0u;
+    out.healthReadable = std::isfinite(snapshot.masterPeakL)
+        && std::isfinite(snapshot.masterPeakR)
+        && std::isfinite(snapshot.masterRmsL)
+        && std::isfinite(snapshot.masterRmsR);
+    out.offlineRenderPasses = offlinePass;
+    out.allPass = out.telemetryReadable && out.healthReadable && out.offlineRenderPasses;
+    return out;
+}
+
+FoundationStatus buildFoundationStatus(bool offlinePass)
+{
+    EngineCore probe(true);
+    probe.prepare(static_cast<double>(kSampleRate), static_cast<int>(kBlockSize));
+    float interleaved[kBlockSize * 2u] {};
+    const bool rendered = probe.renderOfflineBlock(interleaved, kBlockSize);
+    const auto telemetry = probe.getTelemetrySnapshot();
+    const auto snapshot = probe.getSnapshot();
+
+    FoundationStatus status {};
+    status.engineInit = rendered;
+    status.offlineRender = offlinePass;
+    status.telemetry = telemetry.renderCycles >= 0u
+        && telemetry.audioCallbacks >= 0u
+        && telemetry.xruns >= 0u;
+    status.healthSnapshot = std::isfinite(snapshot.masterPeakL)
+        && std::isfinite(snapshot.masterPeakR)
+        && std::isfinite(snapshot.masterRmsL)
+        && std::isfinite(snapshot.masterRmsR);
+    status.diagnostics = true;
+    status.telemetryRenderCycles = telemetry.renderCycles;
+    status.healthRenderOk = status.healthSnapshot;
+    return status;
+}
+
+void printSelfTestSuite(const SelfTestResults& selfTests)
+{
+    std::cout << "SelfTestSuite=BEGIN" << std::endl;
+    std::cout << "SelfTest_TelemetryReadable=" << (selfTests.telemetryReadable ? "PASS" : "FAIL") << std::endl;
+    std::cout << "SelfTest_HealthReadable=" << (selfTests.healthReadable ? "PASS" : "FAIL") << std::endl;
+    std::cout << "SelfTest_OfflineRenderPasses=" << (selfTests.offlineRenderPasses ? "PASS" : "FAIL") << std::endl;
+    std::cout << "SelfTestSuite=END" << std::endl;
+}
+
+void printFoundationReportText(const FoundationStatus& status)
+{
+    std::cout << "FoundationReport=BEGIN" << std::endl;
+    std::cout << "FoundationEngineInit=" << (status.engineInit ? "PASS" : "FAIL") << std::endl;
+    std::cout << "FoundationOfflineRender=" << (status.offlineRender ? "PASS" : "FAIL") << std::endl;
+    std::cout << "FoundationTelemetry=" << (status.telemetry ? "PASS" : "FAIL") << std::endl;
+    std::cout << "FoundationHealthSnapshot=" << (status.healthSnapshot ? "PASS" : "FAIL") << std::endl;
+    std::cout << "FoundationDiagnostics=" << (status.diagnostics ? "PASS" : "FAIL") << std::endl;
+    std::cout << "FoundationReport=END" << std::endl;
+}
+
+void printFoundationReportJson(const FoundationStatus& status, const SelfTestResults* selfTests)
+{
+    std::cout << "{"
+              << "\"foundation\":{"
+              << "\"engine_init\":" << (status.engineInit ? "true" : "false") << ','
+              << "\"offline_render\":" << (status.offlineRender ? "true" : "false") << ','
+              << "\"telemetry\":" << (status.telemetry ? "true" : "false") << ','
+              << "\"health_snapshot\":" << (status.healthSnapshot ? "true" : "false") << ','
+              << "\"diagnostics\":" << (status.diagnostics ? "true" : "false") << ','
+              << "\"telemetry_render_cycles\":" << status.telemetryRenderCycles << ','
+              << "\"health_render_ok\":" << (status.healthRenderOk ? "true" : "false")
+              << "}";
+    if (selfTests != nullptr) {
+        std::cout << ",\"selftests\":{"
+                  << "\"telemetry_readable\":" << (selfTests->telemetryReadable ? "true" : "false") << ','
+                  << "\"health_readable\":" << (selfTests->healthReadable ? "true" : "false") << ','
+                  << "\"offline_render_passes\":" << (selfTests->offlineRenderPasses ? "true" : "false") << ','
+                  << "\"all_pass\":" << (selfTests->allPass ? "true" : "false")
+                  << "}";
+    }
+    std::cout << "}" << std::endl;
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -265,8 +395,31 @@ int main(int argc, char* argv[])
     std::cout << "TelemetryRenderCycles>=3=" << (telemetryPass ? "PASS" : "FAIL")
               << " value=" << telemetry.renderCycles << std::endl;
 
+    SelfTestResults selfTests {};
+    if (options.selfTest) {
+        selfTests = runSelfTests(offlinePass);
+        printSelfTestSuite(selfTests);
+    }
+
+    const FoundationStatus foundation = buildFoundationStatus(offlinePass);
+    if (options.foundationReport) {
+        if (options.foundationJson) {
+            printFoundationReportJson(foundation, options.selfTest ? &selfTests : nullptr);
+        } else {
+            printFoundationReportText(foundation);
+        }
+    }
+
     std::cout << "OfflineRenderTest=" << (offlinePass ? "PASS" : "FAIL") << std::endl;
-    const bool pass = offlinePass && telemetryPass;
+    const bool foundationPass = foundation.engineInit
+        && foundation.offlineRender
+        && foundation.telemetry
+        && foundation.healthSnapshot
+        && foundation.diagnostics;
+    const bool pass = offlinePass
+        && telemetryPass
+        && (!options.foundationReport || foundationPass)
+        && (!options.selfTest || selfTests.allPass);
     std::cout << "RunResult=" << (pass ? "PASS" : "FAIL") << std::endl;
     return pass ? 0 : 1;
 }

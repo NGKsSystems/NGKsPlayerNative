@@ -23,6 +23,7 @@
 #include <QVBoxLayout>
 #include <QDateTime>
 #include <QWidget>
+#include <QClipboard>
 
 #include <cstdlib>
 #include <csignal>
@@ -374,6 +375,57 @@ QString telemetrySparkline(const UIEngineTelemetrySnapshot& telemetry)
     return line;
 }
 
+QString passFail(bool value)
+{
+    return value ? QStringLiteral("PASS") : QStringLiteral("FAIL");
+}
+
+QString foundationReportLine(const UIFoundationSnapshot& foundation)
+{
+    return QStringLiteral("EngineInit=%1 OfflineRender=%2 Telemetry=%3 HealthSnapshot=%4 Diagnostics=%5 TelemetryRenderCycles=%6 HealthRenderOK=%7")
+        .arg(passFail(foundation.engineInit),
+             passFail(foundation.offlineRender),
+             passFail(foundation.telemetry),
+             passFail(foundation.healthSnapshot),
+             passFail(foundation.diagnostics),
+             QString::number(static_cast<qulonglong>(foundation.telemetryRenderCycles)),
+             foundation.healthRenderOk ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
+}
+
+QString foundationBlockText(const UIFoundationSnapshot& foundation, const UISelfTestSnapshot* selfTests)
+{
+    QString text = QStringLiteral(
+        "Foundation:\n"
+        "  EngineInit: %1\n"
+        "  OfflineRender: %2\n"
+        "  Telemetry: %3\n"
+        "  HealthSnapshot: %4\n"
+        "  Diagnostics: %5\n"
+        "  TelemetryRenderCycles: %6\n"
+        "  HealthRenderOK: %7")
+                       .arg(passFail(foundation.engineInit),
+                            passFail(foundation.offlineRender),
+                            passFail(foundation.telemetry),
+                            passFail(foundation.healthSnapshot),
+                            passFail(foundation.diagnostics),
+                            QString::number(static_cast<qulonglong>(foundation.telemetryRenderCycles)),
+                            foundation.healthRenderOk ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
+
+    if (selfTests != nullptr) {
+        text += QStringLiteral(
+            "\n  SelfTests: %1"
+            "\n    SelfTest_TelemetryReadable: %2"
+            "\n    SelfTest_HealthReadable: %3"
+            "\n    SelfTest_OfflineRenderPasses: %4")
+                    .arg(passFail(selfTests->allPass),
+                         passFail(selfTests->telemetryReadable),
+                         passFail(selfTests->healthReadable),
+                         passFail(selfTests->offlineRenderPasses));
+    }
+
+    return text;
+}
+
 class DiagnosticsDialog : public QDialog {
 public:
     explicit DiagnosticsDialog(QWidget* parent = nullptr)
@@ -390,7 +442,9 @@ public:
 
         auto* row = new QHBoxLayout();
         auto* refreshButton = new QPushButton(QStringLiteral("Refresh Log Tail"), this);
+        auto* copyButton = new QPushButton(QStringLiteral("Copy Report"), this);
         row->addWidget(refreshButton);
+        row->addWidget(copyButton);
         row->addStretch(1);
         layout->addLayout(row);
 
@@ -419,11 +473,19 @@ public:
         telemetryLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         layout->addWidget(telemetryLabel_);
 
+        foundationLabel_ = new QLabel(
+            QStringLiteral("Foundation:\n  EngineInit: FAIL\n  OfflineRender: FAIL\n  Telemetry: FAIL\n  HealthSnapshot: FAIL\n  Diagnostics: FAIL\n  TelemetryRenderCycles: 0\n  HealthRenderOK: FALSE"),
+            this);
+        foundationLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        foundationLabel_->setWordWrap(true);
+        layout->addWidget(foundationLabel_);
+
         logTailBox_ = new QPlainTextEdit(this);
         logTailBox_->setReadOnly(true);
         layout->addWidget(logTailBox_);
 
         QObject::connect(refreshButton, &QPushButton::clicked, this, &DiagnosticsDialog::refreshLogTail);
+        QObject::connect(copyButton, &QPushButton::clicked, this, &DiagnosticsDialog::copyReportToClipboard);
 
         qInfo() << "DiagnosticsDialogConstructed=PASS";
         refreshLogTail();
@@ -487,13 +549,34 @@ public:
         }
     }
 
+    void setFoundation(const UIFoundationSnapshot& foundation, const UISelfTestSnapshot* selfTests)
+    {
+        foundationText_ = foundationBlockText(foundation, selfTests);
+        foundationLabel_->setText(foundationText_);
+    }
+
+    void copyReportToClipboard()
+    {
+        QString report;
+        report += statusLabel_->text() + '\n';
+        report += detailsLabel_->text() + '\n';
+        report += healthLabel_->text() + '\n';
+        report += telemetryLabel_->text() + '\n';
+        report += foundationText_;
+        if (QGuiApplication::clipboard() != nullptr) {
+            QGuiApplication::clipboard()->setText(report);
+        }
+    }
+
 private:
     QLabel* statusLabel_{nullptr};
     QLabel* detailsLabel_{nullptr};
     QLabel* lastUpdateLabel_{nullptr};
     QLabel* healthLabel_{nullptr};
     QLabel* telemetryLabel_{nullptr};
+    QLabel* foundationLabel_{nullptr};
     QPlainTextEdit* logTailBox_{nullptr};
+    QString foundationText_;
 };
 
 class MainWindow : public QMainWindow {
@@ -550,7 +633,14 @@ public:
         QObject::connect(&pollTimer_, &QTimer::timeout, this, &MainWindow::pollStatus);
         pollTimer_.start();
 
+        const QString autorun = qEnvironmentVariable("NGKS_SELFTEST_AUTORUN").trimmed().toLower();
+        selfTestAutorun_ = (autorun == QStringLiteral("1") || autorun == QStringLiteral("true") || autorun == QStringLiteral("yes"));
+
         qInfo() << "MainWindowConstructed=PASS";
+
+        if (selfTestAutorun_) {
+            QTimer::singleShot(0, this, &MainWindow::runFoundationSelfTests);
+        }
     }
 
 private:
@@ -564,6 +654,7 @@ private:
         }
         diagnosticsDialog_->setHealth(lastHealth_);
         diagnosticsDialog_->setTelemetry(lastTelemetry_);
+        diagnosticsDialog_->setFoundation(lastFoundation_, selfTestsRan_ ? &lastSelfTests_ : nullptr);
         diagnosticsDialog_->refreshLogTail();
         diagnosticsDialog_->show();
         diagnosticsDialog_->raise();
@@ -597,9 +688,16 @@ private:
             telemetry = {};
         }
 
+        UIFoundationSnapshot foundation {};
+        const bool foundationReady = bridge_.tryGetFoundation(foundation);
+        if (!foundationReady) {
+            foundation = {};
+        }
+
         lastStatus_ = status;
         lastHealth_ = health;
         lastTelemetry_ = telemetry;
+        lastFoundation_ = foundation;
         engineStatusLabel_->setText(status.engineReady ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
         statusDetailsLabel_->setText(statusSummaryLine(status));
         healthDetailsLabel_->setText(healthSummaryLine(health));
@@ -609,6 +707,7 @@ private:
             diagnosticsDialog_->setStatus(status);
             diagnosticsDialog_->setHealth(health);
             diagnosticsDialog_->setTelemetry(telemetry);
+            diagnosticsDialog_->setFoundation(foundation, selfTestsRan_ ? &lastSelfTests_ : nullptr);
         }
 
         if (!statusTickLogged_) {
@@ -647,6 +746,43 @@ private:
             qInfo() << "==========================";
             telemetryTickLogged_ = true;
         }
+
+        if (!foundationTickLogged_) {
+            qInfo() << "FoundationPollTick=PASS";
+            qInfo().noquote() << QStringLiteral("FoundationReportLine=%1").arg(foundationReportLine(foundation));
+            qInfo().noquote() << QStringLiteral("FoundationTelemetryRenderCycles=%1").arg(QString::number(static_cast<qulonglong>(foundation.telemetryRenderCycles)));
+            qInfo().noquote() << QStringLiteral("FoundationHealthRenderOK=%1").arg(boolToFlag(foundation.healthRenderOk));
+            foundationTickLogged_ = true;
+        }
+
+        if (selfTestsRan_ && !foundationSelfTestLogged_) {
+            qInfo().noquote() << QStringLiteral("FoundationSelfTestSummary=%1").arg(passFail(lastSelfTests_.allPass));
+            foundationSelfTestLogged_ = true;
+        }
+    }
+
+    void runFoundationSelfTests()
+    {
+        UISelfTestSnapshot selfTests {};
+        bridge_.runSelfTests(selfTests);
+        lastSelfTests_ = selfTests;
+        selfTestsRan_ = true;
+
+        qInfo() << "SelfTestSuite=BEGIN";
+        qInfo().noquote() << QStringLiteral("SelfTest_TelemetryReadable=%1").arg(passFail(selfTests.telemetryReadable));
+        qInfo().noquote() << QStringLiteral("SelfTest_HealthReadable=%1").arg(passFail(selfTests.healthReadable));
+        qInfo().noquote() << QStringLiteral("SelfTest_OfflineRenderPasses=%1").arg(passFail(selfTests.offlineRenderPasses));
+        qInfo() << "SelfTestSuite=END";
+        qInfo().noquote() << QStringLiteral("FoundationSelfTestSummary=%1").arg(passFail(selfTests.allPass));
+        foundationSelfTestLogged_ = true;
+
+        UIFoundationSnapshot foundation {};
+        if (bridge_.tryGetFoundation(foundation)) {
+            lastFoundation_ = foundation;
+            if (diagnosticsDialog_ != nullptr) {
+                diagnosticsDialog_->setFoundation(lastFoundation_, &lastSelfTests_);
+            }
+        }
     }
 
 public:
@@ -670,9 +806,15 @@ private:
     UIStatus lastStatus_ {};
     UIHealthSnapshot lastHealth_ {};
     UIEngineTelemetrySnapshot lastTelemetry_ {};
+    UIFoundationSnapshot lastFoundation_ {};
+    UISelfTestSnapshot lastSelfTests_ {};
+    bool selfTestsRan_{false};
+    bool selfTestAutorun_{false};
     bool statusTickLogged_{false};
     bool healthTickLogged_{false};
     bool telemetryTickLogged_{false};
+    bool foundationTickLogged_{false};
+    bool foundationSelfTestLogged_{false};
 };
 
 } // namespace

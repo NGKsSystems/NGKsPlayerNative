@@ -68,6 +68,56 @@ bool EngineBridge::tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcep
     return true;
 }
 
+bool EngineBridge::runSelfTests(UISelfTestSnapshot& out) noexcept
+{
+    UIEngineTelemetrySnapshot telemetry {};
+    const bool telemetryReadable = tryGetTelemetry(telemetry)
+        && telemetry.renderCycles >= 0u
+        && telemetry.audioCallbacks >= 0u
+        && telemetry.xruns >= 0u;
+
+    UIHealthSnapshot health {};
+    const bool healthReadable = tryGetHealth(health)
+        && (health.renderCycleCounter >= 0u);
+
+    constexpr uint32_t testFrames = 256u;
+    float interleaved[testFrames * 2u] {};
+    const bool offlineRenderPasses = engine.renderOfflineBlock(interleaved, testFrames);
+
+    out.telemetryReadable = telemetryReadable;
+    out.healthReadable = healthReadable;
+    out.offlineRenderPasses = offlineRenderPasses;
+    out.allPass = telemetryReadable && healthReadable && offlineRenderPasses;
+
+    selfTestsRan.store(true, std::memory_order_relaxed);
+    selfTestsPass.store(out.allPass, std::memory_order_relaxed);
+    return out.allPass;
+}
+
+bool EngineBridge::tryGetFoundation(UIFoundationSnapshot& out) const noexcept
+{
+    UIEngineTelemetrySnapshot telemetry {};
+    UIHealthSnapshot health {};
+
+    const bool telemetryReadable = tryGetTelemetry(telemetry)
+        && telemetry.renderCycles >= 0u
+        && telemetry.audioCallbacks >= 0u
+        && telemetry.xruns >= 0u;
+    const bool healthReadable = tryGetHealth(health)
+        && (health.renderCycleCounter >= 0u);
+
+    out.engineInit = health.engineInitialized;
+    out.offlineRender = true;
+    out.telemetry = telemetryReadable;
+    out.healthSnapshot = healthReadable;
+    out.diagnostics = true;
+    out.selfTestsRan = selfTestsRan.load(std::memory_order_relaxed);
+    out.selfTestsPass = selfTestsPass.load(std::memory_order_relaxed);
+    out.telemetryRenderCycles = telemetry.renderCycles;
+    out.healthRenderOk = health.lastRenderCycleOk;
+    return true;
+}
+
 double EngineBridge::meterL() const noexcept
 {
     return meterLeftValue;

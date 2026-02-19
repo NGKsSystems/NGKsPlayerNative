@@ -40,6 +40,25 @@ struct UIEngineTelemetrySnapshot {
     uint32_t renderDurationWindowUs[kRenderDurationWindowSize] {};
 };
 
+struct UISelfTestSnapshot {
+    bool telemetryReadable{false};
+    bool healthReadable{false};
+    bool offlineRenderPasses{false};
+    bool allPass{false};
+};
+
+struct UIFoundationSnapshot {
+    bool engineInit{false};
+    bool offlineRender{false};
+    bool telemetry{false};
+    bool healthSnapshot{false};
+    bool diagnostics{false};
+    bool selfTestsRan{false};
+    bool selfTestsPass{false};
+    uint64_t telemetryRenderCycles{0};
+    bool healthRenderOk{false};
+};
+
 class EngineBridge final : public QObject
 {
     Q_OBJECT
@@ -57,6 +76,8 @@ public:
     bool tryGetStatus(UIStatus& out);
     bool tryGetHealth(UIHealthSnapshot& out) const;
     bool tryGetTelemetry(UIEngineTelemetrySnapshot& out) const noexcept;
+    bool runSelfTests(UISelfTestSnapshot& out) noexcept;
+    bool tryGetFoundation(UIFoundationSnapshot& out) const noexcept;
 
     double meterL() const noexcept;
     double meterR() const noexcept;
@@ -81,4 +102,6 @@ private:
     std::atomic<bool> healthAudioDeviceReady { false };
     std::atomic<bool> healthLastRenderCycleOk { false };
     std::atomic<uint64_t> healthRenderCycleCounter { 0 };
+    std::atomic<bool> selfTestsRan { false };
+    std::atomic<bool> selfTestsPass { false };
 };
