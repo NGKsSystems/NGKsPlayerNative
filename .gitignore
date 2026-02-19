@@ -1,4 +1,8 @@
-@"
+# =========================
+# NGKsPlayerNative .gitignore
+# Patterns only. No commands.
+# =========================
+
 # ---- Build outputs ----
 build-*/
 build/
@@ -16,6 +20,9 @@ _artifacts/
 # ---- Local app state ----
 .ngkssys/
 
+# ---- Runtime data cache ----
+data/runtime/
+
 # ---- OS / editor ----
 .vscode/
 .idea/
@@ -32,11 +39,3 @@ Thumbs.db
 *.exe
 *.dll
 *.log
-"@ | Set-Content -Path .\.gitignore -Encoding Ascii
-
-git add .gitignore
-git commit -m "chore: add gitignore for local builds and proof logs"
-git status --short
-
-# ---- Runtime data cache ----
-data/runtime/
