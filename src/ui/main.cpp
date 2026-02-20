@@ -25,6 +25,7 @@
 #include <QStringList>
 #include <QSysInfo>
 #include <QTimer>
+#include <QThread>
 #include <QVBoxLayout>
 #include <QDateTime>
 #include <QWidget>
@@ -818,11 +819,11 @@ public:
         layout->addLayout(profileRow);
 
         QObject::connect(refreshAudioProfilesButton_, &QPushButton::clicked, this, [this]() {
-            refreshAudioProfilesUi(true);
+            requestAudioProfilesRefresh(true);
         });
         QObject::connect(applyAudioProfileButton_, &QPushButton::clicked, this, &MainWindow::applySelectedAudioProfile);
 
-        refreshAudioProfilesUi(true);
+        requestAudioProfilesRefresh(true);
 
         const QString akApplyAutorun = qEnvironmentVariable("NGKS_AK_AUTORUN_APPLY").trimmed().toLower();
         if (akApplyAutorun == QStringLiteral("1") || akApplyAutorun == QStringLiteral("true") || akApplyAutorun == QStringLiteral("yes")) {
@@ -858,6 +859,22 @@ public:
     }
 
 private:
+    void requestAudioProfilesRefresh(bool logMarker)
+    {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, [this, logMarker]() { requestAudioProfilesRefresh(logMarker); }, Qt::QueuedConnection);
+            return;
+        }
+
+        if (audioApplyInProgress_.load(std::memory_order_acquire)) {
+            pendingAudioProfilesRefresh_ = true;
+            pendingAudioProfilesRefreshLogMarker_ = pendingAudioProfilesRefreshLogMarker_ || logMarker;
+            return;
+        }
+
+        refreshAudioProfilesUi(logMarker);
+    }
+
     void refreshAudioProfilesUi(bool logMarker)
     {
         UiAudioProfilesStore store {};
@@ -912,12 +929,20 @@ private:
             return;
         }
         struct ApplyGuard {
+            MainWindow* owner;
             std::atomic<bool>& flag;
             ~ApplyGuard()
             {
                 flag.store(false, std::memory_order_release);
+                if (owner->pendingAudioProfilesRefresh_) {
+                    const bool logMarker = owner->pendingAudioProfilesRefreshLogMarker_;
+                    MainWindow* ownerPtr = owner;
+                    owner->pendingAudioProfilesRefresh_ = false;
+                    owner->pendingAudioProfilesRefreshLogMarker_ = false;
+                    QTimer::singleShot(0, ownerPtr, [ownerPtr, logMarker]() { ownerPtr->requestAudioProfilesRefresh(logMarker); });
+                }
             }
-        } guard { audioApplyInProgress_ };
+        } guard { this, audioApplyInProgress_ };
 
         qInfo().noquote() << QStringLiteral("RTAudioALApplyBegin=1");
 
@@ -957,8 +982,9 @@ private:
         }
 
         qInfo().noquote() << QStringLiteral("RTAudioALApplyResult=PASS");
+        audioProfilesStore_.activeProfile = profileName;
+        lastAkActiveProfileMarker_ = profileName;
         lastAgMarkerKey_.clear();
-        refreshAudioProfilesUi(false);
     }
 
     void showDiagnostics()
@@ -1184,6 +1210,8 @@ private:
     bool foundationTickLogged_{false};
     bool foundationSelfTestLogged_{false};
     std::atomic<bool> audioApplyInProgress_ { false };
+    bool pendingAudioProfilesRefresh_{false};
+    bool pendingAudioProfilesRefreshLogMarker_{false};
     QString lastAgMarkerKey_ {};
     QString lastAkActiveProfileMarker_ {};
 };
