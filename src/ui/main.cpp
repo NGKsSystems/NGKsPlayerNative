@@ -908,13 +908,32 @@ private:
 
     void applySelectedAudioProfile()
     {
+        if (audioApplyInProgress_.exchange(true, std::memory_order_acq_rel)) {
+            return;
+        }
+        struct ApplyGuard {
+            std::atomic<bool>& flag;
+            ~ApplyGuard()
+            {
+                flag.store(false, std::memory_order_release);
+            }
+        } guard { audioApplyInProgress_ };
+
+        qInfo().noquote() << QStringLiteral("RTAudioALApplyBegin=1");
+
         const QString profileName = audioProfileCombo_->currentData().toString();
         const auto profileIt = audioProfilesStore_.profiles.find(profileName);
         if (profileName.isEmpty() || profileIt == audioProfilesStore_.profiles.end()) {
-            qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=FAIL");
+            qInfo().noquote() << QStringLiteral("RTAudioAKActiveProfile=<invalid>");
+            qInfo().noquote() << QStringLiteral("RTAudioALDeviceReopen=FALSE");
+            qInfo().noquote() << QStringLiteral("RTAudioALApplyResult=FAIL");
             QMessageBox::warning(this, QStringLiteral("Audio Profile"), QStringLiteral("Selected profile is not valid."));
             return;
         }
+
+        qInfo().noquote() << QStringLiteral("RTAudioAKActiveProfile=%1").arg(profileName);
+        const bool hadOpenDevice = lastTelemetry_.rtDeviceOpenOk;
+        qInfo().noquote() << QStringLiteral("RTAudioALDeviceReopen=%1").arg(hadOpenDevice ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
 
         const UiAudioProfile& profile = profileIt->second;
         const bool applied = bridge_.applyAudioProfile(profile.deviceId.toStdString(),
@@ -923,22 +942,21 @@ private:
                                                        profile.bufferFrames,
                                                        profile.channelsOut);
         if (!applied) {
-            qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=FAIL");
+            qInfo().noquote() << QStringLiteral("RTAudioALApplyResult=FAIL");
             QMessageBox::warning(this, QStringLiteral("Audio Profile"), QStringLiteral("Failed to apply selected profile."));
             return;
         }
 
         QString saveError;
         if (!writeUiAudioProfilesActiveProfile(audioProfilesStore_, profileName, saveError)) {
-            qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=FAIL");
+            qInfo().noquote() << QStringLiteral("RTAudioALApplyResult=FAIL");
             QMessageBox::warning(this,
                                  QStringLiteral("Audio Profile"),
                                  QStringLiteral("Profile applied, but active_profile was not persisted: %1").arg(saveError));
             return;
         }
 
-        qInfo().noquote() << QStringLiteral("RTAudioAKApplyProfile=PASS");
-        qInfo().noquote() << QStringLiteral("RTAudioAKActiveProfile=%1").arg(profileName);
+        qInfo().noquote() << QStringLiteral("RTAudioALApplyResult=PASS");
         lastAgMarkerKey_.clear();
         refreshAudioProfilesUi(false);
     }
@@ -1165,6 +1183,7 @@ private:
     bool telemetryTickLogged_{false};
     bool foundationTickLogged_{false};
     bool foundationSelfTestLogged_{false};
+    std::atomic<bool> audioApplyInProgress_ { false };
     QString lastAgMarkerKey_ {};
     QString lastAkActiveProfileMarker_ {};
 };

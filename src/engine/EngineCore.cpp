@@ -539,7 +539,18 @@ void EngineCore::clearPreferredAudioDevice()
 
 bool EngineCore::reopenAudioWithPreferredConfig() noexcept
 {
-    return startAudioIfNeeded(true);
+    if (offlineMode_) {
+        return startAudioIfNeeded(true);
+    }
+
+    const bool wasOpen = audioOpened.load(std::memory_order_acquire);
+    if (wasOpen && audioIO != nullptr) {
+        audioIO->stop();
+        audioOpened.store(false, std::memory_order_release);
+        telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+    }
+
+    return startAudioIfNeeded(false);
 }
 
 void EngineCore::stopRtAudioProbe() noexcept
