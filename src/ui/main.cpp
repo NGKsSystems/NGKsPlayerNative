@@ -867,6 +867,7 @@ private:
         }
 
         if (audioApplyInProgress_.load(std::memory_order_acquire)) {
+            qInfo().noquote() << QStringLiteral("RTAudioALRefreshDeferred=TRUE");
             pendingAudioProfilesRefresh_ = true;
             pendingAudioProfilesRefreshLogMarker_ = pendingAudioProfilesRefreshLogMarker_ || logMarker;
             return;
@@ -937,6 +938,7 @@ private:
                 if (owner->pendingAudioProfilesRefresh_) {
                     const bool logMarker = owner->pendingAudioProfilesRefreshLogMarker_;
                     MainWindow* ownerPtr = owner;
+                    qInfo().noquote() << QStringLiteral("RTAudioALRefreshFlushed=TRUE");
                     owner->pendingAudioProfilesRefresh_ = false;
                     owner->pendingAudioProfilesRefreshLogMarker_ = false;
                     QTimer::singleShot(0, ownerPtr, [ownerPtr, logMarker]() { ownerPtr->requestAudioProfilesRefresh(logMarker); });
