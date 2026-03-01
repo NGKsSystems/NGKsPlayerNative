@@ -41,3 +41,19 @@ Thumbs.db
 *.log
 
 Universal Agent Ruleset.txt
+# --- NGKsPlayerNative: local/generated/vendor guards ---
+_proof/
+build_graph/
+.ngk/
+.ngksgraph_cache/
+
+# local helper outputs
+echo
+where
+ngksgraph.debug.toml
+ngksgraph.release.toml
+
+# vendored / large trees (track intentionally only)
+JUCE/
+third_party/
+tools/NGKsGraph/
