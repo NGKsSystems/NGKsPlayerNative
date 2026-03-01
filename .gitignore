@@ -57,3 +57,18 @@ ngksgraph.release.toml
 JUCE/
 third_party/
 tools/NGKsGraph/
+# local scratch runners (keep committed tools explicit)
+tools/Run-AndLog_*.ps1
+tools/assert_fwrite_runner.*
+tools/build_msvc_ps.ps1
+tools/cmake_with_msvc_env.cmd
+tools/crash_ground_phase*.cmd
+tools/crash_ground_phase0_1.ps1
+tools/graph_crash_ground.*
+tools/missing_dll_runner.ps1
+tools/msvc_x64.cmd
+tools/msvc_x64.cmd.bak
+tools/ngk_build.ps1
+tools/ngksplayer_graph_*.ps1
+tools/run_aj_direct_now.ps1
+tools/state_machine_smoke.cpp
