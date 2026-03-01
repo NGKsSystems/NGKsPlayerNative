@@ -2,9 +2,11 @@
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <string>
 
 #include <QObject>
+#include <QString>
 #include <QTimer>
 
 #include "engine/EngineCore.h"
@@ -101,9 +103,18 @@ class EngineBridge final : public QObject
 
 public:
     explicit EngineBridge(QObject* parent = nullptr);
+    ~EngineBridge() override;
 
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
+    Q_INVOKABLE bool enterDjMode();
+    Q_INVOKABLE void leaveDjMode();
+    Q_INVOKABLE bool enterSimpleMode();
+    Q_INVOKABLE void leaveSimpleMode();
+    Q_INVOKABLE bool ensureAudioHot();
+    Q_INVOKABLE void notifyDeviceFailure(int errorCode = -1);
+    Q_INVOKABLE void appExitTeardown();
+    Q_INVOKABLE QString engineStateMachineSummary() const;
     Q_INVOKABLE void setMasterGain(double linear01);
     Q_INVOKABLE bool startRtProbe(double toneHz, double toneDb);
     Q_INVOKABLE void stopRtProbe();
@@ -112,6 +123,9 @@ public:
                            int sampleRate,
                            int bufferFrames,
                            int channelsOut);
+    bool retryInitialize();
+    QString bridgeReason() const;
+    QString bridgeDetail() const;
 
     bool tryGetStatus(UIStatus& out);
     bool tryGetHealth(UIHealthSnapshot& out) const;
@@ -130,6 +144,44 @@ signals:
     void runningChanged();
 
 private:
+    enum class BridgeState {
+        Disconnected,
+        Connected
+    };
+
+    enum class EngineState {
+        NotInitialized,
+        Initialized
+    };
+
+    enum class AudioState {
+        Closed,
+        Open,
+        Failed
+    };
+
+    enum class PlaybackState {
+        Inactive,
+        Active
+    };
+
+    enum class UiModeState {
+        None,
+        DJ,
+        Simple
+    };
+
+    static bool envFlagEnabled(const char* key);
+    static const char* toString(BridgeState state);
+    static const char* toString(EngineState state);
+    static const char* toString(AudioState state);
+    static const char* toString(PlaybackState state);
+    static const char* toString(UiModeState state);
+
+    bool initializeBridge(const char* stageTag);
+    bool canUseEngineLocked() const;
+    bool ensureAudioHotLocked(const char* triggerTag);
+    void handleDeviceFailureLocked(int errorCode, const char* detailTag);
     void pollSnapshot();
 
     EngineCore engine;
@@ -145,4 +197,19 @@ private:
     std::atomic<uint64_t> healthRenderCycleCounter { 0 };
     std::atomic<bool> selfTestsRan { false };
     std::atomic<bool> selfTestsPass { false };
+    std::atomic<bool> bridgeInitialized { false };
+    QString bridgeReasonValue {};
+    QString bridgeDetailValue {};
+
+    mutable std::mutex stateMutex_;
+    BridgeState bridgeState_ { BridgeState::Disconnected };
+    EngineState engineState_ { EngineState::NotInitialized };
+    AudioState audioState_ { AudioState::Closed };
+    PlaybackState playbackState_ { PlaybackState::Inactive };
+    UiModeState uiModeState_ { UiModeState::None };
+    bool audioLatchedByMode_ { false };
+    bool audioDisabledByEnv_ { false };
+    bool appExitStarted_ { false };
+    int audioOpenGraceTicks_ { 0 };
+    int playbackStartGraceTicks_ { 0 };
 };
