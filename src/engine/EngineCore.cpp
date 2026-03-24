@@ -56,6 +56,22 @@ void updateMaxRelaxedU64(std::atomic<uint64_t>& target, uint64_t value) noexcept
     }
 }
 
+float sanitizeFiniteNonNegative(float v) noexcept
+{
+    if (!std::isfinite(v) || v < 0.0f) {
+        return 0.0f;
+    }
+    return v;
+}
+
+double sanitizeFiniteNonNegative(double v) noexcept
+{
+    if (!std::isfinite(v) || v < 0.0) {
+        return 0.0;
+    }
+    return v;
+}
+
 bool isDeckRoutingActive(const ngks::DeckSnapshot& deck) noexcept
 {
     if (deck.hasTrack == 0) {
@@ -173,34 +189,40 @@ EngineCore::EngineCore(bool offlineMode)
 
     jobSystem.start();
     lastRegistryPersist = std::chrono::steady_clock::now();
+
+    setRunState(EngineRunState::Ready);
 }
 
 EngineCore::~EngineCore()
 {
+    setRunState(EngineRunState::RtStopping);
+
     if (audioIO != nullptr) {
         audioIO->stop();
     }
 
+    audioOpened.store(false, std::memory_order_release);
+    telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+    telemetry_.rtAudioEnabled.store(0u, std::memory_order_relaxed);
+
     persistRegistryIfNeeded(true);
     jobSystem.stop();
+
+    setRunState(EngineRunState::Cold);
 }
 
-ngks::EngineSnapshot EngineCore::getSnapshot()
+ngks::EngineSnapshot EngineCore::getSnapshot() const
 {
     const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
-    const uint32_t back = front ^ 1u;
-
-    ngks::EngineSnapshot working = snapshots[front];
-    appendJobResults(working);
-    snapshots[back] = working;
-    frontSnapshotIndex.store(back, std::memory_order_release);
-
-    persistRegistryIfNeeded(false);
-    return snapshots[back];
+    ngks::EngineSnapshot copy = snapshots[front];
+    sanitizeSnapshot(copy);
+    return copy;
 }
 
 void EngineCore::enqueueCommand(const ngks::Command& command)
 {
+    telemetry_.cmdQueued.fetch_add(1u, std::memory_order_relaxed);
+
     if (isDeckMutationCommand(command)) {
         if (command.deck >= ngks::MAX_DECKS) {
             publishCommandOutcome(command, ngks::CommandResult::RejectedInvalidDeck);
@@ -260,6 +282,8 @@ void EngineCore::enqueueCommand(const ngks::Command& command)
     }
 
     if (!commandRing.push(command)) {
+        telemetry_.cmdDropped.fetch_add(1u, std::memory_order_relaxed);
+
         const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
         ngks::EngineSnapshot dropped = snapshots[front];
         if (command.deck < ngks::MAX_DECKS) {
@@ -274,6 +298,11 @@ void EngineCore::enqueueCommand(const ngks::Command& command)
             snapshots[back] = dropped;
             frontSnapshotIndex.store(back, std::memory_order_release);
         }
+    } else {
+        const uint64_t queued = telemetry_.cmdQueued.load(std::memory_order_relaxed);
+        const uint64_t dropped = telemetry_.cmdDropped.load(std::memory_order_relaxed);
+        const uint32_t approxDepth = static_cast<uint32_t>(queued - dropped);
+        updateMaxRelaxed(telemetry_.cmdHighWaterMark, approxDepth);
     }
 }
 
@@ -332,22 +361,36 @@ bool EngineCore::validateTransition(DeckLifecycleState from, DeckLifecycleState 
 
 bool EngineCore::startAudioIfNeeded(bool forceReopen)
 {
+    std::lock_guard<std::mutex> lock(controlMutex_);
+
     if (offlineMode_) {
         audioOpened.store(true, std::memory_order_release);
         telemetry_.rtDeviceOpenOk.store(1u, std::memory_order_relaxed);
         telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
+        setRunState(EngineRunState::Ready);
         return true;
     }
 
+    if (audioIO == nullptr) {
+        telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+        telemetry_.rtLastDeviceErrorCode.store(-10, std::memory_order_relaxed);
+        setRunState(EngineRunState::RtFailed);
+        return false;
+    }
+
     if (forceReopen && audioIO != nullptr) {
+        setRunState(EngineRunState::RtStopping);
         audioIO->stop();
         audioOpened.store(false, std::memory_order_release);
         telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
     }
 
     if (!forceReopen && audioOpened.load(std::memory_order_acquire)) {
+        setRunState(EngineRunState::RtRunning);
         return true;
     }
+
+    setRunState(EngineRunState::RtStarting);
 
     AudioIOJuce::StartRequest request {};
     request.preferredDeviceId = preferredAudioDeviceId_;
@@ -360,6 +403,7 @@ bool EngineCore::startAudioIfNeeded(bool forceReopen)
     if (!result.ok) {
         telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
         telemetry_.rtLastDeviceErrorCode.store(-1, std::memory_order_relaxed);
+        setRunState(EngineRunState::RtFailed);
         return false;
     }
 
@@ -377,9 +421,18 @@ bool EngineCore::startAudioIfNeeded(bool forceReopen)
     telemetry_.rtDeviceIdHash.store(result.deviceIdHash, std::memory_order_relaxed);
     telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
     std::strncpy(rtDeviceId_, result.deviceId.c_str(), sizeof(rtDeviceId_) - 1u);
-    rtDeviceId_[sizeof(rtDeviceId_) - 1u] = '\0';
+    rtDeviceId_[sizeof(rtDeviceId_) - 1u] = '\\0';
     std::strncpy(rtDeviceName_, result.deviceName.c_str(), sizeof(rtDeviceName_) - 1u);
-    rtDeviceName_[sizeof(rtDeviceName_) - 1u] = '\0';
+    rtDeviceName_[sizeof(rtDeviceName_) - 1u] = '\\0';
+
+    telemetry_.rtLastCallbackTickMs.store(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count(),
+        std::memory_order_relaxed);
+
+    telemetry_.rtWatchdogOk.store(1u, std::memory_order_relaxed);
+    telemetry_.rtWatchdogStateCode.store(kWatchdogStateGrace, std::memory_order_relaxed);
+    setRunState(EngineRunState::RtRunning);
     return true;
 }
 
@@ -451,6 +504,12 @@ EngineTelemetrySnapshot EngineCore::getTelemetrySnapshot() const noexcept
     snapshot.rtRecoveryRequested = telemetry_.rtRecoveryRequested.load(std::memory_order_relaxed) != 0u;
     snapshot.rtRecoveryFailedState = telemetry_.rtRecoveryFailedState.load(std::memory_order_relaxed) != 0u;
     snapshot.rtLastCallbackTickMs = telemetry_.rtLastCallbackTickMs.load(std::memory_order_relaxed);
+    snapshot.cmdQueued = telemetry_.cmdQueued.load(std::memory_order_relaxed);
+    snapshot.cmdDropped = telemetry_.cmdDropped.load(std::memory_order_relaxed);
+    snapshot.cmdCoalesced = telemetry_.cmdCoalesced.load(std::memory_order_relaxed);
+    snapshot.cmdHighWaterMark = telemetry_.cmdHighWaterMark.load(std::memory_order_relaxed);
+    snapshot.snapshotPublishes = telemetry_.snapshotPublishes.load(std::memory_order_relaxed);
+    snapshot.engineRunState = telemetry_.engineRunState.load(std::memory_order_relaxed);
     std::strncpy(snapshot.rtDeviceId, rtDeviceId_, sizeof(snapshot.rtDeviceId) - 1u);
     snapshot.rtDeviceId[sizeof(snapshot.rtDeviceId) - 1u] = '\0';
     std::strncpy(snapshot.rtDeviceName, rtDeviceName_, sizeof(snapshot.rtDeviceName) - 1u);
@@ -509,6 +568,7 @@ bool EngineCore::startRtAudioProbe(float toneHz, float toneDb) noexcept
     rtProbeStartTickMs_ = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
     rtLastProgressTickMs_ = rtProbeStartTickMs_;
+    setRunState(EngineRunState::RtStarting);
     return startAudioIfNeeded();
 }
 
@@ -543,11 +603,14 @@ bool EngineCore::reopenAudioWithPreferredConfig() noexcept
         return startAudioIfNeeded(true);
     }
 
-    const bool wasOpen = audioOpened.load(std::memory_order_acquire);
-    if (wasOpen && audioIO != nullptr) {
-        audioIO->stop();
-        audioOpened.store(false, std::memory_order_release);
-        telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+    {
+        std::lock_guard<std::mutex> lock(controlMutex_);
+        if (audioOpened.load(std::memory_order_acquire) && audioIO != nullptr) {
+            setRunState(EngineRunState::RtStopping);
+            audioIO->stop();
+            audioOpened.store(false, std::memory_order_release);
+            telemetry_.rtDeviceOpenOk.store(0u, std::memory_order_relaxed);
+        }
     }
 
     return startAudioIfNeeded(false);
@@ -556,6 +619,11 @@ bool EngineCore::reopenAudioWithPreferredConfig() noexcept
 void EngineCore::stopRtAudioProbe() noexcept
 {
     telemetry_.rtAudioEnabled.store(0u, std::memory_order_relaxed);
+    if (audioOpened.load(std::memory_order_acquire)) {
+        setRunState(EngineRunState::RtRunning);
+    } else {
+        setRunState(EngineRunState::Ready);
+    }
 }
 
 bool EngineCore::pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexcept
@@ -592,6 +660,7 @@ bool EngineCore::pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexce
     if (state == kWatchdogStateFailed) {
         telemetry_.rtWatchdogOk.store(0u, std::memory_order_relaxed);
         telemetry_.rtRecoveryFailedState.store(1u, std::memory_order_relaxed);
+        setRunState(EngineRunState::RtFailed);
         return false;
     }
 
@@ -632,6 +701,11 @@ bool EngineCore::pollRtWatchdog(int64_t thresholdMs, int64_t& outStallMs) noexce
     telemetry_.rtWatchdogStateCode.store(state, std::memory_order_relaxed);
     const bool ok = (state != kWatchdogStateStall && state != kWatchdogStateFailed);
     telemetry_.rtWatchdogOk.store(ok ? 1u : 0u, std::memory_order_relaxed);
+
+    if (ok && audioOpened.load(std::memory_order_acquire)) {
+        setRunState(EngineRunState::RtRunning);
+    }
+
     return ok;
 }
 
@@ -659,12 +733,54 @@ bool EngineCore::performRtRecoveryIfNeeded(int64_t nowMs) noexcept
         rtConsecutiveRecoveryFailures_ = 0u;
         telemetry_.rtRecoveryRequested.store(0u, std::memory_order_relaxed);
         telemetry_.rtLastDeviceErrorCode.store(0, std::memory_order_relaxed);
+        setRunState(EngineRunState::RtRunning);
         return true;
     }
 
     ++rtConsecutiveRecoveryFailures_;
     telemetry_.rtLastDeviceErrorCode.store(-4, std::memory_order_relaxed);
     return false;
+}
+
+void EngineCore::setRunState(EngineRunState state) noexcept
+{
+    telemetry_.engineRunState.store(static_cast<uint32_t>(state), std::memory_order_relaxed);
+}
+
+EngineRunState EngineCore::getRunState() const noexcept
+{
+    return static_cast<EngineRunState>(
+        telemetry_.engineRunState.load(std::memory_order_relaxed));
+}
+
+void EngineCore::sanitizeSnapshot(ngks::EngineSnapshot& snapshot) const noexcept
+{
+    snapshot.masterRmsL  = sanitizeFiniteNonNegative(snapshot.masterRmsL);
+    snapshot.masterRmsR  = sanitizeFiniteNonNegative(snapshot.masterRmsR);
+    snapshot.masterPeakL = sanitizeFiniteNonNegative(snapshot.masterPeakL);
+    snapshot.masterPeakR = sanitizeFiniteNonNegative(snapshot.masterPeakR);
+
+    for (uint8_t i = 0; i < ngks::MAX_DECKS; ++i) {
+        auto& deck = snapshot.decks[i];
+        deck.rmsL = sanitizeFiniteNonNegative(deck.rmsL);
+        deck.rmsR = sanitizeFiniteNonNegative(deck.rmsR);
+        deck.peakL = sanitizeFiniteNonNegative(deck.peakL);
+        deck.peakR = sanitizeFiniteNonNegative(deck.peakR);
+        deck.playheadSeconds = sanitizeFiniteNonNegative(deck.playheadSeconds);
+        deck.lengthSeconds = sanitizeFiniteNonNegative(deck.lengthSeconds);
+        deck.deckGain = std::clamp(deck.deckGain, 0.0f, 12.0f);
+        deck.masterWeight = std::clamp(deck.masterWeight, 0.0f, 1.0f);
+        deck.cueWeight = std::clamp(deck.cueWeight, 0.0f, 1.0f);
+    }
+}
+
+void EngineCore::publishSnapshot(const ngks::EngineSnapshot& snapshot) noexcept
+{
+    const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
+    const uint32_t back = front ^ 1u;
+    snapshots[back] = snapshot;
+    frontSnapshotIndex.store(back, std::memory_order_release);
+    telemetry_.snapshotPublishes.fetch_add(1u, std::memory_order_relaxed);
 }
 
 void EngineCore::pushRenderDurationSample(uint32_t durationUs) noexcept
@@ -1099,10 +1215,13 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         std::chrono::steady_clock::now().time_since_epoch()).count();
     telemetry_.rtLastCallbackTickMs.store(callbackTickMs, std::memory_order_relaxed);
 
+    if (audioOpened.load(std::memory_order_acquire)) {
+        setRunState(EngineRunState::RtRunning);
+    }
+
     const auto renderStart = std::chrono::high_resolution_clock::now();
 
     const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
-    const uint32_t back = front ^ 1u;
 
     ngks::EngineSnapshot working = snapshots[front];
 
@@ -1270,8 +1389,8 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         }
     }
 
-    snapshots[back] = working;
-    frontSnapshotIndex.store(back, std::memory_order_release);
+    sanitizeSnapshot(working);
+    publishSnapshot(working);
 
     const auto renderEnd = std::chrono::high_resolution_clock::now();
     const auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(renderEnd - renderStart).count();

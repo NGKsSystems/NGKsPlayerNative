@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "engine/command/Command.h"
@@ -63,8 +64,25 @@ struct EngineTelemetrySnapshot
     bool rtRecoveryRequested{false};
     bool rtRecoveryFailedState{false};
     int64_t rtLastCallbackTickMs{0};
+    uint64_t cmdQueued{0};
+    uint64_t cmdDropped{0};
+    uint64_t cmdCoalesced{0};
+    uint32_t cmdHighWaterMark{0};
+    uint64_t snapshotPublishes{0};
+    uint32_t engineRunState{0};
+
     char rtDeviceId[160] {};
     char rtDeviceName[96] {};
+};
+
+enum class EngineRunState : uint8_t
+{
+    Cold = 0,
+    Ready,
+    RtStarting,
+    RtRunning,
+    RtStopping,
+    RtFailed
 };
 
 class EngineCore
@@ -73,7 +91,8 @@ public:
     explicit EngineCore(bool offlineMode = false);
     ~EngineCore();
 
-    ngks::EngineSnapshot getSnapshot();
+    ngks::EngineSnapshot getSnapshot() const;
+    EngineRunState getRunState() const noexcept;
     void enqueueCommand(const ngks::Command& command);
     void updateCrossfader(float x);
     bool renderOfflineBlock(float* outInterleavedLR, uint32_t frames);
@@ -134,6 +153,13 @@ public:
         std::atomic<uint8_t> rtRecoveryRequested { 0 };
         std::atomic<uint8_t> rtRecoveryFailedState { 0 };
         std::atomic<int64_t> rtLastCallbackTickMs { 0 };
+
+        std::atomic<uint64_t> cmdQueued { 0 };
+        std::atomic<uint64_t> cmdDropped { 0 };
+        std::atomic<uint64_t> cmdCoalesced { 0 };
+        std::atomic<uint32_t> cmdHighWaterMark { 0 };
+        std::atomic<uint64_t> snapshotPublishes { 0 };
+        std::atomic<uint32_t> engineRunState { static_cast<uint32_t>(EngineRunState::Cold) };
     };
 
 private:
@@ -151,6 +177,9 @@ private:
     void pushRenderDurationSample(uint32_t durationUs) noexcept;
     void requestRtRecovery(int32_t errorCode) noexcept;
     bool performRtRecoveryIfNeeded(int64_t nowMs) noexcept;
+    void sanitizeSnapshot(ngks::EngineSnapshot& snapshot) const noexcept;
+    void publishSnapshot(const ngks::EngineSnapshot& snapshot) noexcept;
+    void setRunState(EngineRunState state) noexcept;
 
     std::unique_ptr<AudioIOJuce> audioIO;
     bool offlineMode_ = false;
@@ -195,4 +224,5 @@ private:
     uint32_t rtConsecutiveRecoveryFailures_ = 0;
     char rtDeviceId_[160] {};
     char rtDeviceName_[96] {};
+    mutable std::mutex controlMutex_;
 };
