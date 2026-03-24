@@ -45,7 +45,22 @@ Universal Agent Ruleset.txt
 _proof/
 build_graph/
 .ngk/
+.ngks/
 .ngksgraph_cache/
+.graph_state/
+.ngksbuildcore/
+
+# DevFabEco / ngksgraph generated state
+build_plan.json
+build_plan.hash.txt
+env_capsule.lock.json
+env_capsule.hash.txt
+env_capsule.resolved.json
+env_capsule.resolved.hash.txt
+certification/
+certification_target.json
+ngksgraph.toml.bak_drift_sync
+proofs/
 
 # local helper outputs
 echo
@@ -57,7 +72,12 @@ ngksgraph.release.toml
 JUCE/
 third_party/
 tools/NGKsGraph/
-# local scratch runners (keep committed tools explicit)
+
+# Python venv
+.venv/
+
+# archived POC scripts (preserved in git history + _proof/)
+tools/crash_ground_phase*.ps1
 tools/Run-AndLog_*.ps1
 tools/assert_fwrite_runner.*
 tools/build_msvc_ps.ps1
@@ -70,5 +90,11 @@ tools/msvc_x64.cmd
 tools/msvc_x64.cmd.bak
 tools/ngk_build.ps1
 tools/ngksplayer_graph_*.ps1
+tools/dev_gate_graph.ps1
 tools/run_aj_direct_now.ps1
 tools/state_machine_smoke.cpp
+
+*.egg-info/
+dist/
+build/
+__pycache__/

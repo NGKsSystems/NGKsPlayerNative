@@ -30,7 +30,7 @@ default_target = "native"
 enabled = true
 keep = 10
 write_compdb = true
-write_ninja = true
+write_ninja = false
 write_config = true
 
 [profiles.debug]
@@ -277,3 +277,4 @@ redact_env = true
 model = ""
 endpoint = ""
 api_key_env = ""
+

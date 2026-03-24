@@ -4,18 +4,28 @@
 #include <cmath>
 #include <cstring>
 
+#include <QString>
+
 #include "engine/command/Command.h"
 
 EngineBridge::EngineBridge(QObject* parent)
     : QObject(parent)
 {
     healthEngineInitialized.store(true, std::memory_order_relaxed);
+
+    // Seed tracks (existing behavior)
     engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_A, nextCommandSeq++, 1001ULL, 0.0f, 0 });
     engine.enqueueCommand({ ngks::CommandType::LoadTrack, ngks::DECK_B, nextCommandSeq++, 1002ULL, 0.0f, 0 });
 
     meterTimer.setInterval(16);
     connect(&meterTimer, &QTimer::timeout, this, &EngineBridge::pollSnapshot);
     meterTimer.start();
+}
+
+EngineBridge::~EngineBridge()
+{
+    // Ensure we don't keep polling during teardown.
+    meterTimer.stop();
 }
 
 void EngineBridge::start()
@@ -30,7 +40,8 @@ void EngineBridge::stop()
 
 void EngineBridge::setMasterGain(double linear01)
 {
-    engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_A, nextCommandSeq++, 0, static_cast<float>(std::clamp(linear01, 0.0, 1.0)), 0 });
+    engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_A, nextCommandSeq++, 0,
+                            static_cast<float>(std::clamp(linear01, 0.0, 1.0)), 0 });
 }
 
 bool EngineBridge::startRtProbe(double toneHz, double toneDb)
@@ -82,7 +93,7 @@ bool EngineBridge::tryGetStatus(UIStatus& out)
 bool EngineBridge::tryGetHealth(UIHealthSnapshot& out) const
 {
     out.engineInitialized = healthEngineInitialized.load(std::memory_order_relaxed);
-    out.audioDeviceReady = healthAudioDeviceReady.load(std::memory_order_relaxed);
+    out.audioDeviceReady  = healthAudioDeviceReady.load(std::memory_order_relaxed);
     out.lastRenderCycleOk = healthLastRenderCycleOk.load(std::memory_order_relaxed);
     out.renderCycleCounter = healthRenderCycleCounter.load(std::memory_order_relaxed);
     return out.engineInitialized;
@@ -194,19 +205,73 @@ bool EngineBridge::tryGetFoundation(UIFoundationSnapshot& out) const noexcept
     return true;
 }
 
-double EngineBridge::meterL() const noexcept
+double EngineBridge::meterL() const noexcept { return meterLeftValue; }
+double EngineBridge::meterR() const noexcept { return meterRightValue; }
+bool EngineBridge::running() const noexcept { return runningValue; }
+
+// -------------------------------
+// Missing symbols (linker fix)
+// -------------------------------
+
+bool EngineBridge::ensureAudioHot()
 {
-    return meterLeftValue;
+    // Minimal “make sure audio is open” without inventing engine APIs.
+    // If already running, treat as OK.
+    const auto snapshot = engine.getSnapshot();
+    if ((snapshot.flags & ngks::SNAP_AUDIO_RUNNING) != 0u) {
+        return true;
+    }
+
+    // Try reopening with whatever preferred config is currently set.
+    const bool ok = engine.reopenAudioWithPreferredConfig();
+    healthAudioDeviceReady.store(ok, std::memory_order_relaxed);
+    return ok;
 }
 
-double EngineBridge::meterR() const noexcept
+bool EngineBridge::enterDjMode()
 {
-    return meterRightValue;
+    // Mode switching can become real later; this only satisfies current interface.
+    return ensureAudioHot();
 }
 
-bool EngineBridge::running() const noexcept
+void EngineBridge::leaveDjMode()
 {
-    return runningValue;
+    // Intentionally minimal for now.
+}
+
+bool EngineBridge::enterSimpleMode()
+{
+    return ensureAudioHot();
+}
+
+void EngineBridge::leaveSimpleMode()
+{
+    // Intentionally minimal for now.
+}
+
+void EngineBridge::notifyDeviceFailure(int code)
+{
+    // Record “device not OK” into health signals; code can be surfaced later.
+    (void)code;
+    healthAudioDeviceReady.store(false, std::memory_order_relaxed);
+    healthLastRenderCycleOk.store(false, std::memory_order_relaxed);
+}
+
+void EngineBridge::appExitTeardown()
+{
+    // Don’t invent shutdown semantics; just stop UI polling.
+    meterTimer.stop();
+}
+
+QString EngineBridge::engineStateMachineSummary()
+{
+    const auto snapshot = engine.getSnapshot();
+    const bool audioRunning = (snapshot.flags & ngks::SNAP_AUDIO_RUNNING) != 0u;
+    const auto t = snapshot.decks[ngks::DECK_A].transport;
+
+    return QString("audio=%1 transportA=%2")
+        .arg(audioRunning ? "RUNNING" : "STOPPED")
+        .arg(static_cast<int>(t));
 }
 
 void EngineBridge::pollSnapshot()

@@ -14,6 +14,7 @@
 struct UIStatus {
     std::string buildStamp;
     std::string gitSha;
+    std::string buildTimestamp{__DATE__ " " __TIME__};
     bool engineReady{false};
     int sampleRateHz{0};
     int blockSize{0};
@@ -114,7 +115,7 @@ public:
     Q_INVOKABLE bool ensureAudioHot();
     Q_INVOKABLE void notifyDeviceFailure(int errorCode = -1);
     Q_INVOKABLE void appExitTeardown();
-    Q_INVOKABLE QString engineStateMachineSummary() const;
+    Q_INVOKABLE QString engineStateMachineSummary();
     Q_INVOKABLE void setMasterGain(double linear01);
     Q_INVOKABLE bool startRtProbe(double toneHz, double toneDb);
     Q_INVOKABLE void stopRtProbe();
