@@ -1278,10 +1278,13 @@ public:
         const float dt = 0.033f;
         const float sensitivity = 0.3f + tuneLevel_ * 0.175f;
         const qint64 elapsedMs = elapsed_.elapsed();
-        const bool hasAudio = audioActiveTimer_.elapsed() < 250;
-        const float level = hasAudio
-            ? qBound(0.0f, audioLevel_ * 3.5f * sensitivity, 1.0f)
-            : 0.0f;
+        const bool hasAudio = audioActiveTimer_.elapsed() < 500;
+
+        // Use raw audio level directly — DO NOT over-amplify to a constant 1.0.
+        // The raw peak (0..1) drives bar height so bars actually follow volume.
+        const float rawLevel = hasAudio ? audioLevel_ : 0.0f;
+        // Sensitivity-scaled level for overall bar height
+        const float level = qBound(0.0f, rawLevel * (1.0f + sensitivity), 1.0f);
 
         const int n = barCount();
         const float invN = 1.0f / n;
@@ -1289,13 +1292,16 @@ public:
         // ── Update bar heights for dynamic count ──
         for (int i = 0; i < n; ++i) {
             float target;
-            if (hasAudio && level > 0.001f) {
+            if (hasAudio && rawLevel > 0.001f) {
                 const float freq = i * invN;
+                // Frequency shape: bass bars taller, highs shorter
                 const float shape = (1.0f - 0.35f * freq)
                     * (0.85f + 0.15f * std::sin(freq * 6.28318f));
+                // Small per-bar jitter for visual spread (NOT the primary driver)
                 const float jitter = std::sin(i * 2.71828f + elapsedMs * 0.003f
-                    + i * i * 0.37f) * 0.18f;
-                const float jitter2 = std::sin(i * 1.414f + elapsedMs * 0.005f) * 0.10f;
+                    + i * i * 0.37f) * 0.12f;
+                const float jitter2 = std::sin(i * 1.414f + elapsedMs * 0.005f) * 0.08f;
+                // Audio level IS the primary driver — bars scale with volume
                 target = level * shape + (jitter + jitter2) * level;
                 target = qBound(0.0f, target, 1.0f);
             } else {
@@ -1326,6 +1332,7 @@ public:
             auto& pt = particles_[i];
             pt.x += pt.drift * dt * (0.5f + level * 2.0f);
             if (pt.x > 1.0f) pt.x -= 1.0f;
+            if (pt.x < 0.0f) pt.x += 1.0f;
 
             const float targetBright = hasAudio
                 ? qBound(0.0f, level * 1.2f + 0.05f * std::sin(elapsedMs * 0.002f + i * 0.5f), 1.0f)
@@ -1336,8 +1343,8 @@ public:
                 pt.brightness += (targetBright - pt.brightness) * qMin(1.0f, dt * 2.0f);
 
             const int barIdx = qBound(0, static_cast<int>(pt.x * n), n - 1);
-            const float barTip = 1.0f - barHeights_[barIdx] * 0.80f;
-            const float floatRange = 0.05f + 0.10f * std::sin(elapsedMs * 0.0015f + i * 1.3f);
+            const float barTip = 1.0f - barHeights_[barIdx] * 0.75f;
+            const float floatRange = 0.10f + 0.05f * std::sin(elapsedMs * 0.0015f + i * 1.3f);
             pt.y += (barTip - floatRange - pt.y) * qMin(1.0f, dt * 4.0f);
         }
 
@@ -1446,59 +1453,193 @@ protected:
             }
 
         } else if (mode_ == DisplayMode::Line) {
+            // ════════════════════════════════════════════════════════
+            // LINE MODE — same barHeights_[]/peakHold_[] data as Bars
+            // 5 layers: glow line, main line, area fill, peak trace, particles
+            // ════════════════════════════════════════════════════════
             p.setRenderHint(QPainter::Antialiasing, true);
-            const QColor accentColor(0xe9, 0x45, 0x60);
-            const QColor dimColor(0x53, 0x34, 0x83);
-            QPen pen(accentColor, 1.5);
-            p.setPen(pen);
             const float step = static_cast<float>(w) / (n - 1);
-            QPainterPath path;
-            for (int i = 0; i < n; ++i) {
-                float x = i * step;
-                float y = h * 0.5f - (barHeights_[i] - 0.5f) * h * 0.7f * pulseScale;
-                if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
-            }
-            p.drawPath(path);
-            path.lineTo(w, h);
-            path.lineTo(0, h);
-            path.closeSubpath();
-            QColor fill = dimColor;
-            fill.setAlpha(50);
-            p.fillPath(path, fill);
+            const float invN = 1.0f / n;
 
+            // Build main waveform path and peak-hold path
+            QPainterPath linePath;
+            QPainterPath peakPath;
+            for (int i = 0; i < n; ++i) {
+                const float x = i * step;
+                const float y = h * 0.5f - (barHeights_[i] - 0.5f) * h * 0.70f * pulseScale;
+                const float peakY = h * 0.5f - (peakHold_[i] - 0.5f) * h * 0.70f * pulseScale;
+                if (i == 0) { linePath.moveTo(x, y); peakPath.moveTo(x, peakY); }
+                else        { linePath.lineTo(x, y); peakPath.lineTo(x, peakY); }
+            }
+
+            // Frequency-band gradient (same palette as Bars)
+            QLinearGradient bandGrad(0, 0, w, 0);
+            bandGrad.setColorAt(0.00, bandColor(0.00f, 0.70f));
+            bandGrad.setColorAt(0.22, bandColor(0.22f, 0.70f));
+            bandGrad.setColorAt(0.55, bandColor(0.55f, 0.70f));
+            bandGrad.setColorAt(1.00, bandColor(1.00f, 0.70f));
+
+            // Layer 1: Glow line (wide, semi-transparent)
+            {
+                QLinearGradient glowGrad(0, 0, w, 0);
+                QColor c0 = bandColor(0.0f, 0.5f); c0.setAlpha(50);
+                QColor c1 = bandColor(0.55f, 0.5f); c1.setAlpha(50);
+                QColor c2 = bandColor(1.0f, 0.5f); c2.setAlpha(50);
+                glowGrad.setColorAt(0.0, c0);
+                glowGrad.setColorAt(0.55, c1);
+                glowGrad.setColorAt(1.0, c2);
+                p.setPen(QPen(QBrush(glowGrad), 6.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+                p.setBrush(Qt::NoBrush);
+                p.drawPath(linePath);
+            }
+
+            // Layer 2: Main line with band gradient
+            p.setPen(QPen(QBrush(bandGrad), 2.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            p.setBrush(Qt::NoBrush);
+            p.drawPath(linePath);
+
+            // Layer 3: Area fill under the line
+            {
+                QPainterPath fillPath = linePath;
+                fillPath.lineTo(w, h);
+                fillPath.lineTo(0, h);
+                fillPath.closeSubpath();
+                QLinearGradient fillGrad(0, 0, w, 0);
+                QColor f0 = bandColor(0.0f, 0.4f); f0.setAlpha(35);
+                QColor f1 = bandColor(0.55f, 0.4f); f1.setAlpha(35);
+                QColor f2 = bandColor(1.0f, 0.4f); f2.setAlpha(35);
+                fillGrad.setColorAt(0.0, f0);
+                fillGrad.setColorAt(0.55, f1);
+                fillGrad.setColorAt(1.0, f2);
+                p.setPen(Qt::NoPen);
+                p.fillPath(fillPath, QBrush(fillGrad));
+            }
+
+            // Layer 4: Peak-hold trace line (thin, bright)
+            {
+                QLinearGradient peakGrad(0, 0, w, 0);
+                QColor k0 = bandColor(0.0f, 0.9f); k0.setAlpha(90);
+                QColor k1 = bandColor(0.55f, 0.9f); k1.setAlpha(90);
+                QColor k2 = bandColor(1.0f, 0.9f); k2.setAlpha(90);
+                peakGrad.setColorAt(0.0, k0);
+                peakGrad.setColorAt(0.55, k1);
+                peakGrad.setColorAt(1.0, k2);
+                p.setPen(QPen(QBrush(peakGrad), 1.0, Qt::SolidLine, Qt::RoundCap));
+                p.setBrush(Qt::NoBrush);
+                p.drawPath(peakPath);
+            }
+
+            // Layer 5: Particles colored by frequency position
             p.setPen(Qt::NoPen);
             for (int i = 0; i < kParticleCount; ++i) {
                 const auto& pt = particles_[i];
                 if (pt.brightness < 0.03f) continue;
                 const float px = pt.x * w;
                 const float py = pt.y * h;
-                const int alpha = static_cast<int>(pt.brightness * 160);
-                p.setBrush(QColor(0xff, 0x90, 0xa0, alpha));
-                p.drawEllipse(QPointF(px, py), pt.size, pt.size);
+                const float sz = pt.size * (1.0f + pt.brightness * 1.5f);
+                const int alpha = static_cast<int>(pt.brightness * 180);
+                QColor c = bandColor(pt.x, pt.brightness);
+                c.setAlpha(alpha);
+                p.setBrush(c);
+                p.drawEllipse(QPointF(px, py), sz, sz);
             }
 
         } else if (mode_ == DisplayMode::Circle) {
+            // ════════════════════════════════════════════════════════
+            // CIRCLE MODE — same barHeights_[]/peakHold_[] data as Bars
+            // 5 layers: glow ring, fill, main ring, peak ring, particles
+            // ════════════════════════════════════════════════════════
             p.setRenderHint(QPainter::Antialiasing, true);
-            const QColor accentColor(0xe9, 0x45, 0x60);
-            const QColor dimColor(0x53, 0x34, 0x83);
             const float cx = w * 0.5f;
             const float cy = h * 0.5f;
-            const float baseR = qMin(w, h) * 0.3f * pulseScale;
-            p.setPen(QPen(accentColor, 1.5));
-            const int segments = n;
-            const float angleStep = 360.0f / segments;
-            QPolygonF poly;
-            for (int i = 0; i < segments; ++i) {
-                float angle = (i * angleStep + phase_ * 30.0f) * 3.14159f / 180.0f;
-                float r = baseR + barHeights_[i] * baseR * 0.6f;
-                poly << QPointF(cx + r * std::cos(angle), cy + r * std::sin(angle));
+            const float baseR = qMin(w, h) * 0.25f * pulseScale;
+            const float invN = 1.0f / n;
+            const float angleStep = 6.28318f / n;
+            const float phaseRad = phase_ * 0.5f;
+            const float phaseDeg = phaseRad * (180.0f / 3.14159f);
+
+            // Build main polygon and peak-hold polygon
+            QPolygonF mainPoly, peakPoly;
+            for (int i = 0; i < n; ++i) {
+                const float angle = i * angleStep + phaseRad;
+                const float cosA = std::cos(angle);
+                const float sinA = std::sin(angle);
+                const float r  = baseR + barHeights_[i] * baseR * 0.8f;
+                const float pr = baseR + peakHold_[i]   * baseR * 0.8f;
+                mainPoly << QPointF(cx + r  * cosA, cy + r  * sinA);
+                peakPoly << QPointF(cx + pr * cosA, cy + pr * sinA);
             }
-            poly << poly.first();
-            p.drawPolyline(poly);
-            QColor fill = dimColor;
-            fill.setAlpha(40);
-            p.setBrush(fill);
-            p.drawPolygon(poly);
+            mainPoly << mainPoly.first();
+            peakPoly << peakPoly.first();
+
+            // Conical gradient matching frequency band palette
+            QConicalGradient cg(cx, cy, phaseDeg);
+            cg.setColorAt(0.00, bandColor(0.00f, 0.70f));
+            cg.setColorAt(0.22, bandColor(0.22f, 0.70f));
+            cg.setColorAt(0.55, bandColor(0.55f, 0.70f));
+            cg.setColorAt(1.00, bandColor(1.00f, 0.70f));
+
+            // Layer 1: Glow ring (wide, semi-transparent)
+            {
+                QConicalGradient glowCg(cx, cy, phaseDeg);
+                QColor c0 = bandColor(0.0f, 0.5f); c0.setAlpha(45);
+                QColor c1 = bandColor(0.55f, 0.5f); c1.setAlpha(45);
+                QColor c2 = bandColor(1.0f, 0.5f); c2.setAlpha(45);
+                glowCg.setColorAt(0.0, c0);
+                glowCg.setColorAt(0.55, c1);
+                glowCg.setColorAt(1.0, c2);
+                p.setPen(QPen(QBrush(glowCg), 6.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+                p.setBrush(Qt::NoBrush);
+                p.drawPolygon(mainPoly);
+            }
+
+            // Layer 2: Inner fill with radial gradient
+            {
+                QRadialGradient rg(cx, cy, baseR * 2.0f);
+                rg.setColorAt(0.0, QColor(0x53, 0x34, 0x83, 40));
+                rg.setColorAt(0.6, QColor(0x0f, 0x34, 0x60, 20));
+                rg.setColorAt(1.0, QColor(0x0a, 0x0e, 0x27, 5));
+                p.setPen(Qt::NoPen);
+                p.setBrush(QBrush(rg));
+                p.drawPolygon(mainPoly);
+            }
+
+            // Layer 3: Main ring with conical band gradient
+            p.setPen(QPen(QBrush(cg), 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            p.setBrush(Qt::NoBrush);
+            p.drawPolygon(mainPoly);
+
+            // Layer 4: Peak-hold outer ring
+            {
+                QConicalGradient peakCg(cx, cy, phaseDeg);
+                QColor k0 = bandColor(0.0f, 0.8f); k0.setAlpha(65);
+                QColor k1 = bandColor(0.55f, 0.8f); k1.setAlpha(65);
+                QColor k2 = bandColor(1.0f, 0.8f); k2.setAlpha(65);
+                peakCg.setColorAt(0.0, k0);
+                peakCg.setColorAt(0.55, k1);
+                peakCg.setColorAt(1.0, k2);
+                p.setPen(QPen(QBrush(peakCg), 1.0));
+                p.setBrush(Qt::NoBrush);
+                p.drawPolygon(peakPoly);
+            }
+
+            // Layer 5: Particles orbiting outside the ring
+            p.setPen(Qt::NoPen);
+            for (int i = 0; i < kParticleCount; ++i) {
+                const auto& pt = particles_[i];
+                if (pt.brightness < 0.03f) continue;
+                const float angle = pt.x * 6.28318f + phaseRad;
+                const int barIdx = qBound(0, static_cast<int>(pt.x * n), n - 1);
+                const float r = baseR + barHeights_[barIdx] * baseR * 0.8f + 10.0f;
+                const float px = cx + r * std::cos(angle);
+                const float py = cy + r * std::sin(angle);
+                const float sz = pt.size * (1.0f + pt.brightness * 1.5f);
+                const int alpha = static_cast<int>(pt.brightness * 180);
+                QColor c = bandColor(pt.x, pt.brightness);
+                c.setAlpha(alpha);
+                p.setBrush(c);
+                p.drawEllipse(QPointF(px, py), sz, sz);
+            }
         }
     }
 
@@ -2711,6 +2852,11 @@ private:
         vizTimer_ = new QTimer(this);
         vizTimer_->setInterval(33);
         QObject::connect(vizTimer_, &QTimer::timeout, this, [this]() {
+            // Feed visualizer from bridge meters at 30fps (not 4Hz pollStatus)
+            const float freshLevel = static_cast<float>(
+                std::max(bridge_.meterL(), bridge_.meterR()));
+            if (freshLevel > 0.0f || bridge_.running())
+                visualizer_->setAudioLevel(freshLevel);
             if (visualizer_->displayMode() != VisualizerWidget::DisplayMode::None)
                 visualizer_->tick();
         });
@@ -2831,7 +2977,11 @@ private:
             case PlayMode::Shuffle:       playMode_ = PlayMode::SmartShuffle;  break;
             case PlayMode::SmartShuffle:  playMode_ = PlayMode::PlayOnce;      break;
             }
+            if (playMode_ == PlayMode::SmartShuffle) {
+                rebuildSmartShufflePool();
+            }
             updatePlayModeButton();
+            updateUpNextLabel();
             qInfo().noquote() << QStringLiteral("PLAY_MODE_CHANGED=%1").arg(playModeLabel());
         });
 
@@ -2988,15 +3138,26 @@ private:
 
         // Duration → seek slider range + total time label (JUCE bridge)
         QObject::connect(&bridge_, &EngineBridge::durationChanged, this, [this](double seconds) {
+            const uint64_t gen = bridge_.currentLoadGen();
+            if (gen != uiTrackGen_) {
+                qInfo().noquote() << QStringLiteral("TRC_UI durationChanged DROP gen=%1 uiGen=%2 dur=%3")
+                    .arg(gen).arg(uiTrackGen_).arg(seconds, 0, 'f', 2);
+                return;
+            }
             const int durSec = static_cast<int>(seconds);
             seekSlider_->setRange(0, durSec);
             playerTimeTotalLabel_->setText(QStringLiteral("%1:%2")
                 .arg(durSec / 60).arg(durSec % 60, 2, 10, QChar('0')));
-            qInfo().noquote() << QStringLiteral("JUCE_DURATION=%1").arg(seconds, 0, 'f', 2);
+            qInfo().noquote() << QStringLiteral("TRC_UI durationChanged=%1 sliderMax=%2 gen=%3 IDX=%4 name=%5")
+                .arg(seconds, 0, 'f', 2).arg(durSec).arg(gen).arg(currentTrackIndex_)
+                .arg(currentTrackIndex_ >= 0 && currentTrackIndex_ < static_cast<int>(allTracks_.size())
+                     ? allTracks_[currentTrackIndex_].displayName : QStringLiteral("?"));
         });
 
         // Position → seek slider + current time label (JUCE bridge)
         QObject::connect(&bridge_, &EngineBridge::playheadChanged, this, [this](double seconds) {
+            const uint64_t gen = bridge_.currentLoadGen();
+            if (gen != uiTrackGen_) return; // stale generation
             const int posSec = static_cast<int>(seconds);
             if (!seekSliderPressed_) {
                 seekSlider_->setValue(posSec);
@@ -3007,7 +3168,17 @@ private:
 
         // End of track (JUCE bridge)
         QObject::connect(&bridge_, &EngineBridge::endOfTrack, this, [this]() {
-            qInfo().noquote() << QStringLiteral("JUCE_END_OF_TRACK");
+            const uint64_t gen = bridge_.currentLoadGen();
+            if (gen != uiTrackGen_) {
+                qInfo().noquote() << QStringLiteral("TRC_UI endOfTrack DROP gen=%1 uiGen=%2").arg(gen).arg(uiTrackGen_);
+                return;
+            }
+            qInfo().noquote() << QStringLiteral("TRC_UI endOfTrack ACCEPT gen=%1 IDX=%2 name=%3 sliderVal=%4 sliderMax=%5")
+                .arg(gen).arg(currentTrackIndex_)
+                .arg(currentTrackIndex_ >= 0 && currentTrackIndex_ < static_cast<int>(allTracks_.size())
+                     ? allTracks_[currentTrackIndex_].displayName : QStringLiteral("?"))
+                .arg(seekSlider_ ? seekSlider_->value() : -1)
+                .arg(seekSlider_ ? seekSlider_->maximum() : -1);
             onEndOfMedia();
         });
 
@@ -3015,8 +3186,13 @@ private:
         QObject::connect(seekSlider_, &QSlider::sliderPressed, this, [this]() { seekSliderPressed_ = true; });
         QObject::connect(seekSlider_, &QSlider::sliderReleased, this, [this]() {
             seekSliderPressed_ = false;
-            bridge_.seek(static_cast<double>(seekSlider_->value()));
-            qInfo().noquote() << QStringLiteral("JUCE_SEEK=%1").arg(seekSlider_->value());
+            const int seekVal = seekSlider_->value();
+            const int seekMax = seekSlider_->maximum();
+            qInfo().noquote() << QStringLiteral("TRC_UI seekRelease val=%1 max=%2 IDX=%3 name=%4")
+                .arg(seekVal).arg(seekMax).arg(currentTrackIndex_)
+                .arg(currentTrackIndex_ >= 0 && currentTrackIndex_ < static_cast<int>(allTracks_.size())
+                     ? allTracks_[currentTrackIndex_].displayName : QStringLiteral("?"));
+            bridge_.seek(static_cast<double>(seekVal));
         });
 
         // Play/Pause (JUCE path)
@@ -3435,11 +3611,32 @@ private:
             bridge_.enterSimpleMode();
             juceSimpleModeReady_ = true;
         }
+
+        // Reset UI transport state to zero BEFORE loading
+        if (seekSlider_) {
+            seekSlider_->setRange(0, 1);
+            seekSlider_->setValue(0);
+        }
+        if (playerTimeLabel_) playerTimeLabel_->setText(QStringLiteral("0:00"));
+        if (playerTimeTotalLabel_) playerTimeTotalLabel_->setText(QStringLiteral("0:00"));
+
+        // Pre-set UI generation so the authoritative signals from
+        // loadTrack() pass the gen check in durationChanged/playheadChanged.
+        uiTrackGen_ = bridge_.currentLoadGen() + 1;
+        qInfo().noquote() << QStringLiteral("TRC_UI loadAndPlay IDX=%1 name=%2 uiGen=%3")
+            .arg(trackIndex).arg(track.displayName).arg(uiTrackGen_);
+
         const bool loaded = bridge_.loadTrack(track.filePath);
-        qInfo().noquote() << QStringLiteral("JUCE_LOAD_TRACK=%1 result=%2").arg(track.filePath).arg(loaded ? "OK" : "FAIL");
+        // bridge_.loadTrack incremented gen → now bridge_.currentLoadGen() == uiTrackGen_
         if (loaded) {
             bridge_.start();
-            qInfo().noquote() << QStringLiteral("JUCE_PLAYBACK_START=TRUE path=%1").arg(track.filePath);
+            if (playPauseBtn_) playPauseBtn_->setText(QStringLiteral("Pause"));
+            qInfo().noquote() << QStringLiteral("TRC_UI started gen=%1 IDX=%2 name=%3 sliderMax=%4")
+                .arg(uiTrackGen_).arg(trackIndex).arg(track.displayName)
+                .arg(seekSlider_ ? seekSlider_->maximum() : -1);
+        } else {
+            qWarning().noquote() << QStringLiteral("TRC_UI loadTrack FAILED IDX=%1 name=%2")
+                .arg(trackIndex).arg(track.displayName);
         }
 
         // Update "Up Next" label
@@ -3483,6 +3680,8 @@ private:
             if (playMode_ == PlayMode::RepeatAll) {
                 nextPos = 0; // wrap
             } else {
+                bridge_.stop();
+                if (playPauseBtn_) playPauseBtn_->setText(QStringLiteral("Play"));
                 qInfo().noquote() << QStringLiteral("TRANSPORT_NEXT=END_OF_QUEUE");
                 return;
             }
@@ -3541,6 +3740,7 @@ private:
         case PlayMode::PlayOnce:
             // Stop. Do not auto-advance.
             bridge_.stop();
+            if (playPauseBtn_) playPauseBtn_->setText(QStringLiteral("Play"));
             qInfo().noquote() << QStringLiteral("END_OF_MEDIA=PLAY_ONCE_STOP");
             break;
         case PlayMode::PlayInOrder:
@@ -3578,15 +3778,35 @@ private:
             upNextLabel_->setText(QStringLiteral("Up Next: \u2014"));
             return;
         }
-        // Find the next track in the visible list
+
         int nextIdx = -1;
-        for (int i = 0; i < count; ++i) {
-            int idx = playerLibraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt();
-            if (idx == currentTrackIndex_ && i + 1 < count) {
-                nextIdx = playerLibraryTree_->topLevelItem(i + 1)->data(0, Qt::UserRole).toInt();
-                break;
+
+        if (playMode_ == PlayMode::Shuffle) {
+            upNextLabel_->setText(QStringLiteral("Up Next: (shuffle)"));
+            return;
+        } else if (playMode_ == PlayMode::SmartShuffle) {
+            // Show next from pool if available
+            if (smartShufflePos_ >= 0 && smartShufflePos_ < static_cast<int>(smartShufflePool_.size())) {
+                nextIdx = smartShufflePool_[smartShufflePos_];
+            } else {
+                upNextLabel_->setText(QStringLiteral("Up Next: (reshuffle)"));
+                return;
+            }
+        } else {
+            // Linear modes: find next in visible list
+            for (int i = 0; i < count; ++i) {
+                int idx = playerLibraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt();
+                if (idx == currentTrackIndex_) {
+                    if (i + 1 < count) {
+                        nextIdx = playerLibraryTree_->topLevelItem(i + 1)->data(0, Qt::UserRole).toInt();
+                    } else if (playMode_ == PlayMode::RepeatAll) {
+                        nextIdx = playerLibraryTree_->topLevelItem(0)->data(0, Qt::UserRole).toInt();
+                    }
+                    break;
+                }
             }
         }
+
         if (nextIdx >= 0 && nextIdx < static_cast<int>(allTracks_.size())) {
             const auto& t = allTracks_[nextIdx];
             QString name = t.displayName.isEmpty() ? QStringLiteral("Unknown") : t.displayName;
@@ -3688,6 +3908,11 @@ private:
         }
 
         highlightPlayerLibraryItem(currentTrackIndex_);
+
+        // Invalidate Smart Shuffle pool when visible list changes
+        if (playMode_ == PlayMode::SmartShuffle && !smartShufflePool_.empty()) {
+            rebuildSmartShufflePool();
+        }
 
         if (playerLibCountLabel_)
             playerLibCountLabel_->setText(QStringLiteral("%1 tracks").arg(filtered.size()));
@@ -3919,8 +4144,17 @@ private:
                  QString::number(meterR, 'f', 3)));
 
         // Feed visualizer from JUCE engine meters
-        if (visualizer_)
-            visualizer_->setAudioLevel(static_cast<float>(std::max(meterL, meterR)));
+        if (visualizer_) {
+            const float feedLevel = static_cast<float>(std::max(meterL, meterR));
+            if (!meterDiagLogged_ && feedLevel > 0.0f) {
+                qInfo().noquote() << QStringLiteral("DIAG_METER_FEED: L=%1 R=%2 feed=%3")
+                    .arg(QString::number(meterL, 'f', 6),
+                         QString::number(meterR, 'f', 6),
+                         QString::number(feedLevel, 'f', 6));
+                meterDiagLogged_ = true;
+            }
+            visualizer_->setAudioLevel(feedLevel);
+        }
 
         if (diagnosticsDialog_) {
             diagnosticsDialog_->setStatus(status);
@@ -4105,6 +4339,7 @@ private:
     QString searchQuery_;
     int currentTrackIndex_{-1};
     bool seekSliderPressed_{false};
+    uint64_t uiTrackGen_{0};    // must match bridge_.currentLoadGen() for UI updates
 
     // Play mode
     enum class PlayMode { PlayOnce, PlayInOrder, RepeatAll, Shuffle, SmartShuffle };
@@ -4142,6 +4377,7 @@ private:
     bool selfTestAutorun_{false};
     bool rtProbeAutorun_{false};
     bool statusTickLogged_{false};
+    bool meterDiagLogged_{false};
     bool healthTickLogged_{false};
     bool telemetryTickLogged_{false};
     bool foundationTickLogged_{false};

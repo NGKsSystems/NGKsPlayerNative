@@ -55,18 +55,30 @@ void EngineBridge::stopRtProbe()
 bool EngineBridge::loadTrack(const QString& filePath)
 {
     const std::string path = filePath.toStdString();
-    qInfo().noquote() << QStringLiteral("DIAG: EngineBridge::loadTrack path=%1").arg(filePath);
+    ++trackLoadGen_;
+    loadedTrackPath_ = filePath;
+    endOfTrackEmitted = true;  // block any stale endOfTrack
+    qInfo().noquote() << QStringLiteral("TRC[G%1] loadTrack BEGIN path=%2").arg(trackLoadGen_).arg(filePath);
+
+    // Force deck lifecycle to Empty so LoadTrack command is accepted.
+    // Stop (Playing→Stopped, rejected if already Stopped — OK) then
+    // UnloadTrack (Stopped→Empty). Both harmless if deck is already Empty.
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A,
+                            engine.nextSeq(), 0, 0.0f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::UnloadTrack, ngks::DECK_A,
+                            engine.nextSeq(), 0, 0.0f, 0 });
+
     double duration = 0.0;
-    if (!engine.loadFileIntoDeck(ngks::DECK_A, path, duration)) {
-        qWarning().noquote() << QStringLiteral("DIAG: EngineBridge::loadTrack FAILED for %1").arg(filePath);
+    if (!engine.loadFileIntoDeck(ngks::DECK_A, path, duration, trackLoadGen_)) {
+        qWarning().noquote() << QStringLiteral("TRC[G%1] loadTrack FAILED path=%2").arg(trackLoadGen_).arg(filePath);
         return false;
     }
-    qInfo().noquote() << QStringLiteral("DIAG: EngineBridge::loadTrack OK dur=%1s").arg(duration);
-    endOfTrackEmitted = false;
     lastDurationSeconds = duration;
     lastPlayheadSeconds = 0.0;
     emit durationChanged(duration);
     emit playheadChanged(0.0);
+    qInfo().noquote() << QStringLiteral("TRC[G%1] loadTrack OK dur=%2")
+        .arg(trackLoadGen_).arg(duration, 0, 'f', 2);
     return true;
 }
 
@@ -77,6 +89,12 @@ void EngineBridge::pause()
 
 void EngineBridge::seek(double seconds)
 {
+    qInfo().noquote() << QStringLiteral("TRC[G%1] seek target=%2 curPH=%3 curDur=%4 endFlag=%5 track=%6")
+        .arg(trackLoadGen_).arg(seconds, 0, 'f', 2)
+        .arg(lastPlayheadSeconds, 0, 'f', 2)
+        .arg(lastDurationSeconds, 0, 'f', 2)
+        .arg(endOfTrackEmitted ? "T" : "F")
+        .arg(loadedTrackPath_);
     engine.seekDeck(ngks::DECK_A, seconds);
 }
 
@@ -350,11 +368,29 @@ void EngineBridge::pollSnapshot()
         emit runningChanged();
     }
 
-    // Playhead / duration reporting
+    // ── Generation-gated snapshot acceptance ──
+    // Drop snapshot data if the engine hasn't processed the current
+    // track load yet. trackLoadGen is threaded through the command
+    // queue and stamped on DeckSnapshot — zero timing dependency.
     const double playhead = deckA.playheadSeconds;
     const double duration = deckA.lengthSeconds;
+    const uint64_t snapGen = deckA.trackLoadGen;
 
+    if (snapGen != trackLoadGen_) {
+        // Stale snapshot from previous track — drop
+        static int dropLogCount = 0;
+        if (dropLogCount < 30) {
+            qInfo().noquote() << QStringLiteral("TRC[G%1] SNAP_DROP snapGen=%2 snapDur=%3 snapPH=%4")
+                .arg(trackLoadGen_).arg(snapGen).arg(duration, 0, 'f', 2).arg(playhead, 0, 'f', 3);
+            ++dropLogCount;
+        }
+        return;
+    }
+
+    // Snapshot generation matches current track — process updates
     if (duration != lastDurationSeconds) {
+        qInfo().noquote() << QStringLiteral("TRC[G%1] SNAP_DUR_CHANGE old=%2 new=%3 track=%4")
+            .arg(trackLoadGen_).arg(lastDurationSeconds, 0, 'f', 2).arg(duration, 0, 'f', 2).arg(loadedTrackPath_);
         lastDurationSeconds = duration;
         emit durationChanged(duration);
     }
@@ -366,6 +402,8 @@ void EngineBridge::pollSnapshot()
 
     // End-of-track detection
     if (duration > 0.0 && playhead >= duration && !endOfTrackEmitted) {
+        qInfo().noquote() << QStringLiteral("TRC[G%1] END_OF_TRACK_FIRE ph=%2 dur=%3 track=%4")
+            .arg(trackLoadGen_).arg(playhead, 0, 'f', 3).arg(duration, 0, 'f', 2).arg(loadedTrackPath_);
         endOfTrackEmitted = true;
         emit endOfTrack();
     }
