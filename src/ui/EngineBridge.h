@@ -119,6 +119,9 @@ public:
     Q_INVOKABLE void setMasterGain(double linear01);
     Q_INVOKABLE bool startRtProbe(double toneHz, double toneDb);
     Q_INVOKABLE void stopRtProbe();
+    Q_INVOKABLE bool loadTrack(const QString& filePath);
+    Q_INVOKABLE void pause();
+    Q_INVOKABLE void seek(double seconds);
     bool applyAudioProfile(const std::string& deviceId,
                            const std::string& deviceName,
                            int sampleRate,
@@ -143,6 +146,9 @@ signals:
     void meterLChanged();
     void meterRChanged();
     void runningChanged();
+    void playheadChanged(double seconds);
+    void durationChanged(double seconds);
+    void endOfTrack();
 
 private:
     enum class BridgeState {
@@ -190,7 +196,9 @@ private:
     double meterLeftValue = 0.0;
     double meterRightValue = 0.0;
     bool runningValue = false;
-    uint32_t nextCommandSeq = 1;
+    double lastPlayheadSeconds = -1.0;
+    double lastDurationSeconds = -1.0;
+    bool endOfTrackEmitted = false;
 
     std::atomic<bool> healthEngineInitialized { false };
     std::atomic<bool> healthAudioDeviceReady { false };

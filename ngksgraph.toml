@@ -199,7 +199,7 @@ defines = [
   "_WIN64",
 ]
 cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
-libs = ["Qt6Core", "advapi32", "comdlg32", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool"]
+libs = ["Qt6Cored", "advapi32", "comdlg32", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool"]
 lib_dirs = []
 ldflags = []
 cxx_std = 17
@@ -221,11 +221,13 @@ defines = [
   "JUCE_MODULE_AVAILABLE_juce_events=1",
   "QT_CORE_LIB",
   "QT_GUI_LIB",
+  "QT_MULTIMEDIA_LIB",
   "QT_NETWORK_LIB",
   "QT_OPENGL_LIB",
   "QT_QMLINTEGRATION_LIB",
   "QT_QML_LIB",
   "QT_QUICK_LIB",
+  "QT_SQL_LIB",
   "QT_WIDGETS_LIB",
   "UNICODE",
   "WIN64",
@@ -235,7 +237,7 @@ defines = [
   "_WIN64",
 ]
 cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
-libs = ["Qt6Core", "Qt6Gui", "Qt6Network", "Qt6OpenGL", "Qt6Qml", "Qt6Quick", "Qt6Widgets", "advapi32", "comdlg32", "d3d11", "d3d12", "dxgi", "dxguid", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool", "ws2_32"]
+libs = ["Qt6Cored", "Qt6Guid", "Qt6Multimediad", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd", "advapi32", "comdlg32", "d3d11", "d3d12", "dxgi", "dxguid", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool", "ws2_32"]
 lib_dirs = []
 ldflags = []
 cxx_std = 17
@@ -246,7 +248,7 @@ enabled = true
 qt_root = "C:/Qt/6.10.2/msvc2022_64"
 prefix = "C:/Qt/6.10.2/msvc2022_64"
 version = 6
-modules = ["Core", "Gui", "Network", "OpenGL", "Qml", "QmlIntegration", "Quick", "Widgets"]
+modules = ["Core", "Gui", "Multimedia", "Network", "OpenGL", "Qml", "QmlIntegration", "Quick", "Sql", "Widgets"]
 moc_path = "C:/Qt/6.10.2/msvc2022_64/bin/moc.exe"
 uic_path = "C:/Qt/6.10.2/msvc2022_64/bin/uic.exe"
 rcc_path = "C:/Qt/6.10.2/msvc2022_64/bin/rcc.exe"
@@ -254,15 +256,17 @@ include_dirs = [
   "C:/Qt/6.10.2/msvc2022_64/include",
   "C:/Qt/6.10.2/msvc2022_64/include/QtCore",
   "C:/Qt/6.10.2/msvc2022_64/include/QtGui",
+  "C:/Qt/6.10.2/msvc2022_64/include/QtMultimedia",
   "C:/Qt/6.10.2/msvc2022_64/include/QtNetwork",
   "C:/Qt/6.10.2/msvc2022_64/include/QtOpenGL",
   "C:/Qt/6.10.2/msvc2022_64/include/QtQml",
   "C:/Qt/6.10.2/msvc2022_64/include/QtQmlIntegration",
   "C:/Qt/6.10.2/msvc2022_64/include/QtQuick",
+  "C:/Qt/6.10.2/msvc2022_64/include/QtSql",
   "C:/Qt/6.10.2/msvc2022_64/include/QtWidgets",
 ]
 lib_dirs = ["C:/Qt/6.10.2/msvc2022_64/lib"]
-libs = ["Qt6Core", "Qt6Gui", "Qt6Network", "Qt6OpenGL", "Qt6Qml", "Qt6Quick", "Qt6Widgets"]
+libs = ["Qt6Cored", "Qt6Guid", "Qt6Multimediad", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd"]
 
 [ai]
 enabled = false

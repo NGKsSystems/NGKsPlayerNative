@@ -11,6 +11,7 @@ struct DeckState {
     bool hasTrack{false};
     uint64_t trackId{0};
     char trackLabel[64]{};
+    char filePath[512]{};
     DeckLifecycleState lifecycle{DeckLifecycleState::Empty};
 
     TransportState transport{TransportState::Stopped};

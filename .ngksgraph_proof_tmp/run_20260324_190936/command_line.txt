@@ -1,0 +1,1 @@
+ngksgraph plan --project C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative --mode ecosystem --env-capsule-lock C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\env_capsule.lock.json --pf C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\_proof\runs\devfabric_run_run_20260324_220933\20_graph --profile debug --target native

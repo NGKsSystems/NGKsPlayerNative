@@ -10,6 +10,8 @@ enum class CommandType {
     UnloadTrack,
     Play,
     Stop,
+    Pause,
+    Seek,
     SetDeckGain,
     SetMasterGain,
     SetCue,
@@ -35,6 +37,7 @@ struct Command {
     uint8_t slotIndex{0};
     uint32_t jobId{0};
     char trackLabel[64]{};
+    double seekSeconds{0.0};
 };
 
 }

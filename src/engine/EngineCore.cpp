@@ -1,12 +1,14 @@
 #include "engine/EngineCore.h"
 
 #include "engine/audio/AudioIO_Juce.h"
+#include "engine/DiagLog.h"
 #include "engine/domain/CrossfadeAssignment.h"
 
 #include <algorithm>
 #include <cmath>
 #include <chrono>
 #include <cstring>
+#include <functional>
 #include <iostream>
 
 namespace
@@ -266,27 +268,20 @@ void EngineCore::enqueueCommand(const ngks::Command& command)
             publishCommandOutcome(command, ngks::CommandResult::RejectedInvalidDeck);
             return;
         }
-
-        const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
-        const auto& currentDeck = snapshots[front].decks[command.deck];
-        if (!validateTransition(currentDeck.lifecycle, DeckLifecycleState::Playing)) {
-            publishCommandOutcome(command, ngks::CommandResult::IllegalTransition);
-            return;
-        }
-        if (!currentDeck.hasTrack) {
-            publishCommandOutcome(command, ngks::CommandResult::RejectedNoTrack);
-            return;
-        }
-
+        // NOTE: Do NOT validate lifecycle here — the Play command may arrive right after
+        // a LoadTrack command that is still in the SPSC ring waiting for the RT callback.
+        // Let applyCommand() in process() handle validation where the snapshot is up-to-date.
         startAudioIfNeeded();
     }
 
     if (!commandRing.push(command)) {
         telemetry_.cmdDropped.fetch_add(1u, std::memory_order_relaxed);
 
-        const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
-        ngks::EngineSnapshot dropped = snapshots[front];
         if (command.deck < ngks::MAX_DECKS) {
+            std::lock_guard<std::mutex> lock(outcomeMutex_);
+            ngks::EngineSnapshot dropped = hasPendingOutcome_
+                ? pendingOutcome_
+                : snapshots[frontSnapshotIndex.load(std::memory_order_acquire)];
             dropped.lastCommandResult[command.deck] = ngks::CommandResult::RejectedQueueFull;
             dropped.lastProcessedCommandSeq = command.seq;
             if (isDeckMutationCommand(command)) {
@@ -294,9 +289,8 @@ void EngineCore::enqueueCommand(const ngks::Command& command)
                 dropped.decks[command.deck].lastAcceptedCommandSeq = authority_[command.deck].lastAcceptedSeq;
                 dropped.decks[command.deck].commandLocked = authority_[command.deck].locked;
             }
-            const uint32_t back = front ^ 1u;
-            snapshots[back] = dropped;
-            frontSnapshotIndex.store(back, std::memory_order_release);
+            pendingOutcome_ = dropped;
+            hasPendingOutcome_ = true;
         }
     } else {
         const uint64_t queued = telemetry_.cmdQueued.load(std::memory_order_relaxed);
@@ -321,6 +315,8 @@ bool EngineCore::isDeckMutationCommand(const ngks::Command& c)
     case ngks::CommandType::UnloadTrack:
     case ngks::CommandType::Play:
     case ngks::CommandType::Stop:
+    case ngks::CommandType::Pause:
+    case ngks::CommandType::Seek:
     case ngks::CommandType::SetDeckGain:
     case ngks::CommandType::SetCue:
     case ngks::CommandType::SetFxSlotType:
@@ -345,7 +341,7 @@ bool EngineCore::validateTransition(DeckLifecycleState from, DeckLifecycleState 
     case DeckLifecycleState::Loading:
         return to == DeckLifecycleState::Loaded;
     case DeckLifecycleState::Loaded:
-        return to == DeckLifecycleState::Analyzed;
+        return to == DeckLifecycleState::Analyzed || to == DeckLifecycleState::Playing;
     case DeckLifecycleState::Analyzed:
         return to == DeckLifecycleState::Armed;
     case DeckLifecycleState::Armed:
@@ -1002,16 +998,17 @@ void EngineCore::persistRegistryIfNeeded(bool force)
 
 void EngineCore::publishCommandOutcome(const ngks::Command& command, ngks::CommandResult result) noexcept
 {
-    const uint32_t front = frontSnapshotIndex.load(std::memory_order_acquire);
-    const uint32_t back = front ^ 1u;
+    std::lock_guard<std::mutex> lock(outcomeMutex_);
 
-    ngks::EngineSnapshot updated = snapshots[front];
+    ngks::EngineSnapshot updated = hasPendingOutcome_
+        ? pendingOutcome_
+        : snapshots[frontSnapshotIndex.load(std::memory_order_acquire)];
+
     if (result == ngks::CommandResult::Applied && command.type == ngks::CommandType::SetDeckTrack) {
         result = applySetDeckTrack(updated, command);
     } else if (result == ngks::CommandResult::Applied && command.type == ngks::CommandType::SetCue) {
         result = applyCommand(updated, command);
     }
-    appendJobResults(updated);
     updated.lastProcessedCommandSeq = command.seq;
     if (command.deck < ngks::MAX_DECKS) {
         updated.lastCommandResult[command.deck] = result;
@@ -1025,8 +1022,8 @@ void EngineCore::publishCommandOutcome(const ngks::Command& command, ngks::Comma
         }
     }
 
-    snapshots[back] = updated;
-    frontSnapshotIndex.store(back, std::memory_order_release);
+    pendingOutcome_ = updated;
+    hasPendingOutcome_ = true;
 }
 
 ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, const ngks::Command& command) noexcept
@@ -1042,6 +1039,7 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
         return ngks::CommandResult::Applied;
     case ngks::CommandType::LoadTrack:
         if (!validateTransition(deck.lifecycle, DeckLifecycleState::Loading)) {
+            ngks::diagLog("DIAG: applyCommand LoadTrack REJECTED lifecycle=%d (need Empty)", static_cast<int>(deck.lifecycle));
             return ngks::CommandResult::IllegalTransition;
         }
         if (!validateTransition(DeckLifecycleState::Loading, DeckLifecycleState::Loaded)) {
@@ -1049,8 +1047,10 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
         }
         deck.hasTrack = 1;
         deck.trackUidHash = command.trackUidHash;
-        deck.lengthSeconds = 240.0;
+        deck.lengthSeconds = (command.seekSeconds > 0.0) ? command.seekSeconds : 240.0;
+        deck.playheadSeconds = 0.0;
         deck.lifecycle = DeckLifecycleState::Loaded;
+        ngks::diagLog("DIAG: applyCommand LoadTrack APPLIED hasTrack=1 dur=%.3f", deck.lengthSeconds);
         return ngks::CommandResult::Applied;
     case ngks::CommandType::UnloadTrack:
         if (!validateTransition(deck.lifecycle, DeckLifecycleState::Empty)) {
@@ -1073,23 +1073,38 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
         return ngks::CommandResult::Applied;
     case ngks::CommandType::Play:
         if (!validateTransition(deck.lifecycle, DeckLifecycleState::Playing)) {
+            ngks::diagLog("DIAG: applyCommand Play REJECTED lifecycle=%d", static_cast<int>(deck.lifecycle));
             return ngks::CommandResult::IllegalTransition;
         }
         if (!deck.hasTrack) {
+            ngks::diagLog("DIAG: applyCommand Play REJECTED hasTrack=0");
             return ngks::CommandResult::RejectedNoTrack;
         }
         startAudioIfNeeded();
         deck.lifecycle = DeckLifecycleState::Playing;
         deck.transport = ngks::TransportState::Starting;
+        ngks::diagLog("DIAG: applyCommand Play APPLIED transport=Starting");
         return ngks::CommandResult::Applied;
     case ngks::CommandType::Stop:
         if (!validateTransition(deck.lifecycle, DeckLifecycleState::Stopped)) {
+            ngks::diagLog("DIAG: applyCommand Stop REJECTED lifecycle=%d", static_cast<int>(deck.lifecycle));
             return ngks::CommandResult::IllegalTransition;
         }
+        ngks::diagLog("DIAG: applyCommand Stop APPLIED");
         deck.lifecycle = DeckLifecycleState::Stopped;
         if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Starting) {
             deck.transport = ngks::TransportState::Stopping;
             audioGraph.beginDeckStopFade(command.deck, fadeSamplesTotal);
+        }
+        return ngks::CommandResult::Applied;
+    case ngks::CommandType::Pause:
+        if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Starting) {
+            deck.transport = ngks::TransportState::Paused;
+        }
+        return ngks::CommandResult::Applied;
+    case ngks::CommandType::Seek:
+        if (deck.hasTrack) {
+            deck.playheadSeconds = std::clamp(command.seekSeconds, 0.0, deck.lengthSeconds);
         }
         return ngks::CommandResult::Applied;
     case ngks::CommandType::SetDeckGain:
@@ -1225,6 +1240,14 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
 
     ngks::EngineSnapshot working = snapshots[front];
 
+    {
+        std::unique_lock<std::mutex> lock(outcomeMutex_, std::try_to_lock);
+        if (lock.owns_lock() && hasPendingOutcome_) {
+            working = pendingOutcome_;
+            hasPendingOutcome_ = false;
+        }
+    }
+
     if (audioOpened.load(std::memory_order_acquire)) {
         working.flags |= ngks::SNAP_AUDIO_RUNNING;
     }
@@ -1251,6 +1274,8 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
             working.decks[deckIndex].transport = ngks::TransportState::Playing;
         }
     }
+
+    appendJobResults(working);
 
     computeCrossfadeWeights(working, crossfaderPosition_, mixMatrix_);
 
@@ -1316,9 +1341,13 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
         deck.lastAcceptedCommandSeq = authority_[deckIndex].lastAcceptedSeq;
 
         if (deck.transport == ngks::TransportState::Playing || deck.transport == ngks::TransportState::Stopping) {
-            deck.playheadSeconds += (static_cast<double>(numSamples) / sampleRateHz);
-            if (deck.lengthSeconds > 0.0 && deck.playheadSeconds > deck.lengthSeconds) {
+            deck.playheadSeconds = audioGraph.getDeckNode(deckIndex).getPlayheadSeconds();
+            if (deck.lengthSeconds > 0.0 && deck.playheadSeconds >= deck.lengthSeconds) {
                 deck.playheadSeconds = deck.lengthSeconds;
+                if (deck.transport == ngks::TransportState::Playing) {
+                    deck.transport = ngks::TransportState::Stopped;
+                    deck.lifecycle = DeckLifecycleState::Stopped;
+                }
             }
         }
 
@@ -1412,4 +1441,43 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
     const float safePeak = std::max(peak, 0.0000001f);
     const int32_t peakDb10 = static_cast<int32_t>(std::lround(20.0f * std::log10(safePeak) * 10.0f));
     telemetry_.rtMeterPeakDb10.store(peakDb10, std::memory_order_relaxed);
+}
+
+bool EngineCore::loadFileIntoDeck(ngks::DeckId deckId, const std::string& filePath, double& outDurationSeconds)
+{
+    outDurationSeconds = 0.0;
+    if (deckId >= ngks::MAX_DECKS) return false;
+
+    ngks::diagLog("DIAG: EngineCore::loadFileIntoDeck deck=%d path=%s", (int)deckId, filePath.c_str());
+    auto& deckNode = audioGraph.getDeckNode(deckId);
+    if (!deckNode.loadFile(filePath, outDurationSeconds)) {
+        ngks::diagLog("DIAG: EngineCore::loadFileIntoDeck DECODE_FAIL");
+        return false;
+    }
+    ngks::diagLog("DIAG: EngineCore::loadFileIntoDeck DECODE_OK dur=%.3fs", outDurationSeconds);
+
+    // Enqueue LoadTrack command with real duration passed via seekSeconds
+    ngks::Command cmd{};
+    cmd.type = ngks::CommandType::LoadTrack;
+    cmd.deck = deckId;
+    cmd.seq = internalCommandSeq_.fetch_add(1u, std::memory_order_relaxed);
+    cmd.trackUidHash = std::hash<std::string>{}(filePath);
+    cmd.seekSeconds = outDurationSeconds;
+    enqueueCommand(cmd);
+    ngks::diagLog("DIAG: EngineCore::loadFileIntoDeck LoadTrack cmd enqueued seq=%u", cmd.seq);
+    return true;
+}
+
+void EngineCore::seekDeck(ngks::DeckId deckId, double seconds)
+{
+    if (deckId >= ngks::MAX_DECKS) return;
+
+    audioGraph.getDeckNode(deckId).seekTo(seconds);
+
+    ngks::Command cmd{};
+    cmd.type = ngks::CommandType::Seek;
+    cmd.deck = deckId;
+    cmd.seq = internalCommandSeq_.fetch_add(1u, std::memory_order_relaxed);
+    cmd.seekSeconds = seconds;
+    enqueueCommand(cmd);
 }

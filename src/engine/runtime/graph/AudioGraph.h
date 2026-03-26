@@ -25,6 +25,10 @@ public:
     void prepare(double sampleRate, int maxBlockSize);
     void beginDeckStopFade(DeckId deckId, int fadeSamples);
     bool isDeckStopFadeActive(DeckId deckId) const noexcept;
+
+    // Access deck node for file load/unload/seek (called from UI thread)
+    DeckNode& getDeckNode(DeckId deckId) noexcept;
+
     bool setDeckFxSlotType(DeckId deckId, int slotIndex, uint32_t fxType) noexcept;
     bool setDeckFxSlotEnabled(DeckId deckId, int slotIndex, bool enabled) noexcept;
     bool setDeckFxSlotDryWet(DeckId deckId, int slotIndex, float dryWet) noexcept;

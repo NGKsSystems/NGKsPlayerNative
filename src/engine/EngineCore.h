@@ -94,6 +94,7 @@ public:
     ngks::EngineSnapshot getSnapshot() const;
     EngineRunState getRunState() const noexcept;
     void enqueueCommand(const ngks::Command& command);
+    uint32_t nextSeq() noexcept { return internalCommandSeq_.fetch_add(1u, std::memory_order_relaxed); }
     void updateCrossfader(float x);
     bool renderOfflineBlock(float* outInterleavedLR, uint32_t frames);
     EngineTelemetrySnapshot getTelemetrySnapshot() const noexcept;
@@ -105,6 +106,13 @@ public:
     void setPreferredAudioFormat(double sampleRate, int bufferFrames, int channelsOut);
     void clearPreferredAudioDevice();
     bool reopenAudioWithPreferredConfig() noexcept;
+
+    // Load a real audio file into a deck (called from UI thread, NOT RT).
+    // Returns true on success; fills outDurationSeconds.
+    bool loadFileIntoDeck(ngks::DeckId deckId, const std::string& filePath, double& outDurationSeconds);
+
+    // Seek a deck to a position in seconds.
+    void seekDeck(ngks::DeckId deckId, double seconds);
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;
@@ -189,6 +197,7 @@ private:
     ngks::EngineSnapshot snapshots[2] {};
     DeckAuthorityState authority_[ngks::MAX_DECKS] {};
     ngks::SPSCCommandRing<1024> commandRing;
+    std::atomic<uint32_t> internalCommandSeq_{1000000u}; // internal seq counter, starts high to avoid bridge collisions
     MixMatrix mixMatrix_ {};
     float crossfaderPosition_ = 0.5f;
     ngks::MasterBus masterBus_ {};
@@ -225,4 +234,7 @@ private:
     char rtDeviceId_[160] {};
     char rtDeviceName_[96] {};
     mutable std::mutex controlMutex_;
+    mutable std::mutex outcomeMutex_;
+    ngks::EngineSnapshot pendingOutcome_ {};
+    bool hasPendingOutcome_ = false;
 };
