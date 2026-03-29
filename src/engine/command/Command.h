@@ -24,7 +24,11 @@ enum class CommandType {
     EnableMasterFxSlot,
     RequestAnalyzeTrack,
     RequestStemsOffline,
-    CancelJob
+    CancelJob,
+    SetEqBandGain,
+    SetEqBypass,
+    SetDeckMute,
+    SetDeckCueMonitor
 };
 
 struct Command {
@@ -38,6 +42,7 @@ struct Command {
     uint32_t jobId{0};
     char trackLabel[64]{};
     double seekSeconds{0.0};
+    uint64_t trackLoadGen{0};
 };
 
 }

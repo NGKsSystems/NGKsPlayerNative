@@ -1,0 +1,10 @@
+{
+  "components": {
+    "diagnostic scoring pipeline": {
+      "component": "diagnostic scoring pipeline",
+      "total_regression_occurrences": 1,
+      "unique_fingerprints": 1,
+      "last_seen_run": "run_000001"
+    }
+  }
+}

@@ -3,8 +3,10 @@ warnings = "default"
 
 cxx_std = 17
 include_dirs = ["src", "third_party/JUCE/modules"]
+# NOTE: Global defines here do NOT set the active profile. Profile-specific defines
+# (DEBUG/_DEBUG for debug, NDEBUG for release) are set in [profiles.debug] / [profiles.release].
+# DEFAULT PROFILE IS RELEASE. Use --profile release (or run_native_release verb).
 defines = [
-  "DEBUG",
   "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
@@ -12,9 +14,8 @@ defines = [
   "JUCE_MODULE_AVAILABLE_juce_core=1",
   "JUCE_MODULE_AVAILABLE_juce_dsp=1",
   "JUCE_MODULE_AVAILABLE_juce_events=1",
-  "_DEBUG",
 ]
-cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
+cflags = ["/EHsc", "/FS", "/Zc:__cplusplus", "/bigobj", "/permissive-"]
 ldflags = []
 libs = []
 lib_dirs = []
@@ -51,6 +52,7 @@ src_glob = [
   "src/engine/audio/AudioIO_Juce.cpp",
   "src/engine/dsp/Limiter.cpp",
   "src/engine/dsp/Meter.cpp",
+  "src/engine/dsp/ParametricEQ16.cpp",
   "src/engine/runtime/MasterBus.cpp",
   "src/engine/runtime/fx/DummyGainFx.cpp",
   "src/engine/runtime/fx/FxChain.cpp",
@@ -208,7 +210,7 @@ links = ["NGKsEngine", "NGKsUiBridge", "NGKsJuceModules"]
 [[targets]]
 name = "native"
 type = "exe"
-src_glob = ["src/ui/main.cpp"]
+src_glob = ["src/ui/main.cpp", "src/ui/EqPanel.cpp", "src/ui/DeckStrip.cpp", "src/ui/WaveformState.cpp"]
 include_dirs = ["src", "third_party/JUCE/modules"]
 defines = [
   "DEBUG",
@@ -221,7 +223,6 @@ defines = [
   "JUCE_MODULE_AVAILABLE_juce_events=1",
   "QT_CORE_LIB",
   "QT_GUI_LIB",
-  "QT_MULTIMEDIA_LIB",
   "QT_NETWORK_LIB",
   "QT_OPENGL_LIB",
   "QT_QMLINTEGRATION_LIB",
@@ -237,7 +238,7 @@ defines = [
   "_WIN64",
 ]
 cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
-libs = ["Qt6Cored", "Qt6Guid", "Qt6Multimediad", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd", "advapi32", "comdlg32", "d3d11", "d3d12", "dxgi", "dxguid", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool", "ws2_32"]
+libs = ["Qt6Cored", "Qt6Guid", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd", "advapi32", "comdlg32", "d3d11", "d3d12", "dxgi", "dxguid", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool", "ws2_32"]
 lib_dirs = []
 ldflags = []
 cxx_std = 17
@@ -248,7 +249,7 @@ enabled = true
 qt_root = "C:/Qt/6.10.2/msvc2022_64"
 prefix = "C:/Qt/6.10.2/msvc2022_64"
 version = 6
-modules = ["Core", "Gui", "Multimedia", "Network", "OpenGL", "Qml", "QmlIntegration", "Quick", "Sql", "Widgets"]
+modules = ["Core", "Gui", "Network", "OpenGL", "Qml", "QmlIntegration", "Quick", "Sql", "Widgets"]
 moc_path = "C:/Qt/6.10.2/msvc2022_64/bin/moc.exe"
 uic_path = "C:/Qt/6.10.2/msvc2022_64/bin/uic.exe"
 rcc_path = "C:/Qt/6.10.2/msvc2022_64/bin/rcc.exe"
@@ -256,7 +257,6 @@ include_dirs = [
   "C:/Qt/6.10.2/msvc2022_64/include",
   "C:/Qt/6.10.2/msvc2022_64/include/QtCore",
   "C:/Qt/6.10.2/msvc2022_64/include/QtGui",
-  "C:/Qt/6.10.2/msvc2022_64/include/QtMultimedia",
   "C:/Qt/6.10.2/msvc2022_64/include/QtNetwork",
   "C:/Qt/6.10.2/msvc2022_64/include/QtOpenGL",
   "C:/Qt/6.10.2/msvc2022_64/include/QtQml",
@@ -266,7 +266,7 @@ include_dirs = [
   "C:/Qt/6.10.2/msvc2022_64/include/QtWidgets",
 ]
 lib_dirs = ["C:/Qt/6.10.2/msvc2022_64/lib"]
-libs = ["Qt6Cored", "Qt6Guid", "Qt6Multimediad", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd"]
+libs = ["Qt6Cored", "Qt6Guid", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd"]
 
 [ai]
 enabled = false

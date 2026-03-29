@@ -1,0 +1,79 @@
+Agent Execution Checklist — Phase 1
+
+Use this as the exact execution checklist for the implementation agent. Do not skip steps. Do not broaden scope. Do not stop unless a real hard blocker exists.
+
+A. Root + Repo Verification
+
+
+B. Preflight Inventory
+
+
+C. Scope Guard
+
+
+D. Folder Skeleton Creation
+
+
+E. Documentation Baseline
+
+
+F. Native App Bootstrap
+
+
+G. NGKsUI Runtime Integration
+
+
+H. Shell Layout Baseline
+
+
+I. Project Stub System
+
+
+J. Bridge Core Contracts
+
+
+K. Adapter Registration Path
+
+
+L. Legacy Adapter 01
+
+
+M. Logging + Auditability
+
+
+N. Proof Staging Setup
+
+
+O. Build Validation
+
+
+P. Launch Validation
+
+
+Q. Project Stub Validation
+
+
+R. Legacy Bridge Validation
+
+
+S. Proof Packaging Enforcement
+
+
+T. Required Output Contract Validation
+
+
+U. Phase 1 Pass Criteria
+
+
+V. Hard Stop Conditions
+
+Stop only for:
+
+
+
+
+Do not stop for:
+
+
+
+W. Agent Behavior Rules

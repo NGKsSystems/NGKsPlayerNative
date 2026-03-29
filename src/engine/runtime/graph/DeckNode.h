@@ -3,8 +3,9 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <juce_audio_formats/juce_audio_formats.h>
@@ -12,6 +13,14 @@
 #include "engine/runtime/EngineSnapshot.h"
 
 namespace ngks {
+
+/// Min/max + RMS waveform bucket — true audio shape per time slice.
+/// lo/hi preserve transient peaks; rms shows energy envelope.
+struct WaveMinMax {
+    float lo;   ///< most negative sample value in bucket
+    float hi;   ///< most positive sample value in bucket
+    float rms;  ///< root-mean-square energy of bucket
+};
 
 class DeckNode {
 public:
@@ -42,7 +51,20 @@ public:
     // Returns the playhead position in seconds based on the read cursor.
     double getPlayheadSeconds() const noexcept;
 
+    /// Generate a downsampled waveform overview using true min/max buckets.
+    /// Returns a vector of `numBins` WaveMinMax pairs preserving peak/valley shape.
+    /// Thread-safe: acquires shared_lock on bufferMutex_.
+    std::vector<WaveMinMax> generateWaveformOverview(int numBins) const;
+
+    /// Returns true once the full file (not just preload) is decoded.
+    bool isFullyDecoded() const noexcept;
+
+    /// Returns the file path currently loaded (empty if none).
+    std::string loadedFilePath() const;
+
 private:
+    void cancelStreamDecode();
+
     juce::AudioFormatManager formatManager_;
 
     // Decoded audio buffer (stereo interleaved: L0 R0 L1 R1 ...)
@@ -63,10 +85,18 @@ private:
     int stopFadeSamplesRemaining{0};
     int stopFadeSamplesTotal{1};
 
-    // Mutex protects buffer swap during loadFile/unloadFile
-    std::mutex bufferMutex_;
+    // Shared mutex protects deck buffer state shared between control/UI and audio render paths.
+    mutable std::shared_mutex bufferMutex_;
     bool hasAudioData_{false};
     bool diagFirstNonzero_{false}; // diagnostic: log first nonzero render
+
+    // Streaming decode: background thread continues decoding after initial preload
+    std::atomic<int64_t> streamDecodedFrames_{0};
+    std::atomic<bool> streamCancelled_{false};
+    std::thread streamDecodeThread_;
+
+    // Track identity: file path of currently loaded audio
+    std::string loadedFilePath_;
 };
 
 }

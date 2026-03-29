@@ -8,7 +8,8 @@
 
 class EngineCore;
 
-class AudioIOJuce final : public juce::AudioIODeviceCallback
+class AudioIOJuce final : public juce::AudioIODeviceCallback,
+                          public juce::ChangeListener
 {
 public:
     struct DeviceInfo
@@ -56,6 +57,10 @@ public:
     StartResult start(const StartRequest& request = {});
     void stop();
 
+    /// Return the current Windows default output device name via JUCE's
+    /// cached device list (updated automatically by systemDeviceChanged).
+    std::string getDefaultOutputDeviceName() const;
+
     void audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
                                           int numInputChannels,
                                           float* const* outputChannelData,
@@ -64,9 +69,26 @@ public:
                                           const juce::AudioIODeviceCallbackContext& context) override;
     void audioDeviceAboutToStart(juce::AudioIODevice* device) override;
     void audioDeviceStopped() override;
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+
+    // ── DJ output validity enforcer queries ──
+    // Fast check: does deviceName still appear in the current backend's output device list?
+    // Calls scanForDevices() internally — must be called from message/UI thread.
+    bool isOutputDevicePresent(const std::string& deviceName) const;
+    // Returns true if JUCE's current audio device is non-null and isOpen()
+    bool isCurrentDeviceOpen() const;
+    // Return all output device names from the current backend (rescans).
+    std::vector<std::string> listOutputDeviceNames() const;
+    // Callback flow state
+    bool isCallbackFlowing() const noexcept { return callbackActive_.load(std::memory_order_acquire); }
+    uint64_t callbackCount() const noexcept { return callbackCounter_.load(std::memory_order_relaxed); }
 
 private:
     EngineCore& engineCore;
     juce::AudioDeviceManager deviceManager;
     bool callbackAdded = false;
+    bool initialized_ = false;
+    std::atomic<bool> recoveryInFlight_{false};
+    std::atomic<uint64_t> callbackCounter_{0};    // heartbeat: total audioDeviceIOCallback invocations
+    std::atomic<bool> callbackActive_{false};      // true while callbacks are flowing, false after audioDeviceStopped
 };

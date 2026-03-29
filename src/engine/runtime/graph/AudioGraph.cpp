@@ -1,4 +1,5 @@
 #include "engine/runtime/graph/AudioGraph.h"
+#include "engine/DiagLog.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,9 +11,19 @@ void AudioGraph::prepare(double sampleRate, int)
     for (auto& node : deckNodes) {
         node.prepare(sampleRate);
     }
+    for (auto& eq : deckEqs) {
+        eq.prepare(sampleRate);
+    }
+    diagLog("[AudioGraph] ParametricEQ16 ready  bands=%d  decks=%d  sr=%.0f",
+            ParametricEQ16::kBandCount, static_cast<int>(MAX_DECKS), sampleRate);
 }
 
 DeckNode& AudioGraph::getDeckNode(DeckId deckId) noexcept
+{
+    return deckNodes[std::min(static_cast<uint8_t>(deckId), static_cast<uint8_t>(MAX_DECKS - 1))];
+}
+
+const DeckNode& AudioGraph::getDeckNode(DeckId deckId) const noexcept
 {
     return deckNodes[std::min(static_cast<uint8_t>(deckId), static_cast<uint8_t>(MAX_DECKS - 1))];
 }
@@ -104,6 +115,41 @@ bool AudioGraph::isMasterFxSlotEnabled(int slotIndex) const noexcept
     return masterFxChain.isSlotEnabled(slotIndex);
 }
 
+// ── 16-band Parametric EQ per deck ──
+
+bool AudioGraph::setEqBandGain(DeckId deckId, int band, float gainDb) noexcept
+{
+    if (deckId >= MAX_DECKS || band < 0 || band >= ParametricEQ16::kBandCount)
+        return false;
+    deckEqs[deckId].setBandGain(band, gainDb);
+    return true;
+}
+
+float AudioGraph::getEqBandGain(DeckId deckId, int band) const noexcept
+{
+    if (deckId >= MAX_DECKS || band < 0 || band >= ParametricEQ16::kBandCount)
+        return 0.0f;
+    return deckEqs[deckId].getBandGain(band);
+}
+
+void AudioGraph::setEqBypass(DeckId deckId, bool bypassed) noexcept
+{
+    if (deckId < MAX_DECKS)
+        deckEqs[deckId].setBypass(bypassed);
+}
+
+bool AudioGraph::isEqBypassed(DeckId deckId) const noexcept
+{
+    if (deckId >= MAX_DECKS) return true;
+    return deckEqs[deckId].isBypassed();
+}
+
+void AudioGraph::resetEq(DeckId deckId) noexcept
+{
+    if (deckId < MAX_DECKS)
+        deckEqs[deckId].reset();
+}
+
 GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
                                     const MixMatrix& mixMatrix,
                                     int numSamples,
@@ -132,23 +178,33 @@ GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
                                     rms,
                                     peak);
 
+        // 16-band parametric EQ (after decode, before FX chain)
+        deckEqs[deckIndex].process(deckBufferL[deckIndex].data(),
+                                   deckBufferR[deckIndex].data(),
+                                   safeSamples);
+
         deckFxChains[deckIndex].process(deckBufferL[deckIndex].data(),
                                         deckBufferR[deckIndex].data(),
                                         safeSamples);
 
         float postFxSumSquares = 0.0f;
-        float postFxPeak = 0.0f;
+        float postFxPeakL = 0.0f;
+        float postFxPeakR = 0.0f;
         for (int sample = 0; sample < safeSamples; ++sample) {
-            const float mono = 0.5f * (deckBufferL[deckIndex][sample] + deckBufferR[deckIndex][sample]);
+            const float sL = deckBufferL[deckIndex][sample];
+            const float sR = deckBufferR[deckIndex][sample];
+            const float mono = 0.5f * (sL + sR);
             postFxSumSquares += mono * mono;
-            postFxPeak = std::max(postFxPeak, std::abs(mono));
+            postFxPeakL = std::max(postFxPeakL, std::abs(sL));
+            postFxPeakR = std::max(postFxPeakR, std::abs(sR));
         }
 
         rms = std::sqrt(postFxSumSquares / static_cast<float>(safeSamples));
-        peak = postFxPeak;
 
         stats.decks[deckIndex].rms = rms;
-        stats.decks[deckIndex].peak = peak;
+        stats.decks[deckIndex].peakL = postFxPeakL;
+        stats.decks[deckIndex].peakR = postFxPeakR;
+        stats.decks[deckIndex].peak = std::max(postFxPeakL, postFxPeakR);
 
         const float masterWeight = mixMatrix.decks[deckIndex].masterWeight;
         const float cueWeight = mixMatrix.decks[deckIndex].cueWeight;
@@ -161,6 +217,10 @@ GraphRenderStats AudioGraph::render(const EngineSnapshot& state,
     }
 
     masterFxChain.process(masterBusL.data(), masterBusR.data(), safeSamples);
+
+    stats.cueBusL = cueBusL.data();
+    stats.cueBusR = cueBusR.data();
+    stats.cueBusSamples = safeSamples;
 
     for (int sample = 0; sample < safeSamples; ++sample) {
         outLeft[sample] = masterBusL[sample];

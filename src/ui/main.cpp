@@ -50,13 +50,12 @@
 #include <QElapsedTimer>
 #include <QFileDialog>
 #include <QDirIterator>
-#include <QMediaPlayer>
-#include <QMediaMetaData>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <csignal>
 #include <exception>
@@ -77,6 +76,9 @@
 #endif
 
 #include "ui/EngineBridge.h"
+#include "ui/EqPanel.h"
+#include "ui/DeckStrip.h"
+#include "engine/DiagLog.h"
 
 #ifndef NGKS_BUILD_STAMP
 #define NGKS_BUILD_STAMP "unknown"
@@ -334,7 +336,7 @@ bool loadLibraryJson(std::vector<TrackInfo>& outTracks, QString& outFolderPath)
     return !outTracks.empty();
 }
 
-void readId3BpmKey(TrackInfo& track)
+void readId3Tags(TrackInfo& track)
 {
     if (!track.filePath.endsWith(QStringLiteral(".mp3"), Qt::CaseInsensitive)) return;
     QFile f(track.filePath);
@@ -365,22 +367,63 @@ void readId3BpmKey(TrackInfo& track)
         }
         pos += 10;
         if (fsz == 0 || pos + static_cast<int>(fsz) > tag.size()) break;
-        if ((fid == "TBPM" && track.bpm.isEmpty()) || (fid == "TKEY" && track.musicalKey.isEmpty())) {
-            if (fsz > 1) {
-                const unsigned char enc = static_cast<unsigned char>(tag[pos]);
-                QString val;
-                if (enc == 0 || enc == 3) {
-                    val = QString::fromUtf8(tag.mid(pos + 1, static_cast<int>(fsz) - 1)).trimmed();
+        const bool isTextFrame = (fid == "TBPM" || fid == "TKEY" || fid == "TIT2"
+                                  || fid == "TPE1" || fid == "TALB" || fid == "TLEN");
+        if (isTextFrame && fsz > 1) {
+            const unsigned char enc = static_cast<unsigned char>(tag[pos]);
+            QString val;
+            if (enc == 0 || enc == 3) {
+                val = QString::fromUtf8(tag.mid(pos + 1, static_cast<int>(fsz) - 1)).trimmed();
+                val.remove(QChar('\0'));
+            } else if (enc == 1 || enc == 2) {
+                // UTF-16 (enc 1 = with BOM, enc 2 = big-endian no BOM)
+                const char* raw = tag.constData() + pos + 1;
+                const int rawLen = static_cast<int>(fsz) - 1;
+                if (rawLen >= 2) {
+                    const auto b0 = static_cast<unsigned char>(raw[0]);
+                    const auto b1 = static_cast<unsigned char>(raw[1]);
+                    if (enc == 1 && b0 == 0xFF && b1 == 0xFE) {
+                        val = QString::fromUtf16(reinterpret_cast<const char16_t*>(raw + 2), (rawLen - 2) / 2).trimmed();
+                    } else if (enc == 1 && b0 == 0xFE && b1 == 0xFF) {
+                        QByteArray swapped(rawLen - 2, '\0');
+                        for (int i = 0; i < rawLen - 2; i += 2) {
+                            swapped[i] = raw[2 + i + 1];
+                            swapped[i + 1] = raw[2 + i];
+                        }
+                        val = QString::fromUtf16(reinterpret_cast<const char16_t*>(swapped.constData()), swapped.size() / 2).trimmed();
+                    } else {
+                        val = QString::fromUtf16(reinterpret_cast<const char16_t*>(raw), rawLen / 2).trimmed();
+                    }
                     val.remove(QChar('\0'));
                 }
-                if (!val.isEmpty()) {
-                    if (fid == "TBPM") track.bpm = val;
-                    else track.musicalKey = val;
+            }
+            if (!val.isEmpty()) {
+                if (fid == "TBPM" && track.bpm.isEmpty()) {
+                    track.bpm = val;
+                    qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_END source=id3_TBPM bpm=%1 path=%2")
+                        .arg(val, track.filePath);
+                }
+                else if (fid == "TKEY" && track.musicalKey.isEmpty()) track.musicalKey = val;
+                else if (fid == "TIT2" && track.title.isEmpty()) track.title = val;
+                else if (fid == "TPE1" && track.artist.isEmpty()) track.artist = val;
+                else if (fid == "TALB" && track.album.isEmpty()) track.album = val;
+                else if (fid == "TLEN" && track.durationMs <= 0) {
+                    bool ok = false;
+                    const qint64 ms = val.toLongLong(&ok);
+                    if (ok && ms > 0) {
+                        track.durationMs = ms;
+                        track.durationStr = formatDurationMs(ms);
+                    }
                 }
             }
         }
-        if (!track.bpm.isEmpty() && !track.musicalKey.isEmpty()) break;
         pos += static_cast<int>(fsz);
+    }
+    // Update displayName from enriched tag data
+    if (!track.artist.isEmpty() && !track.title.isEmpty()) {
+        track.displayName = track.artist + QStringLiteral(" \u2014 ") + track.title;
+    } else if (!track.title.isEmpty()) {
+        track.displayName = track.title;
     }
 }
 
@@ -467,7 +510,11 @@ LegacyImportResult importLegacyDb(std::vector<TrackInfo>& tracks, const QString&
 
             if (t.bpm.isEmpty()) {
                 const int dbBpm = q.value(2).toInt();
-                if (dbBpm > 0) t.bpm = QString::number(dbBpm);
+                if (dbBpm > 0) {
+                    t.bpm = QString::number(dbBpm);
+                    qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_END source=legacy_db bpm=%1 path=%2")
+                        .arg(dbBpm).arg(t.filePath);
+                }
             }
 
             if (t.musicalKey.isEmpty()) t.musicalKey = q.value(3).toString().trimmed();
@@ -544,6 +591,7 @@ std::vector<TrackInfo> scanFolderForTracks(const QString& folderPath)
             info.title = baseName;
             info.displayName = baseName;
         }
+        readId3Tags(info);
         tracks.push_back(std::move(info));
     }
     return tracks;
@@ -718,16 +766,28 @@ QString truncateForLog(const QString& value, int maxChars)
 bool runDllProbe(QString& missingDlls)
 {
 #ifdef _WIN32
+    // Check only the DLLs this binary actually imports (verified via dumpbin).
+    // Use debug-suffixed names for debug builds, release names for release builds.
+    // Qt6Qml/Qt6Quick are intentionally excluded — native.exe does not import them.
+#ifdef _DEBUG
+    static const wchar_t* kDllNames[] = {
+        L"Qt6Cored.dll",
+        L"Qt6Guid.dll",
+        L"Qt6Sqld.dll",
+        L"Qt6Widgetsd.dll",
+        L"vcruntime140d.dll",
+        L"msvcp140d.dll"
+    };
+#else
     static const wchar_t* kDllNames[] = {
         L"Qt6Core.dll",
         L"Qt6Gui.dll",
-        L"Qt6Qml.dll",
-        L"Qt6Quick.dll",
+        L"Qt6Sql.dll",
         L"Qt6Widgets.dll",
         L"vcruntime140.dll",
-        L"vcruntime140_1.dll",
         L"msvcp140.dll"
     };
+#endif
 
     QStringList missing;
     gDllProbeEntries.clear();
@@ -1270,6 +1330,11 @@ public:
         audioActiveTimer_.restart();
     }
 
+    // Title pulse: paint-pipeline driven, no Qt property changes
+    void setTitleText(const QString& text) { titleText_ = text; }
+    void setTitlePulse(float envelope) { titlePulse_ = qBound(0.0f, envelope, 1.0f); }
+    void setUpNextText(const QString& text) { upNextText_ = text; }
+
     // Returns the dynamic bar count for the current width
     int barCount() const { return qBound(kMinBars, width() / kSlotPx, kMaxBars); }
 
@@ -1641,6 +1706,86 @@ protected:
                 p.drawEllipse(QPointF(px, py), sz, sz);
             }
         }
+
+        // ── Now Playing + Title pulse overlay ──
+        if (!titleText_.isEmpty()) {
+            p.setRenderHint(QPainter::Antialiasing, true);
+
+            // Pre-measure all fonts to vertically centre the block
+            QFont hdrFont(QStringLiteral("Segoe UI"), 9, QFont::Bold);
+            hdrFont.setLetterSpacing(QFont::AbsoluteSpacing, 3.0);
+            QFontMetrics hfm(hdrFont);
+
+            QFont tf(QStringLiteral("Segoe UI"), 18, QFont::Bold);
+            QFontMetrics tfm(tf);
+
+            QFont unf(QStringLiteral("Segoe UI"), 11);
+            unf.setItalic(true);
+            QFontMetrics unfm(unf);
+
+            const bool hasUpNext = !upNextText_.isEmpty();
+            // Spacing constants
+            const int gapAfterHdr   = 10;  // NOW PLAYING → title
+            const int gapAfterTitle = 20;  // title → UP NEXT
+            const int gapAfterUpHdr = 6;   // UP NEXT → track name
+
+            // Total block height
+            int blockH = hfm.height() + gapAfterHdr + tfm.height();
+            if (hasUpNext)
+                blockH += gapAfterTitle + hfm.height() + gapAfterUpHdr + unfm.height();
+
+            // Vertically centre the block in the widget
+            int y = (height() - blockH) / 2 - 20; // shift up a touch so bars have room
+            if (y < 16) y = 16;
+
+            // "NOW PLAYING" header
+            p.setFont(hdrFont);
+            p.setPen(QColor(233, 69, 96, 200));
+            const QString hdr = QStringLiteral("NOW PLAYING");
+            const int hw = hfm.horizontalAdvance(hdr);
+            p.drawText((width() - hw) / 2, y + hfm.ascent(), hdr);
+            y += hfm.height() + gapAfterHdr;
+
+            // Pulsing title
+            const float t = qBound(0.0f, titlePulse_, 1.0f);
+            const int cr = 255 - static_cast<int>(t * (255 - 233));
+            const int cg = 255 - static_cast<int>(t * (255 - 69));
+            const int cb = 255 - static_cast<int>(t * (255 - 96));
+            const int glowAlpha = static_cast<int>(t * 120);
+
+            p.setFont(tf);
+            const int tw = tfm.horizontalAdvance(titleText_);
+            const int tx = (width() - tw) / 2;
+            const int ty = y + tfm.ascent();
+
+            if (glowAlpha > 2 && t > 0.001f) {
+                QColor glow(cr, cg, cb, glowAlpha);
+                p.setPen(glow);
+                for (auto [dx, dy] : {std::pair{-1,0},{1,0},{0,-1},{0,1},{-2,0},{2,0},{0,-2},{0,2}}) {
+                    p.drawText(tx + dx, ty + dy, titleText_);
+                }
+            }
+            p.setPen(QColor(cr, cg, cb, 220 + static_cast<int>(t * 35)));
+            p.drawText(tx, ty, titleText_);
+            y += tfm.height() + gapAfterTitle;
+
+            // ── Up Next section ──
+            if (hasUpNext) {
+                // "UP NEXT" header
+                p.setFont(hdrFont);
+                p.setPen(QColor(233, 69, 96, 140));
+                const QString upHdr = QStringLiteral("UP NEXT");
+                const int uhw = hfm.horizontalAdvance(upHdr);
+                p.drawText((width() - uhw) / 2, y + hfm.ascent(), upHdr);
+                y += hfm.height() + gapAfterUpHdr;
+
+                // Track name
+                p.setFont(unf);
+                p.setPen(QColor(180, 180, 180, 180));
+                const int unw = unfm.horizontalAdvance(upNextText_);
+                p.drawText((width() - unw) / 2, y + unfm.ascent(), upNextText_);
+            }
+        }
     }
 
 private:
@@ -1690,6 +1835,9 @@ private:
     float peakAge_[256]{};
     float phase_{0.0f};
     float audioLevel_{0.0f};
+    QString titleText_;
+    float titlePulse_{0.0f};
+    QString upNextText_;
     Particle particles_[40]{};
     QElapsedTimer elapsed_;
     QElapsedTimer audioActiveTimer_;
@@ -2096,56 +2244,6 @@ private:
         bottomRow->addStretch(1);
         layout->addLayout(bottomRow);
 
-        // ── Metadata probe player ──
-        metadataProbe_ = new QMediaPlayer(this);
-        metadataProbeIndex_ = -1;
-
-        // Timeout timer — skip tracks that never reach LoadedMedia
-        probeTimeoutTimer_ = new QTimer(this);
-        probeTimeoutTimer_->setSingleShot(true);
-        probeTimeoutTimer_->setInterval(3000);
-        QObject::connect(probeTimeoutTimer_, &QTimer::timeout, this, [this]() {
-            if (metadataProbeIndex_ < 0 || metadataProbeIndex_ >= static_cast<int>(allTracks_.size())) return;
-            qInfo().noquote() << QStringLiteral("METADATA_PROBE_TIMEOUT=%1").arg(allTracks_[metadataProbeIndex_].filePath);
-            QTimer::singleShot(0, this, &MainWindow::probeNextTrackMetadata);
-        });
-
-        // metaDataChanged: accumulate tag data as it arrives (no advance)
-        QObject::connect(metadataProbe_, &QMediaPlayer::metaDataChanged, this, [this]() {
-            if (metadataProbeIndex_ < 0 || metadataProbeIndex_ >= static_cast<int>(allTracks_.size())) return;
-            const QUrl expected = QUrl::fromLocalFile(allTracks_[metadataProbeIndex_].filePath);
-            if (metadataProbe_->source() != expected) return;
-            harvestProbeMetadata();
-        });
-
-        // mediaStatusChanged: commit + advance when media is fully loaded
-        QObject::connect(metadataProbe_, &QMediaPlayer::mediaStatusChanged, this,
-            [this](QMediaPlayer::MediaStatus status) {
-            if (metadataProbeIndex_ < 0 || metadataProbeIndex_ >= static_cast<int>(allTracks_.size())) return;
-            const QUrl expected = QUrl::fromLocalFile(allTracks_[metadataProbeIndex_].filePath);
-            if (metadataProbe_->source() != expected) return;
-
-            if (status == QMediaPlayer::LoadedMedia || status == QMediaPlayer::BufferedMedia) {
-                probeTimeoutTimer_->stop();
-                // Final harvest — metadata + pipeline duration
-                harvestProbeMetadata();
-                TrackInfo& t = allTracks_[metadataProbeIndex_];
-                const qint64 dur = metadataProbe_->duration();
-                if (dur > 0 && t.durationMs <= 0) {
-                    t.durationMs = dur;
-                    t.durationStr = formatDurationMs(dur);
-                }
-                // ID3v2 BPM/Key for MP3 files
-                readId3BpmKey(t);
-                updateTreeItemForTrack(metadataProbeIndex_);
-                QTimer::singleShot(0, this, &MainWindow::probeNextTrackMetadata);
-            } else if (status == QMediaPlayer::InvalidMedia) {
-                probeTimeoutTimer_->stop();
-                qInfo().noquote() << QStringLiteral("METADATA_PROBE_INVALID=%1").arg(allTracks_[metadataProbeIndex_].filePath);
-                QTimer::singleShot(0, this, &MainWindow::probeNextTrackMetadata);
-            }
-        });
-
         // ── Connections ──
 
         // Import folder
@@ -2153,11 +2251,6 @@ private:
             const QString dir = QFileDialog::getExistingDirectory(this, QStringLiteral("Select Music Folder"));
             if (dir.isEmpty()) return;
             qInfo().noquote() << QStringLiteral("LIBRARY_SCAN_STARTED=%1").arg(dir);
-
-            // Stop any in-flight metadata probe before replacing tracks
-            probeTimeoutTimer_->stop();
-            metadataProbe_->setSource(QUrl());
-            metadataProbeIndex_ = -1;
 
             allTracks_ = scanFolderForTracks(dir);
             importedFolderPath_ = dir;
@@ -2168,13 +2261,9 @@ private:
             clearTrackDetail();
             refreshLibraryList();
 
-            // Save library to disk (pre-metadata; will re-save after probe)
+            // Save library to disk (metadata already extracted during scan)
             saveLibraryJson(allTracks_, importedFolderPath_);
-            qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=PRE_METADATA");
-
-            // Start async metadata probe (deferred to avoid synchronous recursion)
-            metadataProbeIndex_ = -1;
-            QTimer::singleShot(0, this, &MainWindow::probeNextTrackMetadata);
+            qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_SCAN");
         });
 
         // Import legacy DB
@@ -2339,9 +2428,10 @@ private:
                 showTrackDetail(trackIdx);
                 qInfo().noquote() << QStringLiteral("CTX_TRACK_INFO=%1").arg(t.displayName);
             } else if (chosen == refreshMetaAction) {
-                metadataProbeIndex_ = trackIdx;
-                metadataProbe_->setSource(QUrl::fromLocalFile(t.filePath));
-                qInfo().noquote() << QStringLiteral("CTX_REFRESH_META=%1").arg(t.displayName);
+                readId3Tags(allTracks_[trackIdx]);
+                updateTreeItemForTrack(trackIdx);
+                saveLibraryJson(allTracks_, importedFolderPath_);
+                qInfo().noquote() << QStringLiteral("CTX_REFRESH_META=%1").arg(allTracks_[trackIdx].displayName);
             } else if (chosen == showInFolderAction) {
                 const QFileInfo fi(t.filePath);
                 QDesktopServices::openUrl(QUrl::fromLocalFile(fi.absolutePath()));
@@ -2557,6 +2647,7 @@ private:
         });
         QObject::connect(djBtn, &QPushButton::clicked, this, [this]() {
             bridge_.enterDjMode();
+            populateDjLibraryTrees();
             stack_->setCurrentIndex(3);
         });
 
@@ -2576,7 +2667,7 @@ private:
             "QSlider::groove:horizontal { background: #1a1a2e; height: 8px; border-radius: 4px; }"
             "QSlider::handle:horizontal { background: #e94560; width: 16px; height: 16px;"
             "  margin: -4px 0; border-radius: 8px; }"
-            "QSlider::sub-page:horizontal { background: #e94560; border-radius: 4px; }"
+            "QSlider::sub-page:horizontal { background: #e94560; border-radius: 4px; min-width: 0px; }"
             "QListWidget { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460;"
             "  border-radius: 8px; outline: none; }"
             "QListWidget::item { padding: 8px 12px; border-bottom: 1px solid #0f3460; }"
@@ -2673,17 +2764,17 @@ private:
         fgLayout->setContentsMargins(28, 16, 28, 0);
         fgLayout->setSpacing(4);
 
-        auto* nowPlayingTag = new QLabel(QStringLiteral("NOW PLAYING"), foreground);
+        nowPlayingTag_ = new QLabel(QStringLiteral("NOW PLAYING"), foreground);
         {
-            QFont f = nowPlayingTag->font();
+            QFont f = nowPlayingTag_->font();
             f.setPointSize(9);
             f.setBold(true);
             f.setLetterSpacing(QFont::AbsoluteSpacing, 3.0);
-            nowPlayingTag->setFont(f);
+            nowPlayingTag_->setFont(f);
         }
-        nowPlayingTag->setStyleSheet(QStringLiteral("color: #e94560; background: transparent;"));
-        nowPlayingTag->setAlignment(Qt::AlignCenter);
-        fgLayout->addWidget(nowPlayingTag);
+        nowPlayingTag_->setStyleSheet(QStringLiteral("color: #e94560; background: transparent;"));
+        nowPlayingTag_->setAlignment(Qt::AlignCenter);
+        fgLayout->addWidget(nowPlayingTag_);
 
         fgLayout->addSpacing(2);
 
@@ -2857,6 +2948,25 @@ private:
                 std::max(bridge_.meterL(), bridge_.meterR()));
             if (freshLevel > 0.0f || bridge_.running())
                 visualizer_->setAudioLevel(freshLevel);
+
+            // Title pulse envelope: fast attack, slow decay — all in JUCE data path
+            if (bridge_.running()) {
+                constexpr double kDecay = 0.88;
+                constexpr double kMinThreshold = 0.015;
+                const double rawLevel = static_cast<double>(freshLevel);
+                if (rawLevel > titlePulseEnvelope_)
+                    titlePulseEnvelope_ = rawLevel;
+                else
+                    titlePulseEnvelope_ *= kDecay;
+                if (titlePulseEnvelope_ < kMinThreshold)
+                    titlePulseEnvelope_ = 0.0;
+            } else {
+                titlePulseEnvelope_ *= 0.85;
+                if (titlePulseEnvelope_ < 0.001)
+                    titlePulseEnvelope_ = 0.0;
+            }
+            visualizer_->setTitlePulse(static_cast<float>(titlePulseEnvelope_));
+
             if (visualizer_->displayMode() != VisualizerWidget::DisplayMode::None)
                 visualizer_->tick();
         });
@@ -2881,7 +2991,7 @@ private:
         playerTimeLabel_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
         seekSlider_ = new QSlider(Qt::Horizontal, page);
-        seekSlider_->setRange(0, 0);
+        seekSlider_->setRange(0, 1);
         seekSlider_->setMinimumHeight(24);
 
         playerTimeTotalLabel_ = new QLabel(QStringLiteral("0:00"), page);
@@ -2906,6 +3016,13 @@ private:
         // ═══════════════════════════════════════════════════
         auto* transportRow = new QHBoxLayout();
         transportRow->setSpacing(16);
+
+        // Invisible spacer to balance the Mode button on the right
+        auto* transportLeftSpacer = new QWidget(page);
+        transportLeftSpacer->setFixedSize(160, 1);
+        transportLeftSpacer->setStyleSheet(QStringLiteral("background: transparent;"));
+        transportRow->addWidget(transportLeftSpacer);
+
         transportRow->addStretch(1);
 
         prevBtn_ = new QPushButton(QStringLiteral("|<  Prev"), page);
@@ -3023,6 +3140,14 @@ private:
         volRow->addStretch(1);
         layout->addLayout(volRow);
 
+        layout->addSpacing(10);
+
+        // ═══════════════════════════════════════════════════
+        // D3. 16-Band EQ Panel (modular widget)
+        // ═══════════════════════════════════════════════════
+        eqPanel_ = new EqPanel(&bridge_, page);
+        layout->addWidget(eqPanel_);
+
         layout->addSpacing(14);
 
         // ═══════════════════════════════════════════════════
@@ -3116,7 +3241,7 @@ private:
         playerLibCountLabel_ = libCountLabel;
 
         // ═══════════════════════════════════════════════════
-        // Audio engine: JUCE via EngineBridge (QMediaPlayer removed)
+        // Audio engine: JUCE via EngineBridge (all audio)
         // ═══════════════════════════════════════════════════
         // Visualizer audio level is now driven from JUCE engine meters
         // via pollStatus() → bridge_.meterL()/meterR()
@@ -3246,21 +3371,34 @@ private:
     QWidget* buildDjModePage()
     {
         auto* page = new QWidget();
+        page->setStyleSheet(QStringLiteral("background: #080b10;"));
         auto* layout = new QVBoxLayout(page);
-        layout->setContentsMargins(16, 16, 16, 16);
-        layout->setSpacing(10);
+        layout->setContentsMargins(8, 8, 8, 8);
+        layout->setSpacing(4);
 
+        // ── Header row: Back + title ──
         auto* headerRow = new QHBoxLayout();
-        auto* backBtn = new QPushButton(QStringLiteral("Back"), page);
-        auto* title = new QLabel(QStringLiteral("DJ Mode"), page);
+        headerRow->setSpacing(6);
+        auto* backBtn = new QPushButton(QStringLiteral("\u2190 Back"), page);
+        backBtn->setCursor(Qt::PointingHandCursor);
+        backBtn->setStyleSheet(QStringLiteral(
+            "QPushButton { background: rgba(20,20,30,200); border: 1px solid #333;"
+            "  border-radius: 4px; color: #aaa; font-size: 9px; padding: 4px 10px; }"
+            "QPushButton:hover { background: rgba(40,40,60,220); color: #ddd; }"));
+        headerRow->addWidget(backBtn);
+
+        auto* title = new QLabel(QStringLiteral("DJ MIXER"), page);
         {
             QFont f = title->font();
-            f.setPointSize(16);
+            f.setPointSize(14);
             f.setBold(true);
             title->setFont(f);
         }
-        headerRow->addWidget(backBtn);
+        title->setStyleSheet(QStringLiteral("color: #e0e0e0; background: transparent;"));
+        title->setAlignment(Qt::AlignCenter);
         headerRow->addWidget(title, 1);
+
+        headerRow->addSpacing(60);  // balance the back button
         layout->addLayout(headerRow);
 
         QObject::connect(backBtn, &QPushButton::clicked, this, [this]() {
@@ -3268,22 +3406,571 @@ private:
             stack_->setCurrentIndex(1);
         });
 
-        layout->addSpacing(16);
+        // ── Per-deck columns: Deck + Library side by side ──
+        auto* deckRow = new QHBoxLayout();
+        deckRow->setSpacing(6);
 
-        auto* placeholder = new QLabel(
-            QStringLiteral("DJ interface coming soon.\nDeck controls, crossfader, and BPM sync will appear here."),
-            page);
-        placeholder->setAlignment(Qt::AlignCenter);
-        placeholder->setWordWrap(true);
+        // ── Deck A column: strip + library ──
+        auto* colA = new QVBoxLayout();
+        colA->setSpacing(4);
+        djDeckA_ = new DeckStrip(0, QStringLiteral("#e07020"), &bridge_, page);
+        colA->addWidget(djDeckA_, 1);
+
+        auto* libLabelA = new QLabel(QStringLiteral("LIBRARY A"), page);
         {
-            QFont f = placeholder->font();
-            f.setPointSize(11);
-            placeholder->setFont(f);
+            QFont f = libLabelA->font(); f.setPointSizeF(7.0); f.setBold(true);
+            libLabelA->setFont(f);
         }
-        layout->addWidget(placeholder);
+        libLabelA->setStyleSheet(QStringLiteral(
+            "color: #e07020; background: transparent; padding: 1px 2px;"));
+        colA->addWidget(libLabelA);
 
-        layout->addStretch(1);
+        djLibTreeA_ = new QTreeWidget(page);
+        djLibTreeA_->setHeaderLabels({
+            QStringLiteral("Name"), QStringLiteral("Artist"),
+            QStringLiteral("BPM"), QStringLiteral("Key")});
+        djLibTreeA_->setRootIsDecorated(false);
+        djLibTreeA_->setSelectionMode(QAbstractItemView::SingleSelection);
+        djLibTreeA_->setAlternatingRowColors(false);
+        djLibTreeA_->setFixedHeight(140);
+        djLibTreeA_->header()->setStretchLastSection(false);
+        djLibTreeA_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+        djLibTreeA_->setColumnWidth(1, 120);
+        djLibTreeA_->setColumnWidth(2, 45);
+        djLibTreeA_->setColumnWidth(3, 45);
+        djLibTreeA_->setStyleSheet(QStringLiteral(
+            "QTreeWidget { background: #0a0c12; color: #ccc;"
+            "  border: 1px solid rgba(224,112,32,40); font-size: 8pt; }"
+            "QTreeWidget::item { padding: 2px 4px; }"
+            "QTreeWidget::item:hover { background: rgba(224,112,32,12); }"
+            "QTreeWidget::item:selected { background: rgba(224,112,32,30); color: #fff; }"
+            "QHeaderView::section { background: #111; color: #888; border: none;"
+            "  padding: 2px 4px; font-size: 7pt; font-weight: bold; }"));
+        colA->addWidget(djLibTreeA_);
+        deckRow->addLayout(colA, 5);
+
+        // ── Master section column (center) ──
+        auto* masterCol = new QVBoxLayout();
+        masterCol->setSpacing(4);
+        masterCol->setContentsMargins(4, 0, 4, 0);
+
+        auto* masterLabel = new QLabel(QStringLiteral("MASTER"), page);
+        {
+            QFont f = masterLabel->font(); f.setPointSizeF(7.5); f.setBold(true);
+            masterLabel->setFont(f);
+        }
+        masterLabel->setAlignment(Qt::AlignCenter);
+        masterLabel->setStyleSheet(QStringLiteral(
+            "color: #e0e0e0; background: transparent; padding: 2px 0;"));
+        masterCol->addWidget(masterLabel);
+
+        // Master L/R meters
+        auto* masterMeterRow = new QHBoxLayout();
+        masterMeterRow->setSpacing(2);
+        masterMeterRow->addStretch();
+        djMasterMeterL_ = new LevelMeter(QColor(0xc0, 0xc0, 0xc0), page);
+        djMasterMeterR_ = new LevelMeter(QColor(0xc0, 0xc0, 0xc0), page);
+        masterMeterRow->addWidget(djMasterMeterL_);
+        masterMeterRow->addWidget(djMasterMeterR_);
+        masterMeterRow->addStretch();
+        masterCol->addLayout(masterMeterRow, 1);
+
+        // CUE MIX label + slider (horizontal)
+        auto* cueMixLabel = new QLabel(QStringLiteral("CUE MIX"), page);
+        {
+            QFont f = cueMixLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            cueMixLabel->setFont(f);
+        }
+        cueMixLabel->setAlignment(Qt::AlignCenter);
+        cueMixLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(cueMixLabel);
+
+        djCueMix_ = new QSlider(Qt::Horizontal, page);
+        djCueMix_->setRange(0, 1000);
+        djCueMix_->setValue(500);
+        djCueMix_->setFixedHeight(22);
+        djCueMix_->setStyleSheet(QStringLiteral(
+            "QSlider::groove:horizontal {"
+            "  background: #161616; height: 6px; border-radius: 3px;"
+            "  border: 1px solid #333; }"
+            "QSlider::handle:horizontal {"
+            "  background: #d0d0d0; width: 14px; height: 14px;"
+            "  margin: -5px 0; border-radius: 3px;"
+            "  border: 1px solid #666; }"
+            "QSlider::sub-page:horizontal {"
+            "  background: #4070a0; border-radius: 3px; }"
+            "QSlider::add-page:horizontal {"
+            "  background: #333; border-radius: 3px; }"));
+        masterCol->addWidget(djCueMix_);
+
+        // CUE VOL label + slider (horizontal)
+        auto* cueVolLabel = new QLabel(QStringLiteral("CUE VOL"), page);
+        {
+            QFont f = cueVolLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            cueVolLabel->setFont(f);
+        }
+        cueVolLabel->setAlignment(Qt::AlignCenter);
+        cueVolLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(cueVolLabel);
+
+        djCueVol_ = new QSlider(Qt::Horizontal, page);
+        djCueVol_->setRange(0, 1000);
+        djCueVol_->setValue(1000);
+        djCueVol_->setFixedHeight(22);
+        djCueVol_->setStyleSheet(QStringLiteral(
+            "QSlider::groove:horizontal {"
+            "  background: #161616; height: 6px; border-radius: 3px;"
+            "  border: 1px solid #333; }"
+            "QSlider::handle:horizontal {"
+            "  background: #d0d0d0; width: 14px; height: 14px;"
+            "  margin: -5px 0; border-radius: 3px;"
+            "  border: 1px solid #666; }"
+            "QSlider::sub-page:horizontal {"
+            "  background: #4070a0; border-radius: 3px; }"
+            "QSlider::add-page:horizontal {"
+            "  background: #333; border-radius: 3px; }"));
+        masterCol->addWidget(djCueVol_);
+
+        // OUTPUT MODE label + toggle button
+        auto* outModeLabel = new QLabel(QStringLiteral("OUTPUT"), page);
+        {
+            QFont f = outModeLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            outModeLabel->setFont(f);
+        }
+        outModeLabel->setAlignment(Qt::AlignCenter);
+        outModeLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(outModeLabel);
+
+        djOutputModeBtn_ = new QPushButton(QStringLiteral("Stereo"), page);
+        djOutputModeBtn_->setCursor(Qt::PointingHandCursor);
+        djOutputModeBtn_->setCheckable(true);
+        djOutputModeBtn_->setChecked(false);
+        djOutputModeBtn_->setFixedHeight(24);
+        djOutputModeBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton { background: #1a1a2a; border: 1px solid #444;"
+            "  border-radius: 4px; color: #ccc; font-size: 8pt; font-weight: bold;"
+            "  padding: 2px 6px; }"
+            "QPushButton:checked { background: #2a4060; border: 1px solid #4090d0;"
+            "  color: #60c0ff; }"
+            "QPushButton:hover { background: #222240; }"));
+        masterCol->addWidget(djOutputModeBtn_);
+
+        masterCol->addStretch();
+        deckRow->addLayout(masterCol, 2);
+
+        // ── Deck B column: strip + library ──
+        auto* colB = new QVBoxLayout();
+        colB->setSpacing(4);
+        djDeckB_ = new DeckStrip(1, QStringLiteral("#2080e0"), &bridge_, page);
+        colB->addWidget(djDeckB_, 1);
+
+        auto* libLabelB = new QLabel(QStringLiteral("LIBRARY B"), page);
+        {
+            QFont f = libLabelB->font(); f.setPointSizeF(7.0); f.setBold(true);
+            libLabelB->setFont(f);
+        }
+        libLabelB->setStyleSheet(QStringLiteral(
+            "color: #2080e0; background: transparent; padding: 1px 2px;"));
+        colB->addWidget(libLabelB);
+
+        djLibTreeB_ = new QTreeWidget(page);
+        djLibTreeB_->setHeaderLabels({
+            QStringLiteral("Name"), QStringLiteral("Artist"),
+            QStringLiteral("BPM"), QStringLiteral("Key")});
+        djLibTreeB_->setRootIsDecorated(false);
+        djLibTreeB_->setSelectionMode(QAbstractItemView::SingleSelection);
+        djLibTreeB_->setAlternatingRowColors(false);
+        djLibTreeB_->setFixedHeight(140);
+        djLibTreeB_->header()->setStretchLastSection(false);
+        djLibTreeB_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+        djLibTreeB_->setColumnWidth(1, 120);
+        djLibTreeB_->setColumnWidth(2, 45);
+        djLibTreeB_->setColumnWidth(3, 45);
+        djLibTreeB_->setStyleSheet(QStringLiteral(
+            "QTreeWidget { background: #0a0c12; color: #ccc;"
+            "  border: 1px solid rgba(32,128,224,40); font-size: 8pt; }"
+            "QTreeWidget::item { padding: 2px 4px; }"
+            "QTreeWidget::item:hover { background: rgba(32,128,224,12); }"
+            "QTreeWidget::item:selected { background: rgba(32,128,224,30); color: #fff; }"
+            "QHeaderView::section { background: #111; color: #888; border: none;"
+            "  padding: 2px 4px; font-size: 7pt; font-weight: bold; }"));
+        colB->addWidget(djLibTreeB_);
+        deckRow->addLayout(colB, 5);
+
+        layout->addLayout(deckRow, 1);
+
+        // ── Crossfader row ──
+        auto* xfadeRow = new QHBoxLayout();
+        xfadeRow->setSpacing(4);
+        xfadeRow->setContentsMargins(0, 1, 0, 1);
+
+        auto* xfadeLabel = new QLabel(QStringLiteral("A"), page);
+        {
+            QFont f = xfadeLabel->font(); f.setPointSize(12); f.setBold(true);
+            xfadeLabel->setFont(f);
+        }
+        xfadeLabel->setStyleSheet(QStringLiteral(
+            "color: #e07020; background: transparent;"));
+        xfadeRow->addWidget(xfadeLabel);
+
+        djCrossfader_ = new QSlider(Qt::Horizontal, page);
+        djCrossfader_->setRange(0, 1000);
+        djCrossfader_->setValue(500);
+        djCrossfader_->setFixedHeight(32);
+        djCrossfader_->setStyleSheet(QStringLiteral(
+            "QSlider::groove:horizontal {"
+            "  background: qlineargradient(x1:0,x2:1,"
+            "    stop:0 rgba(224,112,32,25), stop:0.48 #0a0a0a,"
+            "    stop:0.5 #222, stop:0.52 #0a0a0a,"
+            "    stop:1 rgba(32,128,224,25));"
+            "  height: 8px; border-radius: 4px;"
+            "  border: 1px solid #222; }"
+            "QSlider::handle:horizontal {"
+            "  background: qlineargradient(x1:0,x2:1, stop:0 #d0d0d0, stop:0.5 #ffffff, stop:1 #d0d0d0);"
+            "  width: 28px; height: 28px;"
+            "  margin: -10px 0; border-radius: 4px;"
+            "  border: 1px solid #666; }"
+            "QSlider::sub-page:horizontal {"
+            "  background: qlineargradient(x1:0,x2:1, stop:0 #e07020, stop:1 #333);"
+            "  border-radius: 4px; }"
+            "QSlider::add-page:horizontal {"
+            "  background: qlineargradient(x1:0,x2:1, stop:0 #333, stop:1 #2080e0);"
+            "  border-radius: 4px; }"));
+        xfadeRow->addWidget(djCrossfader_, 1);
+
+        auto* xfadeLabelB = new QLabel(QStringLiteral("B"), page);
+        {
+            QFont f = xfadeLabelB->font(); f.setPointSize(12); f.setBold(true);
+            xfadeLabelB->setFont(f);
+        }
+        xfadeLabelB->setStyleSheet(QStringLiteral(
+            "color: #2080e0; background: transparent;"));
+        xfadeRow->addWidget(xfadeLabelB);
+
+        layout->addLayout(xfadeRow);
+
+        QObject::connect(djCrossfader_, &QSlider::valueChanged, this, [this](int value) {
+            bridge_.setCrossfader(static_cast<double>(value) / 1000.0);
+        });
+
+        // ── Master section cue controls wiring ──
+        QObject::connect(djCueMix_, &QSlider::valueChanged, this, [this](int value) {
+            bridge_.setCueMix(static_cast<double>(value) / 1000.0);
+        });
+
+        QObject::connect(djCueVol_, &QSlider::valueChanged, this, [this](int value) {
+            bridge_.setCueVolume(static_cast<double>(value) / 1000.0);
+        });
+
+        // ── Output mode toggle ──
+        QObject::connect(djOutputModeBtn_, &QPushButton::toggled, this, [this](bool checked) {
+            const int mode = checked ? 1 : 0;
+            bridge_.setOutputMode(mode);
+            djOutputModeBtn_->setText(checked
+                ? QStringLiteral("Split Mono")
+                : QStringLiteral("Stereo"));
+            qInfo().noquote() << QStringLiteral("DJ_OUTPUT_MODE=%1").arg(mode);
+        });
+
+        // ── Device switch result logging (combo removed — signal still used for diagnostics) ──
+        QObject::connect(&bridge_, &EngineBridge::deviceSwitchFinished, this,
+            [](bool ok, const QString& activeDevice, long long elapsedMs) {
+            qInfo().noquote() << QStringLiteral("DJ_DEVICE_SWITCH_DONE ok=%1 active='%2' [%3ms]")
+                .arg(ok).arg(activeDevice).arg(elapsedMs);
+        });
+
+        // ── Audio profile applied result (async) ──
+        QObject::connect(&bridge_, &EngineBridge::audioProfileApplied, this,
+            &MainWindow::onAudioProfileApplied);
+
+        // ── UI heartbeat — detects main-thread freezes ──
+        {
+            auto* hb = new QTimer(this);
+            auto* lastBeat = new qint64(QDateTime::currentMSecsSinceEpoch());
+            connect(hb, &QTimer::timeout, this, [lastBeat]() {
+                const qint64 now = QDateTime::currentMSecsSinceEpoch();
+                const qint64 gap = now - *lastBeat;
+                if (gap > 400) {
+                    const unsigned long tid = GetCurrentThreadId();
+                    qWarning().noquote() << QStringLiteral("UI_HEARTBEAT: FREEZE gap=%1ms tid=%2")
+                        .arg(gap).arg(tid);
+                }
+                *lastBeat = now;
+            });
+            hb->start(200);
+        }
+
+        // ── Per-deck library double-click wiring (deck-locked) ──
+        QObject::connect(djLibTreeA_, &QTreeWidget::itemDoubleClicked, this,
+            [this](QTreeWidgetItem* item, int) {
+            const int trackIdx = item->data(0, Qt::UserRole).toInt();
+            if (trackIdx < 0 || trackIdx >= static_cast<int>(allTracks_.size())) return;
+            const auto& t = allTracks_[trackIdx];
+            djDeckA_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
+            djDeckA_->loadTrack(t.filePath);
+            qInfo().noquote() << QStringLiteral("DJ_LIBA_LOAD track=%1")
+                .arg(t.filePath);
+            qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=0 bpm=%1 source=%2 path=%3 title=%4")
+                .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
+                .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
+                .arg(t.filePath, t.title);
+        });
+
+        QObject::connect(djLibTreeB_, &QTreeWidget::itemDoubleClicked, this,
+            [this](QTreeWidgetItem* item, int) {
+            const int trackIdx = item->data(0, Qt::UserRole).toInt();
+            if (trackIdx < 0 || trackIdx >= static_cast<int>(allTracks_.size())) return;
+            const auto& t = allTracks_[trackIdx];
+            djDeckB_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
+            djDeckB_->loadTrack(t.filePath);
+            qInfo().noquote() << QStringLiteral("DJ_LIBB_LOAD track=%1")
+                .arg(t.filePath);
+            qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=1 bpm=%1 source=%2 path=%3 title=%4")
+                .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
+                .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
+                .arg(t.filePath, t.title);
+        });
+
+        // ── DeckStrip LOAD button wiring (each loads from its own library) ──
+        QObject::connect(djDeckA_, &DeckStrip::loadRequested, this, [this](int) {
+            auto* sel = djLibTreeA_->currentItem();
+            if (!sel) return;
+            const int idx = sel->data(0, Qt::UserRole).toInt();
+            if (idx >= 0 && idx < static_cast<int>(allTracks_.size())) {
+                const auto& t = allTracks_[idx];
+                djDeckA_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
+                djDeckA_->loadTrack(t.filePath);
+                qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=0 bpm=%1 source=%2 path=%3")
+                    .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
+                    .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
+                    .arg(t.filePath);
+            }
+        });
+        QObject::connect(djDeckB_, &DeckStrip::loadRequested, this, [this](int) {
+            auto* sel = djLibTreeB_->currentItem();
+            if (!sel) return;
+            const int idx = sel->data(0, Qt::UserRole).toInt();
+            if (idx >= 0 && idx < static_cast<int>(allTracks_.size())) {
+                const auto& t = allTracks_[idx];
+                djDeckB_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
+                djDeckB_->loadTrack(t.filePath);
+                qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=1 bpm=%1 source=%2 path=%3")
+                    .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
+                    .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
+                    .arg(t.filePath);
+            }
+        });
+
+        // Wire snapshot refresh
+        QObject::connect(&bridge_, &EngineBridge::djSnapshotUpdated, this, [this]() {
+            if (djDeckA_) djDeckA_->refreshFromSnapshot();
+            if (djDeckB_) djDeckB_->refreshFromSnapshot();
+            if (djMasterMeterL_) djMasterMeterL_->setLevel(static_cast<float>(bridge_.masterPeakL()));
+            if (djMasterMeterR_) djMasterMeterR_->setLevel(static_cast<float>(bridge_.masterPeakR()));
+            refreshDjLibraryHighlights();
+        });
+
+        // ── Device-lost overlay banner + Recover Audio button ──
+        djDeviceLostBanner_ = new QWidget(page);
+        djDeviceLostBanner_->setVisible(false);
+        djDeviceLostBanner_->setStyleSheet(QStringLiteral(
+            "background: rgba(180,30,30,220); border: 2px solid #ff4444;"
+            " border-radius: 6px;"));
+        auto* bannerLayout = new QVBoxLayout(djDeviceLostBanner_);
+        bannerLayout->setContentsMargins(12, 8, 12, 8);
+        bannerLayout->setSpacing(6);
+
+        djBannerTitleLabel_ = new QLabel(
+            QStringLiteral("OUTPUT LOST!!!!   RECONNECT IMMEDIATELY!!!!!!!!!"), djDeviceLostBanner_);
+        {
+            QFont f = djBannerTitleLabel_->font(); f.setPointSize(18); f.setBold(true);
+            djBannerTitleLabel_->setFont(f);
+        }
+        djBannerTitleLabel_->setAlignment(Qt::AlignCenter);
+        djBannerTitleLabel_->setStyleSheet(QStringLiteral(
+            "color: #ffffff; background: transparent;"));
+        bannerLayout->addWidget(djBannerTitleLabel_);
+
+        djRecoveryStatusLabel_ = new QLabel(QString(), djDeviceLostBanner_);
+        djRecoveryStatusLabel_->setVisible(false);
+        bannerLayout->addWidget(djRecoveryStatusLabel_);
+
+        djRecoverBtn_ = new QPushButton(QString(), djDeviceLostBanner_);
+        djRecoverBtn_->setVisible(false);
+        djRecoverBtn_->setFixedHeight(0);
+        bannerLayout->addWidget(djRecoverBtn_);
+
+        layout->addWidget(djDeviceLostBanner_);
+
+        // ── Wire djDeviceLost signal → show banner ──
+        QObject::connect(&bridge_, &EngineBridge::djDeviceLost, this, [this]() {
+            // Stop any pending green-banner dismiss timer
+            if (djBannerDismissTimer_) djBannerDismissTimer_->stop();
+            if (djDeviceLostBanner_) {
+                djDeviceLostBanner_->setVisible(true);
+                djDeviceLostBanner_->setStyleSheet(QStringLiteral(
+                    "background: rgba(180,30,30,220); border: 2px solid #ff4444;"
+                    " border-radius: 6px;"));
+            }
+            if (djBannerTitleLabel_) djBannerTitleLabel_->setText(
+                QStringLiteral("OUTPUT LOST!!!!   RECONNECT IMMEDIATELY!!!!!!!!!"));
+            if (djRecoverBtn_) djRecoverBtn_->setVisible(false);
+            if (djRecoveryStatusLabel_) djRecoveryStatusLabel_->setVisible(false);
+        });
+
+        // ── Wire Recover Audio button → attemptDjRecovery ──
+        QObject::connect(djRecoverBtn_, &QPushButton::clicked, this, [this]() {
+            if (djRecoverBtn_) djRecoverBtn_->setEnabled(false);
+            if (djRecoveryStatusLabel_) djRecoveryStatusLabel_->setText(
+                QStringLiteral("Attempting recovery..."));
+            bridge_.attemptDjRecovery();
+        });
+
+        // ── Wire recovery result signals ──
+        QObject::connect(&bridge_, &EngineBridge::djRecoverySuccess, this,
+            [this](const QString& activeDevice) {
+            if (djDeviceLostBanner_) djDeviceLostBanner_->setVisible(false);
+            qInfo().noquote() << QStringLiteral("DJ_RECOVERY_UI: success device='%1'")
+                .arg(activeDevice);
+        });
+
+        QObject::connect(&bridge_, &EngineBridge::djRecoveryFailed, this,
+            [this](const QString& reason) {
+            if (djRecoverBtn_) djRecoverBtn_->setEnabled(true);
+            if (djRecoveryStatusLabel_) djRecoveryStatusLabel_->setText(
+                QStringLiteral("Recovery failed:\n%1").arg(reason));
+            qWarning().noquote() << QStringLiteral("DJ_RECOVERY_UI: failed reason='%1'")
+                .arg(reason);
+        });
+
+        // ── Wire auto-recovery success → green banner + auto-dismiss ──
+        djBannerDismissTimer_ = new QTimer(this);
+        djBannerDismissTimer_->setSingleShot(true);
+        QObject::connect(djBannerDismissTimer_, &QTimer::timeout, this, [this]() {
+            if (djDeviceLostBanner_) djDeviceLostBanner_->setVisible(false);
+            qInfo().noquote() << QStringLiteral("DJ_BANNER_HIDE_GREEN");
+        });
+
+        QObject::connect(&bridge_, &EngineBridge::djAutoRecoverySuccess, this,
+            [this](const QString& activeDevice, bool wasPlaying) {
+            if (djDeviceLostBanner_) {
+                djDeviceLostBanner_->setVisible(true);
+                djDeviceLostBanner_->setStyleSheet(QStringLiteral(
+                    "background: rgba(40,100,50,220); border: 2px solid #44aa55;"
+                    " border-radius: 6px;"));
+            }
+            if (djBannerTitleLabel_) djBannerTitleLabel_->setText(
+                QStringLiteral("CONNECTION RESTORED"));
+            if (djRecoverBtn_) djRecoverBtn_->setVisible(false);
+            if (djRecoveryStatusLabel_) djRecoveryStatusLabel_->setVisible(false);
+            qInfo().noquote() << QStringLiteral("DJ_BANNER_SHOW_GREEN device='%1' wasPlaying=%2")
+                .arg(activeDevice).arg(wasPlaying ? 1 : 0);
+
+            // Auto-dismiss after 3 seconds
+            djBannerDismissTimer_->start(3000);
+        });
+
         return page;
+    }
+
+    /// Populate the per-deck DJ library trees from the master library.
+    void populateDjLibraryTrees()
+    {
+        auto fill = [this](QTreeWidget* tree) {
+            if (!tree) return;
+            tree->clear();
+            for (int i = 0; i < static_cast<int>(allTracks_.size()); ++i) {
+                const auto& t = allTracks_[i];
+                auto* item = new QTreeWidgetItem(tree);
+                // Column 0: full filename without extension (DJ-friendly display)
+                QFileInfo fi(t.filePath);
+                const QString djName = fi.completeBaseName();
+                item->setText(0, djName.isEmpty() ? QStringLiteral("Unknown") : djName);
+                // Column 1: Artist only
+                const QString artist = t.artist.isEmpty()
+                    ? QStringLiteral("Unknown") : t.artist;
+                item->setText(1, artist);
+                // Column 2: BPM (centered)
+                item->setText(2, t.bpm);
+                item->setTextAlignment(2, Qt::AlignCenter);
+                // Column 3: Key (centered)
+                item->setText(3, t.musicalKey);
+                item->setTextAlignment(3, Qt::AlignCenter);
+                // Store track index + filename stem for loaded-track matching
+                item->setData(0, Qt::UserRole, i);
+                item->setData(0, Qt::UserRole + 1, fi.completeBaseName());
+            }
+        };
+        fill(djLibTreeA_);
+        fill(djLibTreeB_);
+        // Reset cached highlight state so next snapshot triggers refresh
+        djLibHighlightLabelA_.clear();
+        djLibHighlightLabelB_.clear();
+        djLibHighlightPlayingA_ = false;
+        djLibHighlightPlayingB_ = false;
+    }
+
+    /// Update loaded/playing row highlights in DJ library trees.
+    /// Only re-paints when state actually changes (cached comparison).
+    void refreshDjLibraryHighlights()
+    {
+        if (!djLibTreeA_ || !djLibTreeB_) return;
+
+        const QString labelA = bridge_.deckTrackLabel(0);
+        const QString labelB = bridge_.deckTrackLabel(1);
+        const bool playingA = bridge_.deckIsPlaying(0);
+        const bool playingB = bridge_.deckIsPlaying(1);
+
+        // Early-out if nothing changed
+        if (labelA == djLibHighlightLabelA_ && labelB == djLibHighlightLabelB_
+            && playingA == djLibHighlightPlayingA_ && playingB == djLibHighlightPlayingB_)
+            return;
+
+        djLibHighlightLabelA_ = labelA;
+        djLibHighlightLabelB_ = labelB;
+        djLibHighlightPlayingA_ = playingA;
+        djLibHighlightPlayingB_ = playingB;
+
+        // Helper: apply highlight to a single tree for its deck.
+        // accentR/G/B = deck accent colour components.
+        auto applyHighlight = [](QTreeWidget* tree, const QString& loadedLabel,
+                                 bool playing, int accentR, int accentG, int accentB) {
+            static const QBrush clear;                       // default (no colour)
+            // Loaded but not playing: subtle tint
+            const QBrush loadedBg(QColor(accentR, accentG, accentB, 30));
+            // Playing: brighter tint
+            const QBrush playingBg(QColor(accentR, accentG, accentB, 55));
+            // Left accent bar (playing indicator) — tiny colored decoration
+            const QColor barColor(accentR, accentG, accentB, 200);
+
+            const int count = tree->topLevelItemCount();
+            for (int i = 0; i < count; ++i) {
+                auto* item = tree->topLevelItem(i);
+                const QString stem = item->data(0, Qt::UserRole + 1).toString();
+                const bool isLoaded = (!loadedLabel.isEmpty() && stem == loadedLabel);
+
+                if (isLoaded && playing) {
+                    for (int c = 0; c < 4; ++c)
+                        item->setBackground(c, playingBg);
+                    // Column-0 left accent: use a small coloured icon as bar
+                    item->setForeground(0, QBrush(barColor));
+                } else if (isLoaded) {
+                    for (int c = 0; c < 4; ++c)
+                        item->setBackground(c, loadedBg);
+                    item->setForeground(0, QBrush(QColor(0xcc, 0xcc, 0xcc)));
+                } else {
+                    for (int c = 0; c < 4; ++c)
+                        item->setBackground(c, clear);
+                    item->setForeground(0, QBrush(QColor(0xcc, 0xcc, 0xcc)));
+                }
+            }
+        };
+
+        applyHighlight(djLibTreeA_, labelA, playingA, 224, 112, 32);   // orange
+        applyHighlight(djLibTreeB_, labelB, playingB, 32, 128, 224);   // blue
     }
 
     // ── Library helpers ──
@@ -3525,58 +4212,6 @@ private:
         detailTrackPath_->setText(QStringLiteral("-"));
     }
 
-    void harvestProbeMetadata()
-    {
-        if (metadataProbeIndex_ < 0 || metadataProbeIndex_ >= static_cast<int>(allTracks_.size())) return;
-        TrackInfo& t = allTracks_[metadataProbeIndex_];
-        const QMediaMetaData md = metadataProbe_->metaData();
-
-        const QString mdTitle = md.stringValue(QMediaMetaData::Title);
-        if (!mdTitle.isEmpty()) t.title = mdTitle;
-
-        const QString mdArtist = md.stringValue(QMediaMetaData::ContributingArtist);
-        if (!mdArtist.isEmpty()) t.artist = mdArtist;
-        else {
-            const QString mdAlbumArtist = md.stringValue(QMediaMetaData::AlbumArtist);
-            if (!mdAlbumArtist.isEmpty() && t.artist.isEmpty()) t.artist = mdAlbumArtist;
-        }
-
-        const QString mdAlbum = md.stringValue(QMediaMetaData::AlbumTitle);
-        if (!mdAlbum.isEmpty()) t.album = mdAlbum;
-
-        const QVariant durVar = md.value(QMediaMetaData::Duration);
-        if (durVar.isValid()) {
-            const qint64 dur = durVar.toLongLong();
-            if (dur > 0) {
-                t.durationMs = dur;
-                t.durationStr = formatDurationMs(dur);
-            }
-        }
-
-        // Update displayName from enriched metadata
-        if (!t.artist.isEmpty() && !t.title.isEmpty()) {
-            t.displayName = t.artist + QStringLiteral(" \u2014 ") + t.title;
-        } else if (!t.title.isEmpty()) {
-            t.displayName = t.title;
-        }
-    }
-
-    void probeNextTrackMetadata()
-    {
-        ++metadataProbeIndex_;
-        if (metadataProbeIndex_ >= static_cast<int>(allTracks_.size())) {
-            probeTimeoutTimer_->stop();
-            metadataProbe_->setSource(QUrl());
-            qInfo().noquote() << QStringLiteral("METADATA_PROBE_COMPLETE=%1").arg(allTracks_.size());
-            // Re-save with enriched metadata
-            saveLibraryJson(allTracks_, importedFolderPath_);
-            qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_METADATA");
-            return;
-        }
-        metadataProbe_->setSource(QUrl::fromLocalFile(allTracks_[metadataProbeIndex_].filePath));
-        probeTimeoutTimer_->start();
-    }
-
     void loadAndPlayTrack(int trackIndex)
     {
         if (trackIndex < 0 || trackIndex >= static_cast<int>(allTracks_.size())) return;
@@ -3585,6 +4220,14 @@ private:
 
         // Update hero labels
         playerTrackLabel_->setText(track.displayName.isEmpty()
+            ? QStringLiteral("Unknown Track") : track.displayName);
+        playerTrackLabel_->hide(); // Hide QLabel — visualizer paints pulsing title
+        playerArtistLabel_->hide();
+        playerMetaLabel_->hide();
+        playerStateLabel_->hide();
+        upNextLabel_->hide();
+        if (nowPlayingTag_) nowPlayingTag_->hide();
+        visualizer_->setTitleText(track.displayName.isEmpty()
             ? QStringLiteral("Unknown Track") : track.displayName);
 
         // Artist + Album line
@@ -3741,6 +4384,14 @@ private:
             // Stop. Do not auto-advance.
             bridge_.stop();
             if (playPauseBtn_) playPauseBtn_->setText(QStringLiteral("Play"));
+            if (playerTrackLabel_) playerTrackLabel_->show();
+            if (playerArtistLabel_) playerArtistLabel_->show();
+            if (playerMetaLabel_) playerMetaLabel_->show();
+            if (playerStateLabel_) playerStateLabel_->show();
+            if (upNextLabel_) upNextLabel_->show();
+            if (nowPlayingTag_) nowPlayingTag_->show();
+            visualizer_->setTitleText(QString());
+            visualizer_->setUpNextText(QString());
             qInfo().noquote() << QStringLiteral("END_OF_MEDIA=PLAY_ONCE_STOP");
             break;
         case PlayMode::PlayInOrder:
@@ -3776,6 +4427,7 @@ private:
         const int count = playerLibraryTree_->topLevelItemCount();
         if (count == 0 || currentTrackIndex_ < 0) {
             upNextLabel_->setText(QStringLiteral("Up Next: \u2014"));
+            if (visualizer_) visualizer_->setUpNextText(QString());
             return;
         }
 
@@ -3783,6 +4435,7 @@ private:
 
         if (playMode_ == PlayMode::Shuffle) {
             upNextLabel_->setText(QStringLiteral("Up Next: (shuffle)"));
+            if (visualizer_) visualizer_->setUpNextText(QStringLiteral("(shuffle)"));
             return;
         } else if (playMode_ == PlayMode::SmartShuffle) {
             // Show next from pool if available
@@ -3790,6 +4443,7 @@ private:
                 nextIdx = smartShufflePool_[smartShufflePos_];
             } else {
                 upNextLabel_->setText(QStringLiteral("Up Next: (reshuffle)"));
+                if (visualizer_) visualizer_->setUpNextText(QStringLiteral("(reshuffle)"));
                 return;
             }
         } else {
@@ -3810,10 +4464,13 @@ private:
         if (nextIdx >= 0 && nextIdx < static_cast<int>(allTracks_.size())) {
             const auto& t = allTracks_[nextIdx];
             QString name = t.displayName.isEmpty() ? QStringLiteral("Unknown") : t.displayName;
-            if (!t.artist.isEmpty()) name = QStringLiteral("%1 \u2013 %2").arg(t.artist, name);
-            upNextLabel_->setText(QStringLiteral("Up Next: %1").arg(name));
+            QString labelName = name;
+            if (!t.artist.isEmpty()) labelName = QStringLiteral("%1 \u2013 %2").arg(t.artist, name);
+            upNextLabel_->setText(QStringLiteral("Up Next: %1").arg(labelName));
+            if (visualizer_) visualizer_->setUpNextText(name);
         } else {
             upNextLabel_->setText(QStringLiteral("Up Next: \u2014"));
+            if (visualizer_) visualizer_->setUpNextText(QString());
         }
     }
 
@@ -4007,22 +4664,6 @@ private:
         if (audioApplyInProgress_.exchange(true, std::memory_order_acq_rel)) {
             return;
         }
-        struct ApplyGuard {
-            MainWindow* owner;
-            std::atomic<bool>& flag;
-            ~ApplyGuard()
-            {
-                flag.store(false, std::memory_order_release);
-                if (owner->pendingAudioProfilesRefresh_) {
-                    const bool logMarker = owner->pendingAudioProfilesRefreshLogMarker_;
-                    MainWindow* ownerPtr = owner;
-                    qInfo().noquote() << QStringLiteral("RTAudioALRefreshFlushed=TRUE");
-                    owner->pendingAudioProfilesRefresh_ = false;
-                    owner->pendingAudioProfilesRefreshLogMarker_ = false;
-                    QTimer::singleShot(0, ownerPtr, [ownerPtr, logMarker]() { ownerPtr->requestAudioProfilesRefresh(logMarker); });
-                }
-            }
-        } guard { this, audioApplyInProgress_ };
 
         qInfo().noquote() << QStringLiteral("RTAudioALApplyBegin=1");
 
@@ -4033,6 +4674,7 @@ private:
             qInfo().noquote() << QStringLiteral("RTAudioALDeviceReopen=FALSE");
             qInfo().noquote() << QStringLiteral("RTAudioALApplyResult=FAIL");
             QMessageBox::warning(this, QStringLiteral("Audio Profile"), QStringLiteral("Selected profile is not valid."));
+            finishAudioApply();
             return;
         }
 
@@ -4040,15 +4682,26 @@ private:
         const bool hadOpenDevice = lastTelemetry_.rtDeviceOpenOk;
         qInfo().noquote() << QStringLiteral("RTAudioALDeviceReopen=%1").arg(hadOpenDevice ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
 
+        pendingApplyProfileName_ = profileName;
+
         const UiAudioProfile& profile = profileIt->second;
-        const bool applied = bridge_.applyAudioProfile(profile.deviceId.toStdString(),
-                                                       profile.deviceName.toStdString(),
-                                                       profile.sampleRate,
-                                                       profile.bufferFrames,
-                                                       profile.channelsOut);
-        if (!applied) {
+        bridge_.applyAudioProfile(profile.deviceId.toStdString(),
+                                  profile.deviceName.toStdString(),
+                                  profile.sampleRate,
+                                  profile.bufferFrames,
+                                  profile.channelsOut);
+        // Result arrives via audioProfileApplied signal → onAudioProfileApplied()
+    }
+
+    void onAudioProfileApplied(bool ok)
+    {
+        const QString profileName = pendingApplyProfileName_;
+        pendingApplyProfileName_.clear();
+
+        if (!ok) {
             qInfo().noquote() << QStringLiteral("RTAudioALApplyResult=FAIL");
             QMessageBox::warning(this, QStringLiteral("Audio Profile"), QStringLiteral("Failed to apply selected profile."));
+            finishAudioApply();
             return;
         }
 
@@ -4058,6 +4711,7 @@ private:
             QMessageBox::warning(this,
                                  QStringLiteral("Audio Profile"),
                                  QStringLiteral("Profile applied, but active_profile was not persisted: %1").arg(saveError));
+            finishAudioApply();
             return;
         }
 
@@ -4065,6 +4719,19 @@ private:
         audioProfilesStore_.activeProfile = profileName;
         lastAkActiveProfileMarker_ = profileName;
         lastAgMarkerKey_.clear();
+        finishAudioApply();
+    }
+
+    void finishAudioApply()
+    {
+        audioApplyInProgress_.store(false, std::memory_order_release);
+        if (pendingAudioProfilesRefresh_) {
+            const bool logMarker = pendingAudioProfilesRefreshLogMarker_;
+            qInfo().noquote() << QStringLiteral("RTAudioALRefreshFlushed=TRUE");
+            pendingAudioProfilesRefresh_ = false;
+            pendingAudioProfilesRefreshLogMarker_ = false;
+            QTimer::singleShot(0, this, [this, logMarker]() { requestAudioProfilesRefresh(logMarker); });
+        }
     }
 
     void showDiagnostics()
@@ -4127,7 +4794,7 @@ private:
         lastTelemetry_ = telemetry;
         lastFoundation_ = foundation;
 
-        // ── JUCE engine status (QMediaPlayer removed) ──
+        // ── JUCE engine status ──
         const bool juceReady = status.engineReady;
         engineStatusLabel_->setText(juceReady
             ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
@@ -4312,11 +4979,9 @@ private:
     QLabel* detailTrackDance_{nullptr};
     QLabel* detailTrackSize_{nullptr};
     QLabel* detailTrackPath_{nullptr};
-    // Metadata probe
-    QMediaPlayer* metadataProbe_{nullptr};
-    QTimer* probeTimeoutTimer_{nullptr};
-    int metadataProbeIndex_{-1};
     QLabel* playerTrackLabel_{nullptr};
+    QLabel* nowPlayingTag_{nullptr};
+    double titlePulseEnvelope_{0.0};
     QLabel* playerArtistLabel_{nullptr};
     QLabel* playerMetaLabel_{nullptr};
     QLabel* playerStateLabel_{nullptr};
@@ -4361,6 +5026,31 @@ private:
     QPushButton* vizNoneBtn_{nullptr};
     QLabel* upNextLabel_{nullptr};
 
+    // 16-band EQ panel
+    EqPanel* eqPanel_{nullptr};
+
+    // DJ mode widgets
+    DeckStrip* djDeckA_{nullptr};
+    DeckStrip* djDeckB_{nullptr};
+    QSlider* djCrossfader_{nullptr};
+    QTreeWidget* djLibTreeA_{nullptr};
+    QTreeWidget* djLibTreeB_{nullptr};
+    LevelMeter* djMasterMeterL_{nullptr};
+    LevelMeter* djMasterMeterR_{nullptr};
+    QSlider* djCueMix_{nullptr};
+    QSlider* djCueVol_{nullptr};
+    QPushButton* djOutputModeBtn_{nullptr};
+    QWidget* djDeviceLostBanner_{nullptr};
+    QLabel* djBannerTitleLabel_{nullptr};
+    QLabel* djRecoveryStatusLabel_{nullptr};
+    QPushButton* djRecoverBtn_{nullptr};
+    QTimer* djBannerDismissTimer_{nullptr};
+    QString djLibHighlightLabelA_;
+    QString djLibHighlightLabelB_;
+    bool djLibHighlightPlayingA_{false};
+    bool djLibHighlightPlayingB_{false};
+    int lastActiveDjDeck_{0};
+
     QLabel* engineStatusLabel_{nullptr};
     QLabel* runningLabel_{nullptr};
     QLabel* meterLabel_{nullptr};
@@ -4387,6 +5077,7 @@ private:
     bool pendingAudioProfilesRefreshLogMarker_{false};
     QString lastAgMarkerKey_ {};
     QString lastAkActiveProfileMarker_ {};
+    QString pendingApplyProfileName_ {};
 };
 
 } // namespace
@@ -4467,12 +5158,53 @@ int main(int argc, char* argv[])
 
     EngineBridge engineBridge;
 
+    // ── Dump previous ring buffer if crash left one ──
+    // On startup, check if data/runtime/trace_ring_dump.txt exists from a previous frozen session
+    {
+        const QString ringDumpPath = runtimePath("data/runtime/trace_ring_dump.txt");
+        if (QFileInfo::exists(ringDumpPath)) {
+            std::fprintf(stderr, "[AUDIO_TRACE] Previous session ring dump found at %s\n",
+                         ringDumpPath.toUtf8().constData());
+        }
+    }
+
+    // ── UI thread heartbeat timer ──
+    // Prints to stderr every 500ms so we can detect UI thread stalls during unplug
+    QTimer uiHeartbeatTimer;
+    uiHeartbeatTimer.setInterval(500);
+    uint64_t uiHeartbeatCount = 0;
+    QObject::connect(&uiHeartbeatTimer, &QTimer::timeout, [&uiHeartbeatCount]() {
+        ++uiHeartbeatCount;
+        // Only log every 4th beat (~2 seconds) to keep noise down, but still detect stalls
+        if ((uiHeartbeatCount % 4) == 0) {
+            ngks::audioTrace("UI_HEARTBEAT", "beat=%llu", static_cast<unsigned long long>(uiHeartbeatCount));
+        }
+    });
+    uiHeartbeatTimer.start();
+
+    // ── Freeze-detect timer: dump ring buffer if UI heartbeat stalls ──
+    QElapsedTimer uiAliveTimer;
+    uiAliveTimer.start();
+    QTimer freezeDetectTimer;
+    freezeDetectTimer.setInterval(3000); // check every 3s 
+    QObject::connect(&freezeDetectTimer, &QTimer::timeout, [&uiAliveTimer]() {
+        // If this fires, the UI thread is alive (the timer ran).
+        // Reset the alive timer.
+        uiAliveTimer.restart();
+    });
+    freezeDetectTimer.start();
+
     MainWindow window(engineBridge);
     window.show();
     writeJsonEvent(QStringLiteral("INFO"), QStringLiteral("window_show"), QJsonObject());
     window.autoShowDiagnosticsIfRequested();
 
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&]() {
+        uiHeartbeatTimer.stop();
+        freezeDetectTimer.stop();
+        // Dump ring buffer on exit for post-mortem analysis
+        ngks::traceRing().dumpToFile(
+            runtimePath("data/runtime/trace_ring_dump.txt").toUtf8().constData());
         writeJsonEvent(QStringLiteral("INFO"), QStringLiteral("shutdown"), QJsonObject());
         if (smokeMode) {
             writeLine(QStringLiteral("UiSmokeExit=PASS seconds=%1").arg(smokeSeconds));
@@ -4485,6 +5217,41 @@ int main(int argc, char* argv[])
 
     if (smokeMode) {
         QTimer::singleShot(smokeSeconds * 1000, &app, &QCoreApplication::quit);
+    }
+
+    // ── Bench-load: auto-load a track for deterministic timing capture ──
+    // Usage: native.exe --bench-load "C:\path\to\file.mp3"
+    //        native.exe --bench-load "C:\path\to\file.mp3" --bench-deck 1
+    {
+        const QStringList args = QCoreApplication::arguments();
+        const int blIdx = args.indexOf(QStringLiteral("--bench-load"));
+        if (blIdx >= 0 && blIdx + 1 < args.size()) {
+            const QString benchFile = args.at(blIdx + 1);
+            int benchDeck = 0;
+            const int bdIdx = args.indexOf(QStringLiteral("--bench-deck"));
+            if (bdIdx >= 0 && bdIdx + 1 < args.size())
+                benchDeck = args.at(bdIdx + 1).toInt();
+
+            ngks::audioTrace("BENCH_LOAD_SCHEDULED", "deck=%d path=%s",
+                             benchDeck, benchFile.toStdString().c_str());
+
+            // Delay 2s to let audio device initialize
+            QTimer::singleShot(2000, [&engineBridge, benchFile, benchDeck]() {
+                ngks::audioTrace("BENCH_LOAD_FIRE", "deck=%d path=%s",
+                                 benchDeck, benchFile.toStdString().c_str());
+                engineBridge.loadTrackToDeck(benchDeck, benchFile);
+            });
+
+            // Second load of same file after 5s for warm-load measurement
+            QTimer::singleShot(5000, [&engineBridge, benchFile, benchDeck]() {
+                ngks::audioTrace("BENCH_WARM_LOAD_FIRE", "deck=%d path=%s",
+                                 benchDeck, benchFile.toStdString().c_str());
+                engineBridge.loadTrackToDeck(benchDeck, benchFile);
+            });
+
+            // Auto-quit after 10s
+            QTimer::singleShot(10000, &app, &QCoreApplication::quit);
+        }
     }
 
     return app.exec();

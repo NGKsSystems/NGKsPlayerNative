@@ -12,6 +12,7 @@ namespace ngks {
 
 constexpr uint32_t SNAP_AUDIO_RUNNING = 1u << 0;
 constexpr uint32_t SNAP_WARMUP_COMPLETE = 1u << 1;
+constexpr uint32_t SNAP_DJ_DEVICE_LOST = 1u << 2;
 
 enum class CommandResult : uint8_t {
     None = 0,
@@ -40,6 +41,7 @@ struct DeckSnapshot {
     uint32_t cachedAnalysisStatus{0};
     uint64_t lastAcceptedCommandSeq{0};
     bool commandLocked{false};
+    uint64_t trackLoadGen{0};
 
     TransportState transport{TransportState::Stopped};
 
@@ -57,7 +59,8 @@ struct DeckSnapshot {
     bool audible{false};
     bool publicFacing{false};
     bool routingActive{false};
-    bool cueEnabled{true};
+    bool cueEnabled{false};
+    bool muted{false};
     FxSlotState fxSlots[4] {};
 };
 

@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "engine/dsp/ParametricEQ16.h"
 #include "engine/runtime/EngineSnapshot.h"
 #include "engine/runtime/fx/FxChain.h"
 #include "engine/runtime/MixMatrix.h"
@@ -14,10 +15,15 @@ namespace ngks {
 struct GraphDeckStats {
     float rms = 0.0f;
     float peak = 0.0f;
+    float peakL = 0.0f;
+    float peakR = 0.0f;
 };
 
 struct GraphRenderStats {
     std::array<GraphDeckStats, MAX_DECKS> decks {};
+    const float* cueBusL{nullptr};
+    const float* cueBusR{nullptr};
+    int cueBusSamples{0};
 };
 
 class AudioGraph {
@@ -28,6 +34,7 @@ public:
 
     // Access deck node for file load/unload/seek (called from UI thread)
     DeckNode& getDeckNode(DeckId deckId) noexcept;
+    const DeckNode& getDeckNode(DeckId deckId) const noexcept;
 
     bool setDeckFxSlotType(DeckId deckId, int slotIndex, uint32_t fxType) noexcept;
     bool setDeckFxSlotEnabled(DeckId deckId, int slotIndex, bool enabled) noexcept;
@@ -38,6 +45,13 @@ public:
     bool isDeckFxSlotEnabled(DeckId deckId, int slotIndex) const noexcept;
     FxSlotState getDeckFxSlotState(DeckId deckId, int slotIndex) const noexcept;
     bool isMasterFxSlotEnabled(int slotIndex) const noexcept;
+
+    // 16-band Parametric EQ per deck
+    bool setEqBandGain(DeckId deckId, int band, float gainDb) noexcept;
+    float getEqBandGain(DeckId deckId, int band) const noexcept;
+    void setEqBypass(DeckId deckId, bool bypassed) noexcept;
+    bool isEqBypassed(DeckId deckId) const noexcept;
+    void resetEq(DeckId deckId) noexcept;
 
     GraphRenderStats render(const EngineSnapshot& state,
                             const MixMatrix& mixMatrix,
@@ -50,6 +64,7 @@ private:
 
     std::array<DeckNode, MAX_DECKS> deckNodes {};
     std::array<FxChain, MAX_DECKS> deckFxChains {};
+    std::array<ParametricEQ16, MAX_DECKS> deckEqs {};
     FxChain masterFxChain;
     MasterMixNode masterMixNode;
     CueMixNode cueMixNode;

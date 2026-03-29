@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -85,8 +86,34 @@ enum class EngineRunState : uint8_t
     RtFailed
 };
 
+struct PlaybackStateCapture {
+    struct DeckState {
+        ngks::TransportState transport{ngks::TransportState::Stopped};
+        double playheadSeconds{0.0};
+        double lengthSeconds{0.0};
+        bool hasTrack{false};
+        bool muted{false};
+        bool cueEnabled{false};
+        char trackLabel[64]{};
+    };
+    DeckState decks[ngks::MAX_DECKS]{};
+};
+
+struct DeviceSwitchResult {
+    bool ok{false};
+    bool rollbackUsed{false};
+    bool rollbackOk{false};
+    std::string requestedDevice;
+    std::string activeDevice;
+    std::string previousDevice;
+    PlaybackStateCapture capturedState;
+    PlaybackStateCapture restoredState;
+    long long elapsedMs{0};
+};
+
 class EngineCore
 {
+    friend class AudioIOJuce;
 public:
     explicit EngineCore(bool offlineMode = false);
     ~EngineCore();
@@ -96,6 +123,9 @@ public:
     void enqueueCommand(const ngks::Command& command);
     uint32_t nextSeq() noexcept { return internalCommandSeq_.fetch_add(1u, std::memory_order_relaxed); }
     void updateCrossfader(float x);
+    void setOutputMode(int mode) noexcept { outputMode_.store(mode, std::memory_order_relaxed); }
+    int outputMode() const noexcept { return outputMode_.load(std::memory_order_relaxed); }
+    void setCueVolume(float linear) noexcept { cueVolume_.store(std::clamp(linear, 0.0f, 1.0f), std::memory_order_relaxed); }
     bool renderOfflineBlock(float* outInterleavedLR, uint32_t frames);
     EngineTelemetrySnapshot getTelemetrySnapshot() const noexcept;
     bool startRtAudioProbe(float toneHz, float toneDb) noexcept;
@@ -106,13 +136,60 @@ public:
     void setPreferredAudioFormat(double sampleRate, int bufferFrames, int channelsOut);
     void clearPreferredAudioDevice();
     bool reopenAudioWithPreferredConfig() noexcept;
+    DeviceSwitchResult reopenAudioControlled() noexcept;
+    PlaybackStateCapture capturePlaybackState() const noexcept;
+    bool isDeviceSwitchInFlight() const noexcept { return deviceSwitchInFlight_.load(std::memory_order_acquire); }
+    std::string getActiveDeviceName() const noexcept;
+
+    // ── DJ mode device-loss ──
+    void setDjMode(bool enabled) noexcept;
+    bool isDjMode() const noexcept;
+    bool isDjDeviceLost() const noexcept;
+    void clearDjDeviceLost() noexcept;
+    void forceStopAllDecks() noexcept;
+    void forceDjDeviceLost() noexcept;
+
+    /// Explicit DJ audio recovery — verifies device presence, reopens audio,
+    /// clears djDeviceLost_ only on success.  No auto-play.
+    struct DjRecoveryResult {
+        bool ok{false};
+        std::string activeDevice;
+        std::string reason;
+        std::string matchType;                  // "exact"/"normalized"/"class" or empty
+        std::string expectedDevice;             // what we were looking for
+        std::vector<std::string> available;     // devices enumerated during recovery
+        bool deckWasPlaying[ngks::MAX_DECKS]{};  // per-deck transport state at time of loss
+    };
+    DjRecoveryResult attemptDjRecovery() noexcept;
+
+    /// Periodic DJ output validity enforcer.
+    /// Call from UI/message thread (~16ms poll).  Internally throttled.
+    /// Returns true if it just forced a device-lost event.
+    bool pollDjOutputEnforcer() noexcept;
+
+    /// Periodic DJ auto-recovery probe.  Call from UI/message thread while
+    /// djDeviceLost_ is active.  Checks if the intended DJ output has
+    /// reappeared and, if a stable match persists, triggers recovery via
+    /// the existing hardened pipeline.  Returns a valid DjRecoveryResult
+    /// when auto-recovery fires (ok=true on success).  Returns ok=false
+    /// with an empty reason when no action was taken (normal idle case).
+    DjRecoveryResult pollDjAutoRecovery() noexcept;
 
     // Load a real audio file into a deck (called from UI thread, NOT RT).
     // Returns true on success; fills outDurationSeconds.
-    bool loadFileIntoDeck(ngks::DeckId deckId, const std::string& filePath, double& outDurationSeconds);
+    bool loadFileIntoDeck(ngks::DeckId deckId, const std::string& filePath, double& outDurationSeconds, uint64_t trackLoadGen = 0);
 
     // Seek a deck to a position in seconds.
     void seekDeck(ngks::DeckId deckId, double seconds);
+
+    /// Get downsampled waveform overview for a deck (thread-safe, true min/max).
+    std::vector<ngks::WaveMinMax> getWaveformOverview(ngks::DeckId deckId, int numBins);
+
+    /// Returns true once the full file (not just preload) has been decoded.
+    bool isDeckFullyDecoded(ngks::DeckId deckId) const;
+
+    /// Returns the file path currently loaded in a deck (empty if none).
+    std::string getDeckFilePath(ngks::DeckId deckId) const;
 
     void prepare(double sampleRate, int blockSize);
     void process(float* left, float* right, int numSamples) noexcept;
@@ -188,10 +265,39 @@ private:
     void sanitizeSnapshot(ngks::EngineSnapshot& snapshot) const noexcept;
     void publishSnapshot(const ngks::EngineSnapshot& snapshot) noexcept;
     void setRunState(EngineRunState state) noexcept;
+    void notifyDeviceStopped() noexcept;
 
     std::unique_ptr<AudioIOJuce> audioIO;
     bool offlineMode_ = false;
     std::atomic<bool> audioOpened { false };
+    std::atomic<bool> rtRecoveryInFlight_ { false };
+    std::atomic<bool> deviceSwitchInFlight_ { false };  // suppress watchdog/recovery during intentional switch
+    std::atomic<bool> djMode_ { false };
+    std::atomic<bool> djDeviceLost_ { false };
+    std::atomic<bool> djRecoveryInFlight_ { false };  // serializes recovery vs enforcer
+
+    // ── DJ output validity enforcer state ──
+    struct DjEnforcerState {
+        int64_t firstInvalidTickMs{0};   // steady_clock ms when invalidity first detected
+        uint64_t lastCallbackCount{0};   // last observed callback counter
+        int64_t lastPollTickMs{0};       // last enforcer poll time (throttle)
+        bool armed{false};               // true = invalid output detected, waiting threshold
+    };
+    DjEnforcerState djEnforcer_;
+
+    // ── DJ auto-recovery probe state (active while djDeviceLost_ == true) ──
+    struct DjAutoRecoveryState {
+        int64_t lastProbeTickMs{0};           // throttle: don't probe more often than every 1s
+        int64_t firstMatchTickMs{0};          // steady_clock ms when a safe match was first seen
+        int64_t lastAttemptTickMs{0};          // when last recovery attempt was made (cooldown)
+        std::string lastMatchedDevice;        // device name seen on previous probe
+        bool matchStable{false};              // true = same match persisted across probes
+    };
+    DjAutoRecoveryState djAutoRecovery_;
+
+    // ── Per-deck transport state captured at device-loss time ──
+    bool deckWasPlayingBeforeLoss_[ngks::MAX_DECKS]{};
+
     std::atomic<uint32_t> frontSnapshotIndex { 0 };
 
     ngks::EngineSnapshot snapshots[2] {};
@@ -200,6 +306,8 @@ private:
     std::atomic<uint32_t> internalCommandSeq_{1000000u}; // internal seq counter, starts high to avoid bridge collisions
     MixMatrix mixMatrix_ {};
     float crossfaderPosition_ = 0.5f;
+    std::atomic<int> outputMode_ { 0 };  // 0=Stereo, 1=FullMono (master→L, cue→R)
+    std::atomic<float> cueVolume_ { 1.0f };
     ngks::MasterBus masterBus_ {};
     ngks::AudioGraph audioGraph;
     ngks::JobSystem jobSystem;
@@ -211,8 +319,10 @@ private:
     double sampleRateHz = 48000.0;
     int fadeSamplesTotal = 9600;
     float deckRmsSmoothing[ngks::MAX_DECKS] {};
-    float deckPeakSmoothing[ngks::MAX_DECKS] {};
-    int deckPeakHoldBlocks[ngks::MAX_DECKS] {};
+    float deckPeakSmoothingL[ngks::MAX_DECKS] {};
+    float deckPeakSmoothingR[ngks::MAX_DECKS] {};
+    int deckPeakHoldBlocksL[ngks::MAX_DECKS] {};
+    int deckPeakHoldBlocksR[ngks::MAX_DECKS] {};
     float masterRmsSmoothing = 0.0f;
     float masterPeakSmoothing = 0.0f;
     int masterPeakHoldBlocks = 0;

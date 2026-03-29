@@ -1,0 +1,11 @@
+{
+  "history_run_id": "run_000001",
+  "run_id": "certification_compare_20260327_092156",
+  "timestamp": "2026-03-27T06:21:56.756765+00:00",
+  "project_name": "NGKsPlayerNative",
+  "execution_profile": "STANDARD",
+  "certification_decision": "CERTIFIED_REGRESSION",
+  "gate_result": "FAIL",
+  "subtarget_count": 1,
+  "regression_count": 1
+}
