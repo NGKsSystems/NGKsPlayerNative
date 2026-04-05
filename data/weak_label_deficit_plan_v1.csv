@@ -1,0 +1,5 @@
+label,current_support,target_min_support,deficit,needed_primary_examples,needed_secondary_examples,notes
+Hip-Hop,33,50,17,12,5,Below target — moderate priority
+Metal,8,30,22,16,6,Very low support — high priority
+Other,9,30,21,15,6,Very low support — high priority
+Pop,11,30,19,14,5,Very low support — high priority

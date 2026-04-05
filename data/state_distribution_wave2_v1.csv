@@ -1,0 +1,4 @@
+state,count_before,count_after,delta
+READY_NORMALIZED,242,267,25
+REVIEW_REQUIRED,412,340,-72
+HELD_PROBLEMS,319,366,47

@@ -1,0 +1,52 @@
+track_id,artist,title,target_label,support_type,primary_genre,subgenre,secondary_genre,selection_priority,selection_reason
+1944,Adam Calhoun & Demun Jones,"Adam Calhoun, Demun Jones, & Upchurch - World Went to Waste 2.0",Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+1955,Akon featuring Eminem,Akon ft Eminem - Smack That ,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2026,Brandon Hart,Brandon Hart - Crazy,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2028,Brandon Hart,Brandon Hart - Dealing With,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2030,Brandon Hart,Brandon Hart - Opener,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2047,Bubba Sparxxx,Bubba Sparxxx Ft  Jj Lawhorn  - Past Is Practice,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2069,Chamillionaire,Chamillionaire - Good Morning,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2070,Chamillionaire,Chamillionaire - Ridin' Dirty,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2119,Coolio,Coolio - Fantastic Voyage,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2160,Dax & Tom MacDonald,Dax - Propaganda Feat. Tom MacDonald,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2176,Demun Jones,Demun Jones - Feeling Good,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2177,Demun Jones,Demun Jones - Jessica,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2179,Demun Jones,Demun Jones - RedWhiteBlue,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2341,Jelly Roll,Jelly Roll  - Train Tracks,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2181,Demun Jones & Long Cut,Demun Jones - The Leaves,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2335,Jawga Boyz,Jawga Boys - Welcome 2 Jawga,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2216,Eminem,Eminem - Without Me,Hip-Hop,primary,Hip-Hop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+1972,Avenged Sevenfold,Avenged Sevenfold - Hail To The King,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+1978,Bad Wolves,Bad Wolves - If Tomorrow Never Comes,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2223,Five Finger Death Punch,Five Finger Death Punch - Blue On Black,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2226,Five Finger Death Punch,Five Finger Death Punch - Darkness Settles In,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2227,Five Finger Death Punch,Five Finger Death Punch - Gone Away,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2319,Iron Maiden,Iron Maiden - Wasted Years ,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2376,Judas Priest,Judas Priest - Turbo Lover,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2488,Pop Evil,Pop Evil - Boss's Daughter,Metal,primary,Metal,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2013,Bob Marley & The Wailers,Bob Marley - Three Little Birds,Other,primary,Reggae,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2297,Television's Greatest Hits Band,Greg Kihn Band - Jeopardy,Other,primary,Soundtrack,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2382,Kapena,Kapena - Don't Say Goodbye ,Other,primary,World,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2534,Sammy Johnson,Sammy Johnson - Don't Say Goodbye,Other,primary,Reggae,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2550,Shaggy,Shaggy - Angel,Other,primary,World,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2551,Shaggy,Shaggy - It Wasn't Me,Other,primary,Reggae,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2774,Stick Figure,Stick Figure – ＂Angels Above Me＂ (Official Music Video),Other,primary,Reggae,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2835,Stick Figure,Stick Figure – Angels Above Me,Other,primary,Reggae,,,P3,high_confidence; clean_primary_exemplar
+1921,38 Special,38 Special - Back Where You Belong,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+1968,Animotion,Animotion - Obsession,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+1989,Billy Joel,Billy Joel - Pressure,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+1993,Billy Squier,Billy Squier - Everybody Wants You,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2035,Bryan Adams,Brian Adams - Summer of '69,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2065,Carrie Underwood,Carrie Underwood - Before He Cheats,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2151,Daryle Singletary,Daryle Singletary - Too Much Fun,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2213,Elton John,Elton John - Levon,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2308,Hootie & The Blowfish,Hootie & The Blowfish - Only Wanna Be With You,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2332,Jason Aldean,Jason Aldean - Take a Little Ride,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2339,Jd Crutch,Jd Crutch - Bente Uno Yo' Gi Presu,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2406,LEN,Len - Steal My Sunshine,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2416,The B-52's,Love Shack - The B-52's,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2430,Mark Chesnutt,Mark Chestnut - It Sure Is Monday,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2518,Robin Thicke,Robin Thick - Blurred Lines,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2523,Roxette,Roxette - Joyride,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2735,Travis Tritt,Travis Tritt - Where Corn Don't Grow,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar
+2740,Uncle Kracker,Uncle Kracker - Good To Be Me,Pop,primary,Pop,,,P1,has_analysis_data; high_confidence; clean_primary_exemplar

@@ -1,0 +1,27 @@
+track_id,artist,title,primary_genre,secondary_genre,evidence,assigned_reason
+2527,Upchurch,Ryan Upchurch - Black Sheep,Country,Hip-Hop,Country-rap artist,high_frequency_pair
+2636,Tom MacDonald,Tom MacDonald - Dear Rappers,Hip-Hop,Rock,Rap-rock artist,high_frequency_pair
+2548,Tom MacDonald,See God - Tom MacDonald,Hip-Hop,Rock,Rap-rock artist,high_frequency_pair
+2397,Kid Rock,Kid Rock - The Last Dance,Rock,Country,Rock-country crossover,high_frequency_pair
+2667,Tom MacDonald,Tom MacDonald - People So Stupid,Hip-Hop,Rock,Rap-rock artist,high_frequency_pair
+2659,Tom MacDonald,Tom MacDonald - Money,Hip-Hop,Rock,Rap-rock artist,high_frequency_pair
+2655,Tom MacDonald,Tom MacDonald - Im Corny,Hip-Hop,Rock,Rap-rock artist,high_frequency_pair
+2639,Tom MacDonald,Tom MacDonald - Everybody Hates Me,Hip-Hop,Rock,Rap-rock artist,high_frequency_pair
+2634,Tom MacDonald,Tom MacDonald - Castles,Hip-Hop,Rock,Rap-rock artist,high_frequency_pair
+2386,Kid Rock,Kid Rock - All Summer Long,Rock,Country,Rock-country crossover,high_frequency_pair
+2645,Tom MacDonald,Tom MacDonald - Ghost,Pop,Rock,Rap-rock artist,low_frequency_pair
+2761,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,Hip-Hop,Parody artist,low_frequency_pair
+2537,Sara Evans,Sara Evans - Suds In The Bucket,Country,Pop,Misfit anomaly (conf=0.8),low_frequency_pair
+2841,Unknown,Dax - Temptation,Hip-Hop,Country,Misfit anomaly (conf=0.8),low_frequency_pair
+2770,Zac Brown Band,Zac Brown Band - Heavy Is The Head,Country,Pop,Misfit anomaly (conf=0.8),low_frequency_pair
+2706,Tone-Loc,Tone Loc - Wild Thing,Hip-Hop,Pop,Pop-rap crossover,low_frequency_pair
+2182,Demun Jones,Demun Jones - Truck Music,Country,Hip-Hop,Country-rap artist,random_sample
+2082,Chris Stapleton,Chris Stapleton - Fire Away,Country,Rock,Country-rock / blues-rock,random_sample
+2595,Tom MacDonald,The System - Tom MacDonald,Hip-Hop,Rock,Rap-rock artist,random_sample
+2626,Tom MacDonald,Tom MacDonald - American Dreamz,Hip-Hop,Rock,Rap-rock artist,random_sample
+2693,Tom MacDonald,Tom MacDonald - Way Off,Hip-Hop,Rock,Rap-rock artist,random_sample
+2752,Van Zant,Van Zant - Help Somebody,Rock,Country,Southern rock / country,random_sample
+2389,Kid Rock,Kid Rock - Cowboy,Rock,Country,Rock-country crossover,random_sample
+2573,Tom MacDonald,Still The One - Tom MacDonald,Hip-Hop,Rock,Rap-rock artist,random_sample
+2556,Shinedown,Shinedown - Dead Don_t Die,Rock,Metal,Hard rock / post-grunge,random_sample
+2166,Def Leppard,Def Leppard - Love Bites,Rock,Metal,Hard rock / glam metal,random_sample

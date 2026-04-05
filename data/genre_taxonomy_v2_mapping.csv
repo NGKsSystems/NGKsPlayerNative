@@ -1,0 +1,12 @@
+original_genre,v2_genre,reason,support_count,confusion_notes
+Country,Country,"Largest class, highest F1 (0.716), well-separated. Keep as-is.",82,Main confusion with Rock (35 bidirectional errors). Southern Rock border.
+Rock,Rock,"Second largest, F1=0.507, core genre. Keep as-is.",66,"Confused with Country (35), acts as gravity well for minority classes."
+Hip-Hop,Hip-Hop,"Third largest, F1=0.156 (marginal but non-zero). Country-rap fusion causes bleed. Keep separate.",29,Bleeds into Rock (15) and Country (8). Fusion artists drive confusion.
+Pop,Pop,"8 benchmark samples, F1=0.0, but 18 more in pool (26 total labeled). Keep separate with expansion.",8,Confused with Rock (5) and Country (2). Needs more samples to stabilize.
+Metal,Metal,"6 benchmark, F1=0.0, but 14 more in pool (20 total). Musically distinct from Rock. Keep with expansion.",6,Confused with Rock (4). Hard rock/metal gradient.
+Electronic,Other,"2 benchmark samples, F1=0.0, no non-benchmark pool. Cannot train. Merge into Other.",2,Both samples misclassified as Rock.
+Folk,Other,"2 benchmark samples, F1=0.0, no non-benchmark pool. Merge into Other.",2,Both samples misclassified as Rock.
+Reggae,Other,"2 benchmark, F1=0.0, 5 in pool but still very low. Merge into Other.",2,Confused with Hip-Hop and Rock.
+R&B,Other,"1 benchmark sample, F1=0.0, no pool. Merge into Other.",1,Single sample misclassified as Country.
+Soundtrack,Other,"1 benchmark sample, F1=0.0, 1 in pool. Merge into Other.",1,Single sample misclassified as Country.
+World,Other,"1 benchmark sample, F1=0.0, 2 in pool. Merge into Other.",1,Single sample misclassified as Rock.

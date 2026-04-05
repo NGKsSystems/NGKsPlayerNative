@@ -1,0 +1,67 @@
+aligned_parent_genre,aligned_subgenre,allowed_secondary_genre,rule_type,required_evidence,confidence_tier,notes
+Blues,Blues Rock,Rock,explicit_hybrid,"Track subgenre must be 'Blues Rock' (verified). Primary=Blues, secondary=Rock allowed by hybrid definition.",high,
+Blues,Jump Blues,Jazz,stylistic_bridge,Track subgenre 'Jump Blues' has stylistic overlap with Jazz. Requires additional evidence (feature analysis or manual tag).,medium,
+Blues,Rhythm and Blues,R&B,explicit_hybrid,"Track subgenre must be 'Rhythm and Blues' (verified). Primary=Blues, secondary=R&B allowed by hybrid definition.",high,
+Country,Bro Country,Pop,stylistic_bridge,Track subgenre 'Bro Country' has stylistic overlap with Pop. Requires additional evidence (feature analysis or manual tag).,low,
+Country,Country Folk,Folk,stylistic_bridge,Track subgenre 'Country Folk' has stylistic overlap with Folk. Requires additional evidence (feature analysis or manual tag).,medium,
+Country,Country Pop,Pop,explicit_hybrid,"Track subgenre must be 'Country Pop' (verified). Primary=Country, secondary=Pop allowed by hybrid definition.",high,
+Country,Country Rap,Hip-Hop,explicit_hybrid,"Track subgenre must be 'Country Rap' (verified). Primary=Country, secondary=Hip-Hop allowed by hybrid definition.",high,
+Country,Country Rock,Rock,explicit_hybrid,"Track subgenre must be 'Country Rock' (verified). Primary=Country, secondary=Rock allowed by hybrid definition.",high,
+Country,Cowpunk,Rock,explicit_hybrid,"Track subgenre must be 'Cowpunk' (verified). Primary=Country, secondary=Rock allowed by hybrid definition.",medium,
+Electronic,Grime,Hip-Hop,explicit_hybrid,"Track subgenre must be 'Grime' (verified). Primary=Electronic, secondary=Hip-Hop allowed by hybrid definition.",high,
+Electronic,Industrial,Metal,stylistic_bridge,Track subgenre 'Industrial' has stylistic overlap with Metal. Requires additional evidence (feature analysis or manual tag).,medium,
+Electronic,Synthwave,Pop,stylistic_bridge,Track subgenre 'Synthwave' has stylistic overlap with Pop. Requires additional evidence (feature analysis or manual tag).,medium,
+Electronic,Trip-Hop,Hip-Hop,stylistic_bridge,Track subgenre 'Trip-Hop' has stylistic overlap with Hip-Hop. Requires additional evidence (feature analysis or manual tag).,medium,
+Folk,Celtic Folk,World,stylistic_bridge,Track subgenre 'Celtic Folk' has stylistic overlap with World. Requires additional evidence (feature analysis or manual tag).,low,
+Folk,Folk Rock,Rock,explicit_hybrid,"Track subgenre must be 'Folk Rock' (verified). Primary=Folk, secondary=Rock allowed by hybrid definition.",high,
+Folk,Psychedelic Folk,Rock,stylistic_bridge,Track subgenre 'Psychedelic Folk' has stylistic overlap with Rock. Requires additional evidence (feature analysis or manual tag).,medium,
+Hip-Hop,Emo Rap,Rock,stylistic_bridge,Track subgenre 'Emo Rap' has stylistic overlap with Rock. Requires additional evidence (feature analysis or manual tag).,medium,
+Hip-Hop,Jazz Rap,Jazz,explicit_hybrid,"Track subgenre must be 'Jazz Rap' (verified). Primary=Hip-Hop, secondary=Jazz allowed by hybrid definition.",high,
+Hip-Hop,Phonk,Electronic,stylistic_bridge,Track subgenre 'Phonk' has stylistic overlap with Electronic. Requires additional evidence (feature analysis or manual tag).,low,
+Hip-Hop,Pop Rap,Pop,explicit_hybrid,"Track subgenre must be 'Pop Rap' (verified). Primary=Hip-Hop, secondary=Pop allowed by hybrid definition.",high,
+Jazz,Acid Jazz,Electronic,stylistic_bridge,Track subgenre 'Acid Jazz' has stylistic overlap with Electronic. Requires additional evidence (feature analysis or manual tag).,medium,
+Jazz,Fusion Jazz,Rock,explicit_hybrid,"Track subgenre must be 'Fusion Jazz' (verified). Primary=Jazz, secondary=Rock allowed by hybrid definition.",high,
+Jazz,Latin Jazz,Latin,explicit_hybrid,"Track subgenre must be 'Latin Jazz' (verified). Primary=Jazz, secondary=Latin allowed by hybrid definition.",high,
+Jazz,Nu Jazz,Electronic,stylistic_bridge,Track subgenre 'Nu Jazz' has stylistic overlap with Electronic. Requires additional evidence (feature analysis or manual tag).,medium,
+Metal,Folk Metal,Folk,explicit_hybrid,"Track subgenre must be 'Folk Metal' (verified). Primary=Metal, secondary=Folk allowed by hybrid definition.",high,
+Metal,Gothic Metal,Rock,stylistic_bridge,Track subgenre 'Gothic Metal' has stylistic overlap with Rock. Requires additional evidence (feature analysis or manual tag).,low,
+Metal,Industrial Metal,Electronic,explicit_hybrid,"Track subgenre must be 'Industrial Metal' (verified). Primary=Metal, secondary=Electronic allowed by hybrid definition.",medium,
+Metal,Nu Metal,Hip-Hop,explicit_hybrid,"Track subgenre must be 'Nu Metal' (verified). Primary=Metal, secondary=Hip-Hop allowed by hybrid definition.",medium,
+Metal,Symphonic Metal,Classical,stylistic_bridge,Track subgenre 'Symphonic Metal' has stylistic overlap with Classical. Requires additional evidence (feature analysis or manual tag).,medium,
+Pop,Dance Pop,Electronic,stylistic_bridge,Track subgenre 'Dance Pop' has stylistic overlap with Electronic. Requires additional evidence (feature analysis or manual tag).,medium,
+Pop,Electropop,Electronic,explicit_hybrid,"Track subgenre must be 'Electropop' (verified). Primary=Pop, secondary=Electronic allowed by hybrid definition.",high,
+Pop,Indie Pop,Rock,stylistic_bridge,Track subgenre 'Indie Pop' has stylistic overlap with Rock. Requires additional evidence (feature analysis or manual tag).,low,
+Pop,K-Pop,Hip-Hop,stylistic_bridge,Track subgenre 'K-Pop' has stylistic overlap with Hip-Hop. Requires additional evidence (feature analysis or manual tag).,low,
+Pop,Synthpop,Electronic,explicit_hybrid,"Track subgenre must be 'Synthpop' (verified). Primary=Pop, secondary=Electronic allowed by hybrid definition.",high,
+R&B,Funk,Jazz,stylistic_bridge,Track subgenre 'Funk' has stylistic overlap with Jazz. Requires additional evidence (feature analysis or manual tag).,medium,
+R&B,Hip-Hop Soul,Hip-Hop,explicit_hybrid,"Track subgenre must be 'Hip-Hop Soul' (verified). Primary=R&B, secondary=Hip-Hop allowed by hybrid definition.",high,
+R&B,Trap Soul,Hip-Hop,stylistic_bridge,Track subgenre 'Trap Soul' has stylistic overlap with Hip-Hop. Requires additional evidence (feature analysis or manual tag).,medium,
+Reggae,Reggae Fusion,Pop,stylistic_bridge,Track subgenre 'Reggae Fusion' has stylistic overlap with Pop. Requires additional evidence (feature analysis or manual tag).,medium,
+Reggae,Reggaeton,Hip-Hop,stylistic_bridge,Track subgenre 'Reggaeton' has stylistic overlap with Hip-Hop. Requires additional evidence (feature analysis or manual tag).,medium,
+Reggae,Ska,Rock,stylistic_bridge,Track subgenre 'Ska' has stylistic overlap with Rock. Requires additional evidence (feature analysis or manual tag).,low,
+Rock,Arena Rock,Pop,stylistic_bridge,Track subgenre 'Arena Rock' has stylistic overlap with Pop. Requires additional evidence (feature analysis or manual tag).,low,
+Rock,Blues Rock,Blues,explicit_hybrid,"Track subgenre must be 'Blues Rock' (verified). Primary=Rock, secondary=Blues allowed by hybrid definition.",high,
+Rock,Britpop,Pop,stylistic_bridge,Track subgenre 'Britpop' has stylistic overlap with Pop. Requires additional evidence (feature analysis or manual tag).,medium,
+Rock,Folk Rock,Folk,explicit_hybrid,"Track subgenre must be 'Folk Rock' (verified). Primary=Rock, secondary=Folk allowed by hybrid definition.",high,
+Rock,Industrial Rock,Electronic,stylistic_bridge,Track subgenre 'Industrial Rock' has stylistic overlap with Electronic. Requires additional evidence (feature analysis or manual tag).,medium,
+Rock,New Wave,Pop,stylistic_bridge,Track subgenre 'New Wave' has stylistic overlap with Pop. Requires additional evidence (feature analysis or manual tag).,medium,
+Rock,Post-Punk,Electronic,stylistic_bridge,Track subgenre 'Post-Punk' has stylistic overlap with Electronic. Requires additional evidence (feature analysis or manual tag).,low,
+Rock,Rockabilly,Country,stylistic_bridge,Track subgenre 'Rockabilly' has stylistic overlap with Country. Requires additional evidence (feature analysis or manual tag).,medium,
+Rock,Southern Rock,Country,stylistic_bridge,Track subgenre 'Southern Rock' has stylistic overlap with Country. Requires additional evidence (feature analysis or manual tag).,medium,
+*,Electronic,NONE,prohibited,,high,PROHIBITED — acoustic similarity != genre membership
+Metal,Black Metal,NONE,prohibited,,high,NO secondary — core Metal
+Metal,Death Metal,NONE,prohibited,,high,NO secondary — core Metal
+Metal,Doom Metal,NONE,prohibited,,high,"NO secondary — not Rock, purely Metal"
+Metal,Groove Metal,NONE,prohibited,,high,NO secondary — core Metal
+Metal,Heavy Metal,NONE,prohibited,,high,NO secondary — core Metal
+Metal,Power Metal,NONE,prohibited,,high,NO secondary — core Metal
+Metal,Speed Metal,NONE,prohibited,,high,NO secondary — core Metal
+Metal,Thrash Metal,NONE,prohibited,,high,NO secondary — core Metal
+Rock,Garage Rock,NONE,prohibited,,high,NOT anything — purely Rock
+Rock,Glam Rock,NONE,prohibited,,high,"NOT Metal — Glam Rock is theatrical rock, not metal"
+Rock,Hair Metal,NONE,prohibited,,high,NOT Metal — Hair Metal is a Rock subgenre with metal aesthetics
+Rock,Hard Rock,NONE,prohibited,,high,"NOT Metal — Hard Rock is rock intensity, not metal genre"
+Rock,Noise Rock,NONE,prohibited,,high,"NOT Electronic — noise is texture, not genre"
+Rock,Stoner Rock,NONE,prohibited,,high,"NOT Metal — Stoner Rock is rock, distinct from Stoner Metal"
+Rock,Surf Rock,NONE,prohibited,,high,NOT anything — purely Rock
+Hip-Hop,Rap Rock,Rock,explicit_hybrid,"Track subgenre must be 'Rap Rock' (verified). Primary=Hip-Hop, secondary=Rock allowed by hybrid definition.",high,Rap Rock explicitly bridges Hip-Hop and Rock

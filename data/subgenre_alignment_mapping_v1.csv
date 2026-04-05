@@ -1,0 +1,52 @@
+current_genre,current_subgenre,normalized_current_subgenre,aligned_parent_genre,aligned_subgenre,mapping_type,confidence,notes
+Ambient,Dark Ambient,Dark Ambient,Electronic,Ambient,manual,low,AMBIGUOUS: Partial match: Dark Ambient ~ Ambient -- requires manual review
+Ambient,Drone,Drone,Ambient,Drone,manual,low,UNMAPPED: not in musicData.js taxonomy
+Ambient,Space Ambient,Space Rock,Rock,Space Rock,normalized,high,Normalized from Space Ambient
+Country,Bluegrass,Bluegrass,Folk,Bluegrass,manual,low,"AMBIGUOUS: Parent mismatch: DB=Country, taxonomy=Folk -- requires manual review"
+Country,Country Pop,Country Pop,Country,Country Pop,exact,high,
+Country,Outlaw Country,Outlaw Country,Country,Outlaw Country,exact,high,
+Electronic,Breakbeat,Breakbeat,EDM,Breakbeat,exact,high,
+Electronic,Downtempo,Downtempo,Electronic,Downtempo,exact,high,
+Electronic,Drum & Bass,Drum & Bass,EDM,Drum & Bass,exact,high,
+Electronic,Dubstep,Dubstep,EDM,Dubstep,exact,high,
+Electronic,Electro,Electropop,Pop,Electropop,normalized,high,Normalized from Electro
+Electronic,Garage,UK Garage,EDM,UK Garage,normalized,high,Normalized from Garage
+Electronic,House,House,EDM,House,exact,high,
+Electronic,IDM,IDM,Electronic,IDM,exact,high,
+Electronic,Techno,Techno,EDM,Techno,exact,high,
+Electronic,Trance,Trance,EDM,Trance,exact,high,
+Hip-Hop,Boom Bap,Boom Bap,Hip-Hop,Boom Bap,exact,high,
+Hip-Hop,Drill,Drill,Hip-Hop,Drill,exact,high,
+Hip-Hop,G-Funk,G-Funk,R&B,Funk,manual,low,AMBIGUOUS: Partial match: G-Funk ~ Funk -- requires manual review
+Hip-Hop,Lo-Fi Hip-Hop,Lo-Fi,Alternative,Lo-Fi,normalized,high,Normalized from Lo-Fi Hip-Hop
+Hip-Hop,Trap,Trap,Hip-Hop,Trap,exact,high,
+Jazz,Acid Jazz,Acid Jazz,Jazz,Acid Jazz,exact,high,
+Jazz,Bebop,Bebop,Jazz,Bebop,exact,high,
+Jazz,Jazz Fusion,Fusion Jazz,Jazz,Fusion Jazz,normalized,high,Normalized from Jazz Fusion
+Jazz,Smooth Jazz,Smooth Jazz,Jazz,Smooth Jazz,exact,high,
+Latin,Bachata,Bachata,Latin,Bachata,manual,low,UNMAPPED: not in musicData.js taxonomy
+Latin,Cumbia,Cumbia,World,Cumbia,manual,low,"AMBIGUOUS: Parent mismatch: DB=Latin, taxonomy=World -- requires manual review"
+Latin,Reggaeton,Reggaeton,World,Reggaeton,manual,low,"AMBIGUOUS: Parent mismatch: DB=Latin, taxonomy=World -- requires manual review"
+Latin,Salsa,Salsa,World,Salsa,manual,low,"AMBIGUOUS: Parent mismatch: DB=Latin, taxonomy=World -- requires manual review"
+Metal,Black Metal,Black Metal,Metal,Black Metal,exact,high,
+Metal,Death Metal,Death Metal,Metal,Death Metal,exact,high,
+Metal,Doom Metal,Doom Metal,Metal,Doom Metal,exact,high,
+Metal,Progressive Metal,Progressive Metal,Metal,Progressive Metal,exact,high,
+Metal,Thrash Metal,Thrash Metal,Metal,Thrash Metal,exact,high,
+Pop,Dance-Pop,Dance Pop,Pop,Dance Pop,normalized,high,Normalized from Dance-Pop
+Pop,Electropop,Electropop,Pop,Electropop,exact,high,
+Pop,Indie Pop,Indie Pop,Alternative,Indie Pop,exact,high,
+Pop,K-Pop,K-Pop,World,K-Pop,manual,low,"AMBIGUOUS: Parent mismatch: DB=Pop, taxonomy=World -- requires manual review"
+Pop,Synth-Pop,Synthpop,Pop,Synthpop,normalized,high,Normalized from Synth-Pop
+R&B,Contemporary R&B,Contemporary R&B,R&B,Contemporary R&B,exact,high,
+R&B,Neo-Soul,Neo-Soul,R&B,Neo-Soul,exact,high,
+R&B,Quiet Storm,Quiet Storm,R&B,Quiet Storm,exact,high,
+Reggae,Dancehall,Dancehall,Reggae,Dancehall,exact,high,
+Reggae,Dub,Dub,Reggae,Dub,exact,high,
+Reggae,Ska,Ska,Reggae,Ska,exact,high,
+Rock,Alternative,Alternative Rock,Alternative,Alternative Rock,normalized,high,Normalized from Alternative
+Rock,Classic Rock,Classic Rock,Rock,Classic Rock,exact,high,
+Rock,Grunge,Grunge,Rock,Grunge,exact,high,
+Rock,Prog Rock,Progressive Rock,Rock,Progressive Rock,normalized,high,Normalized from Prog Rock
+Rock,Punk,Punk Rock,Rock,Punk Rock,normalized,high,Normalized from Punk
+Rock,Shoegaze,Shoegaze,Alternative,Shoegaze,exact,high,

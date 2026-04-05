@@ -1,0 +1,7 @@
+gate,current_behavior,proposed_change,risk_level,impact,overwrites_possible,collision_risk,recommendation
+source_file_existence,Block if original_path not found on disk,"After Phase 6 safe_apply, update duplicate_state paths to reflect renames",none,10 blocked rows would become eligible,no,no,IMPLEMENT
+illegal_chars_confidence_threshold,Only approve if conf>=0.6 for illegal_chars files,Approve if conf>=0.3 AND sanitize_filename produces valid output (>=5 chars),low,28 review rows + 52 held rows would improve,no,no — sanitized names checked against READY,IMPLEMENT
+low_confidence_collision_status,low_confidence collision_status blocks by default,"If conf>=0.3 and dup_risk=none and sanitized name doesn't collide, allow",low,97 review rows affected,no,no — explicit collision check still applied,IMPLEMENT
+orphan_duplicate_risk_flag,Files with duplicate_risk from Phase 3 but no Phase 6 group stay in review,"Re-check orphan dup_risk flags; if no actual duplicate group exists, clear flag",low,up to 7 rows could be cleared,no,no,INVESTIGATE_THEN_IMPLEMENT
+complex_duplicate_hold,"COMPLEX_DUPLICATE always held, never auto-resolved",NO CHANGE — correct safety behavior,n/a,0 (intentionally kept strict),n/a,n/a,KEEP
+zero_confidence_parse_block,conf=0.0 files stay in review or held,NO CHANGE — correct safety behavior,n/a,0 (intentionally kept strict),n/a,n/a,KEEP

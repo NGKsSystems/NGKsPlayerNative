@@ -1,0 +1,8 @@
+scenario,category,rows_affected,from_state,to_state,risk
+Fix stale paths after Phase 6 renames,blocked_to_eligible,10,BLOCKED,ELIGIBLE,none
+Relax illegal_chars threshold to conf>=0.3,review_to_ready_candidate,39,REVIEW_REQUIRED,READY_CANDIDATE,low
+Recover HELD rows with fixable issues,held_to_review,224,HELD_PROBLEMS,REVIEW_REQUIRED,low
+Reclassify MISCLASSIFIED_READY to promotion candidates,review_to_ready_candidate,222,REVIEW_REQUIRED,READY_CANDIDATE,none
+Demote MISCLASSIFIED_HELD from REVIEW to HELD,review_to_held,89,REVIEW_REQUIRED,HELD_PROBLEMS,none
+Demote LOW_VALUE entries to HELD,review_to_held,17,REVIEW_REQUIRED,HELD_PROBLEMS,none
+HELD rows needing rule/parser updates,held_needs_update,0,HELD_PROBLEMS,PENDING_RULE_UPDATE,none

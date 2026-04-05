@@ -1,0 +1,6 @@
+patch_type,affected_count,risk_level,recommended_action,notes
+subgenre_alignment,9,low,Review and manually map ambiguous/unmapped subgenres,9 subgenres need manual alignment review
+subgenre_alignment,6,low,"Insert subgenres from musicData.js for genres with 0 coverage: Blues, Classical, Folk, Funk, Soundtrack, World","No subgenre data exists for these DB genres. Adding from taxonomy is safe (additive, no mutation)."
+secondary_remove,0,medium,Review and remove secondary labels flagged by rule engine,Labels without subgenre support or violating prohibition rules
+secondary_review,114,low,"Assign subgenres to primary labels, then re-evaluate",114 labels need subgenre context to validate. Most tracks lack subgenre assignment.
+rule_upgrade,225,low,Insert missing subgenres from taxonomy into DB subgenres table,"225 subgenres from musicData.js not yet in DB. Additive operation, no mutation of existing data."

@@ -1,0 +1,16 @@
+track_id,artist,title,final_genre,final_subgenre,action,confidence,notes
+2516,RIP,RIP - Odin Can You Hear Me,Metal,,confirm,0.90,artist_known_metal
+2529,Ryan Upchurch,Ryan Upchurch - Hollerboys,Country,,confirm,0.90,artist_known_country
+2663,Tom MacDonald,Tom MacDonald - Names,Hip-Hop,,confirm,0.90,artist_known_hiphop
+2708,Trace Adkins,Trace Adkins - Empty Chairs,Country,,confirm,0.90,artist_known_country
+2761,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,,confirm,0.90,artist_known_pop_parody
+2781,Unknown,Vanny Vabiola - I Love You,Pop,,confirm,0.90,artist_known_pop
+2808,Unknown,Dax - Lonely Dirt Road (Lyrics),Hip-Hop,,confirm,0.90,artist_known_hiphop
+2811,Unknown,Snoop Dogg - Gin And Juice,Hip-Hop,G-Funk,confirm,0.92,artist_known_gfunk_classic
+2828,Unknown,The Who - Baba O'Riley,Rock,Classic Rock,confirm,0.95,artist_known_classic_rock
+2841,Unknown,Dax - Temptation,Hip-Hop,,confirm,0.90,artist_known_hiphop
+2856,Jelly Roll,Jelly Roll - Need a Favor,Country,,confirm,0.90,artist_known_country
+2862,Unknown,Daft Punk - Contact,Electronic,,confirm,0.90,artist_known_electronic
+2868,Unknown,Arctic Monkeys - Do I Wanna Know,Rock,Alternative,confirm,0.92,artist_known_alt_rock
+2872,Unknown,Joni Mitchell - A Case of You Lyrics,Folk,,confirm,0.95,artist_known_folk_classic
+2879,Unknown,Skrillex - Bangarang,Electronic,Dubstep,confirm,0.92,artist_known_dubstep

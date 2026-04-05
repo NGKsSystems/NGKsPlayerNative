@@ -1,0 +1,7 @@
+gate,recommendation,action_taken,current_behavior,new_behavior,risk_level,notes
+source_file_existence,IMPLEMENT,applied,Block if original_path not found on disk,"After Phase 6 safe_apply, update duplicate_state paths to reflect renames",none,Applied as proposed in Phase 8 tuning plan
+illegal_chars_confidence_threshold,IMPLEMENT,applied,Only approve if conf>=0.6 for illegal_chars files,Approve if conf>=0.3 AND sanitize_filename produces valid output (>=5 chars),low,Applied as proposed in Phase 8 tuning plan
+low_confidence_collision_status,IMPLEMENT,applied,low_confidence collision_status blocks by default,"If conf>=0.3 and dup_risk=none and sanitized name doesn't collide, allow",low,Applied as proposed in Phase 8 tuning plan
+orphan_duplicate_risk_flag,INVESTIGATE_THEN_IMPLEMENT,deferred,Files with duplicate_risk from Phase 3 but no Phase 6 group stay in review,"Re-check orphan dup_risk flags; if no actual duplicate group exists, clear flag",low,Deferred — requires investigation before applying
+complex_duplicate_hold,KEEP,kept_unchanged,"COMPLEX_DUPLICATE always held, never auto-resolved",NO CHANGE,n/a,Intentionally preserved as safety-critical rule
+zero_confidence_parse_block,KEEP,kept_unchanged,conf=0.0 files stay in review or held,NO CHANGE,n/a,Intentionally preserved as safety-critical rule

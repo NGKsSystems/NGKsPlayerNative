@@ -1,0 +1,10 @@
+feature_name,included,source_table,notes
+harmonic_stability,True,analysis_summary,Same as V1 (locked feature set)
+loudness_lufs,True,analysis_summary,Same as V1 (locked feature set)
+avg_section_duration,True,section_events,Same as V1 (locked feature set)
+tempo_stability,True,analysis_summary,Same as V1 (locked feature set)
+energy,True,analysis_summary,Same as V1 (locked feature set)
+danceability,True,analysis_summary,Same as V1 (locked feature set)
+section_count,True,section_events,Same as V1 (locked feature set)
+bpm_detected,False,analysis_summary,Excluded in V1 (low ANOVA F-score)
+valence,False,analysis_summary,Excluded in V1 (low ANOVA F-score)

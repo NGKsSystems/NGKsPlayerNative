@@ -1,0 +1,276 @@
+parent_genre,subgenre,source
+Alternative,Indie Rock,musicData.js
+Alternative,Indie Pop,musicData.js
+Alternative,Alternative Rock,musicData.js
+Alternative,Post-Punk,musicData.js
+Alternative,Post-Rock,musicData.js
+Alternative,Shoegaze,musicData.js
+Alternative,Dream Pop,musicData.js
+Alternative,Noise Rock,musicData.js
+Alternative,Math Rock,musicData.js
+Alternative,Emo,musicData.js
+Alternative,Screamo,musicData.js
+Alternative,Post-Hardcore,musicData.js
+Alternative,Experimental,musicData.js
+Alternative,Lo-Fi,musicData.js
+Alternative,Bedroom Pop,musicData.js
+Alternative,Chillwave,musicData.js
+Blues,Delta Blues,musicData.js
+Blues,Chicago Blues,musicData.js
+Blues,Electric Blues,musicData.js
+Blues,Texas Blues,musicData.js
+Blues,Piedmont Blues,musicData.js
+Blues,Country Blues,musicData.js
+Blues,Rhythm and Blues,musicData.js
+Blues,Jump Blues,musicData.js
+Blues,Blues Rock,musicData.js
+Blues,British Blues,musicData.js
+Blues,Contemporary Blues,musicData.js
+Blues,Soul Blues,musicData.js
+Classical,Baroque,musicData.js
+Classical,Classical Period,musicData.js
+Classical,Romantic,musicData.js
+Classical,Modern Classical,musicData.js
+Classical,Contemporary Classical,musicData.js
+Classical,Minimalism,musicData.js
+Classical,Neoclassical,musicData.js
+Classical,Chamber Music,musicData.js
+Classical,Orchestral,musicData.js
+Classical,Opera,musicData.js
+Classical,Choral,musicData.js
+Classical,Sacred Music,musicData.js
+Classical,Film Score,musicData.js
+Classical,Crossover Classical,musicData.js
+Country,Traditional Country,musicData.js
+Country,Outlaw Country,musicData.js
+Country,Country Rock,musicData.js
+Country,Country Pop,musicData.js
+Country,Bluegrass,musicData.js
+Country,Honky Tonk,musicData.js
+Country,Western Swing,musicData.js
+Country,Nashville Sound,musicData.js
+Country,Bakersfield Sound,musicData.js
+Country,Alt-Country,musicData.js
+Country,Americana,musicData.js
+Country,Country Folk,musicData.js
+Country,Cowpunk,musicData.js
+Country,Country Rap,musicData.js
+Country,Bro Country,musicData.js
+Country,Red Dirt,musicData.js
+EDM,House,musicData.js
+EDM,Deep House,musicData.js
+EDM,Tech House,musicData.js
+EDM,Progressive House,musicData.js
+EDM,Big Room House,musicData.js
+EDM,Techno,musicData.js
+EDM,Minimal Techno,musicData.js
+EDM,Detroit Techno,musicData.js
+EDM,Trance,musicData.js
+EDM,Progressive Trance,musicData.js
+EDM,Psytrance,musicData.js
+EDM,Uplifting Trance,musicData.js
+EDM,Dubstep,musicData.js
+EDM,Future Bass,musicData.js
+EDM,Trap EDM,musicData.js
+EDM,Hardstyle,musicData.js
+EDM,Drum & Bass,musicData.js
+EDM,Liquid DnB,musicData.js
+EDM,Neurofunk,musicData.js
+EDM,Jungle,musicData.js
+EDM,Breakbeat,musicData.js
+EDM,UK Garage,musicData.js
+Electronic,Ambient,musicData.js
+Electronic,Downtempo,musicData.js
+Electronic,Chillout,musicData.js
+Electronic,Trip-Hop,musicData.js
+Electronic,IDM,musicData.js
+Electronic,Glitch,musicData.js
+Electronic,Breakcore,musicData.js
+Electronic,Synthwave,musicData.js
+Electronic,Vaporwave,musicData.js
+Electronic,Future Funk,musicData.js
+Electronic,Darksynth,musicData.js
+Electronic,Cyberpunk,musicData.js
+Electronic,Industrial,musicData.js
+Electronic,EBM,musicData.js
+Electronic,Witch House,musicData.js
+Electronic,Footwork,musicData.js
+Electronic,Juke,musicData.js
+Electronic,UK Bass,musicData.js
+Electronic,Grime,musicData.js
+Folk,Traditional Folk,musicData.js
+Folk,Contemporary Folk,musicData.js
+Folk,Folk Rock,musicData.js
+Folk,Indie Folk,musicData.js
+Folk,Psychedelic Folk,musicData.js
+Folk,Dark Folk,musicData.js
+Folk,Neofolk,musicData.js
+Folk,Freak Folk,musicData.js
+Folk,Anti-Folk,musicData.js
+Folk,New Weird America,musicData.js
+Folk,Celtic Folk,musicData.js
+Folk,Bluegrass,musicData.js
+Folk,Old-Time,musicData.js
+Folk,Appalachian,musicData.js
+Folk,Sea Shanties,musicData.js
+Hip-Hop,Boom Bap,musicData.js
+Hip-Hop,Mumble Rap,musicData.js
+Hip-Hop,Trap,musicData.js
+Hip-Hop,Drill,musicData.js
+Hip-Hop,Old School Hip-Hop,musicData.js
+Hip-Hop,Conscious Rap,musicData.js
+Hip-Hop,Gangsta Rap,musicData.js
+Hip-Hop,Alternative Hip-Hop,musicData.js
+Hip-Hop,Cloud Rap,musicData.js
+Hip-Hop,Jazz Rap,musicData.js
+Hip-Hop,Hardcore Hip-Hop,musicData.js
+Hip-Hop,Southern Rap,musicData.js
+Hip-Hop,East Coast Hip-Hop,musicData.js
+Hip-Hop,West Coast Hip-Hop,musicData.js
+Hip-Hop,Midwest Hip-Hop,musicData.js
+Hip-Hop,UK Drill,musicData.js
+Hip-Hop,Afrobeats Hip-Hop,musicData.js
+Hip-Hop,Latin Trap,musicData.js
+Hip-Hop,Emo Rap,musicData.js
+Hip-Hop,Melodic Rap,musicData.js
+Hip-Hop,Phonk,musicData.js
+Hip-Hop,Horrorcore,musicData.js
+Hip-Hop,Club Rap,musicData.js
+Hip-Hop,Pop Rap,musicData.js
+Hip-Hop,Chopped and Screwed,musicData.js
+Hip-Hop,Crunk,musicData.js
+Hip-Hop,Hyphy,musicData.js
+Hip-Hop,Snap Music,musicData.js
+Hip-Hop,Jersey Club,musicData.js
+Jazz,Smooth Jazz,musicData.js
+Jazz,Bebop,musicData.js
+Jazz,Cool Jazz,musicData.js
+Jazz,Hard Bop,musicData.js
+Jazz,Free Jazz,musicData.js
+Jazz,Fusion Jazz,musicData.js
+Jazz,Latin Jazz,musicData.js
+Jazz,Acid Jazz,musicData.js
+Jazz,Nu Jazz,musicData.js
+Jazz,Contemporary Jazz,musicData.js
+Jazz,Swing,musicData.js
+Jazz,Big Band,musicData.js
+Jazz,Dixieland,musicData.js
+Jazz,Ragtime,musicData.js
+Jazz,Modal Jazz,musicData.js
+Jazz,Post-Bop,musicData.js
+Jazz,Avant-Garde Jazz,musicData.js
+Metal,Heavy Metal,musicData.js
+Metal,Death Metal,musicData.js
+Metal,Black Metal,musicData.js
+Metal,Thrash Metal,musicData.js
+Metal,Power Metal,musicData.js
+Metal,Progressive Metal,musicData.js
+Metal,Doom Metal,musicData.js
+Metal,Sludge Metal,musicData.js
+Metal,Stoner Metal,musicData.js
+Metal,Nu Metal,musicData.js
+Metal,Metalcore,musicData.js
+Metal,Deathcore,musicData.js
+Metal,Blackened Death Metal,musicData.js
+Metal,Symphonic Metal,musicData.js
+Metal,Folk Metal,musicData.js
+Metal,Viking Metal,musicData.js
+Metal,Industrial Metal,musicData.js
+Metal,Gothic Metal,musicData.js
+Metal,Groove Metal,musicData.js
+Metal,Speed Metal,musicData.js
+Pop,Mainstream Pop,musicData.js
+Pop,Dance Pop,musicData.js
+Pop,Electropop,musicData.js
+Pop,Synthpop,musicData.js
+Pop,Teen Pop,musicData.js
+Pop,K-Pop,musicData.js
+Pop,J-Pop,musicData.js
+Pop,Indie Pop,musicData.js
+Pop,Art Pop,musicData.js
+Pop,Baroque Pop,musicData.js
+Pop,Chamber Pop,musicData.js
+Pop,Dream Pop,musicData.js
+Pop,Power Pop,musicData.js
+Pop,Bubblegum Pop,musicData.js
+Pop,Sophisti-Pop,musicData.js
+Pop,Hyperpop,musicData.js
+Pop,Dark Pop,musicData.js
+Pop,Tropical House,musicData.js
+R&B,Contemporary R&B,musicData.js
+R&B,Neo-Soul,musicData.js
+R&B,Alternative R&B,musicData.js
+R&B,New Jack Swing,musicData.js
+R&B,Quiet Storm,musicData.js
+R&B,Funk,musicData.js
+R&B,P-Funk,musicData.js
+R&B,Minneapolis Sound,musicData.js
+R&B,Smooth R&B,musicData.js
+R&B,Gospel R&B,musicData.js
+R&B,Hip-Hop Soul,musicData.js
+R&B,Trap Soul,musicData.js
+R&B,PBR&B,musicData.js
+R&B,Future R&B,musicData.js
+Reggae,Roots Reggae,musicData.js
+Reggae,Dub,musicData.js
+Reggae,Dancehall,musicData.js
+Reggae,Ragga,musicData.js
+Reggae,Lovers Rock,musicData.js
+Reggae,One Drop,musicData.js
+Reggae,Steppers,musicData.js
+Reggae,Digital Reggae,musicData.js
+Reggae,Reggae Fusion,musicData.js
+Reggae,Reggaeton,musicData.js
+Reggae,Ska,musicData.js
+Reggae,Two Tone,musicData.js
+Reggae,Third Wave Ska,musicData.js
+Rock,Southern Rock,musicData.js
+Rock,Glam Rock,musicData.js
+Rock,Hair Metal,musicData.js
+Rock,Progressive Rock,musicData.js
+Rock,Psychedelic Rock,musicData.js
+Rock,Classic Rock,musicData.js
+Rock,Hard Rock,musicData.js
+Rock,Punk Rock,musicData.js
+Rock,Alternative Rock,musicData.js
+Rock,Indie Rock,musicData.js
+Rock,Grunge,musicData.js
+Rock,Post-Rock,musicData.js
+Rock,Art Rock,musicData.js
+Rock,Blues Rock,musicData.js
+Rock,Folk Rock,musicData.js
+Rock,Arena Rock,musicData.js
+Rock,Garage Rock,musicData.js
+Rock,Surf Rock,musicData.js
+Rock,Rockabilly,musicData.js
+Rock,Post-Punk,musicData.js
+Rock,New Wave,musicData.js
+Rock,Britpop,musicData.js
+Rock,Shoegaze,musicData.js
+Rock,Math Rock,musicData.js
+Rock,Stadium Rock,musicData.js
+Rock,Symphonic Rock,musicData.js
+Rock,Space Rock,musicData.js
+Rock,Stoner Rock,musicData.js
+Rock,Desert Rock,musicData.js
+Rock,Noise Rock,musicData.js
+Rock,Industrial Rock,musicData.js
+World,Afrobeat,musicData.js
+World,Reggaeton,musicData.js
+World,Bossa Nova,musicData.js
+World,Samba,musicData.js
+World,Tango,musicData.js
+World,Flamenco,musicData.js
+World,Celtic,musicData.js
+World,Indian Classical,musicData.js
+World,Bollywood,musicData.js
+World,Arabic Pop,musicData.js
+World,K-Pop,musicData.js
+World,J-Pop,musicData.js
+World,Latin Pop,musicData.js
+World,Salsa,musicData.js
+World,Merengue,musicData.js
+World,Cumbia,musicData.js
+World,Mariachi,musicData.js
+World,Fado,musicData.js
+World,Klezmer,musicData.js

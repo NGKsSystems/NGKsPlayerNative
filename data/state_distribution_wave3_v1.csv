@@ -1,0 +1,5 @@
+state,count,change,notes
+READY_NORMALIZED,317,+50,"Was 267, now 317"
+READY_CANDIDATE,172,-50,"Was 222, now 172"
+REVIEW_REQUIRED,308,0,unchanged
+HELD_PROBLEMS,201,0,unchanged

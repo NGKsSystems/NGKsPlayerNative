@@ -1,0 +1,52 @@
+current_genre,current_subgenre,occurrence_count,taxonomy_match_status,mapped_parent_genre,mapped_subgenre,notes
+Ambient,Dark Ambient,0,ambiguous,Electronic,Ambient,Partial match: Dark Ambient ~ Ambient
+Ambient,Drone,0,unmapped,,,No match in musicData.js taxonomy
+Ambient,Space Ambient,0,normalized,Rock,Space Rock,Normalized: Space Ambient -> Space Rock
+Country,Bluegrass,1,ambiguous,Folk,Bluegrass,"Parent mismatch: DB=Country, taxonomy=Folk"
+Country,Country Pop,0,exact,Country,Country Pop,
+Country,Outlaw Country,0,exact,Country,Outlaw Country,
+Electronic,Breakbeat,0,exact,EDM,Breakbeat,
+Electronic,Downtempo,0,exact,Electronic,Downtempo,
+Electronic,Drum & Bass,0,exact,EDM,Drum & Bass,
+Electronic,Dubstep,1,exact,EDM,Dubstep,
+Electronic,Electro,0,normalized,Pop,Electropop,Normalized: Electro -> Electropop
+Electronic,Garage,0,normalized,EDM,UK Garage,Normalized: Garage -> UK Garage
+Electronic,House,0,exact,EDM,House,
+Electronic,IDM,0,exact,Electronic,IDM,
+Electronic,Techno,0,exact,EDM,Techno,
+Electronic,Trance,0,exact,EDM,Trance,
+Hip-Hop,Boom Bap,0,exact,Hip-Hop,Boom Bap,
+Hip-Hop,Drill,0,exact,Hip-Hop,Drill,
+Hip-Hop,G-Funk,1,ambiguous,R&B,Funk,Partial match: G-Funk ~ Funk
+Hip-Hop,Lo-Fi Hip-Hop,0,normalized,Alternative,Lo-Fi,Normalized: Lo-Fi Hip-Hop -> Lo-Fi
+Hip-Hop,Trap,0,exact,Hip-Hop,Trap,
+Jazz,Acid Jazz,0,exact,Jazz,Acid Jazz,
+Jazz,Bebop,0,exact,Jazz,Bebop,
+Jazz,Jazz Fusion,0,normalized,Jazz,Fusion Jazz,Normalized: Jazz Fusion -> Fusion Jazz
+Jazz,Smooth Jazz,0,exact,Jazz,Smooth Jazz,
+Latin,Bachata,0,unmapped,,,No match in musicData.js taxonomy
+Latin,Cumbia,0,ambiguous,World,Cumbia,"Parent mismatch: DB=Latin, taxonomy=World"
+Latin,Reggaeton,0,ambiguous,World,Reggaeton,"Parent mismatch: DB=Latin, taxonomy=World"
+Latin,Salsa,0,ambiguous,World,Salsa,"Parent mismatch: DB=Latin, taxonomy=World"
+Metal,Black Metal,0,exact,Metal,Black Metal,
+Metal,Death Metal,0,exact,Metal,Death Metal,
+Metal,Doom Metal,0,exact,Metal,Doom Metal,
+Metal,Progressive Metal,0,exact,Metal,Progressive Metal,
+Metal,Thrash Metal,0,exact,Metal,Thrash Metal,
+Pop,Dance-Pop,0,normalized,Pop,Dance Pop,
+Pop,Electropop,0,exact,Pop,Electropop,
+Pop,Indie Pop,0,exact,Alternative,Indie Pop,
+Pop,K-Pop,0,ambiguous,World,K-Pop,"Parent mismatch: DB=Pop, taxonomy=World"
+Pop,Synth-Pop,0,normalized,Pop,Synthpop,Normalized: Synth-Pop -> Synthpop
+R&B,Contemporary R&B,0,exact,R&B,Contemporary R&B,
+R&B,Neo-Soul,0,exact,R&B,Neo-Soul,
+R&B,Quiet Storm,0,exact,R&B,Quiet Storm,
+Reggae,Dancehall,0,exact,Reggae,Dancehall,
+Reggae,Dub,0,exact,Reggae,Dub,
+Reggae,Ska,0,exact,Reggae,Ska,
+Rock,Alternative,24,normalized,Alternative,Alternative Rock,Normalized: Alternative -> Alternative Rock
+Rock,Classic Rock,57,exact,Rock,Classic Rock,
+Rock,Grunge,0,exact,Rock,Grunge,
+Rock,Prog Rock,0,normalized,Rock,Progressive Rock,Normalized: Prog Rock -> Progressive Rock
+Rock,Punk,0,normalized,Rock,Punk Rock,Normalized: Punk -> Punk Rock
+Rock,Shoegaze,0,exact,Alternative,Shoegaze,

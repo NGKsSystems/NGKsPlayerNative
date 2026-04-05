@@ -1,0 +1,51 @@
+{
+  "batch_id": "BATCH_20260405_110657_c66be753",
+  "source_root": "C:\\Users\\suppo\\Downloads\\New Music",
+  "scan_time": "2026-04-05 11:06:57",
+  "elapsed_seconds": 131.84,
+  "normalization_engine_version": "3.0.0",
+  "preset_used": "Gene_Default",
+  "file_count": 3055,
+  "subfolder_count": 13,
+  "subfolders": [
+    "Top1000",
+    "Top1000_Blues",
+    "Top1000_Classical",
+    "Top1000_Club",
+    "Top1000_Country",
+    "Top1000_Disco",
+    "Top1000_Hard Rock_Metal",
+    "Top1000_HipHop",
+    "Top1000_Jazz",
+    "Top1000_Motown",
+    "Top1000_Opera",
+    "Top1000_Southern Rock",
+    "Top1000_Symphonic_Power Metal"
+  ],
+  "total_bytes": 34559750351,
+  "total_gb": 32.19,
+  "extensions": {
+    ".mp3": 3055
+  },
+  "counts_by_action": {
+    "skip": 2218,
+    "(blank)": 133,
+    "hold": 704
+  },
+  "counts_by_state": {
+    "RAW_INCOMING": 2082,
+    "REVIEW_REQUIRED": 92,
+    "HELD_PROBLEMS": 881
+  },
+  "counts_by_confidence": {
+    "high": 2621,
+    "medium": 2,
+    "low": 301,
+    "none": 131
+  },
+  "collisions": 169,
+  "near_duplicates": 125,
+  "similar_titles": 31,
+  "overrides_applied": 25,
+  "fallback_parses": 303
+}

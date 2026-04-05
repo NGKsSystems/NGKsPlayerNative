@@ -1,0 +1,7 @@
+v2_genre,current_benchmark_count,target_min_count,deficit,candidate_pool_count,recommendation,priority
+Country,82,30,0,264,Adequate. No expansion needed.,LOW
+Hip-Hop,29,30,1,77,Expand by 1 from pool (77 available). Review required.,HIGH
+Metal,6,30,24,14,Expand by 14 (partial fill). Still 10 short. Need new tracks.,HIGH
+Other,9,30,21,8,Heterogeneous bucket — expansion is low-value. Keep as catch-all until constituent genres grow independently.,LOW
+Pop,8,30,22,18,Expand by 18 (partial fill). Still 4 short. Need new tracks.,HIGH
+Rock,66,30,0,200,Adequate. No expansion needed.,LOW

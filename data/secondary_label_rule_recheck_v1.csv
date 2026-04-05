@@ -1,0 +1,115 @@
+track_id,artist,title,primary_genre,secondary_genre,current_subgenre,aligned_subgenre,rule_result,reason
+2082,Chris Stapleton,Chris Stapleton - Fire Away,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2083,Chris Stapleton,Chris Stapleton - Friendship,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2084,Chris Stapleton,Chris Stapleton - Hard Livin',Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2085,Chris Stapleton,Chris Stapleton - I Was Wrong,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2086,Chris Stapleton,Chris Stapleton - Midnight Train To Memphis,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2087,Chris Stapleton,Chris Stapleton - Millionaire,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2088,Chris Stapleton,Chris Stapleton - Nobody to Blame,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2089,Chris Stapleton,Chris Stapleton - Parachute,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2090,Chris Stapleton,Chris Stapleton - Second One To Know,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2091,Chris Stapleton,Chris Stapleton - Tryin To Untangle My Mind,Country,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2162,Def Leppard,Def Leppard - Animal,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2163,Def Leppard,Def Leppard - Armageddon It,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2164,Def Leppard,Def Leppard - Dangerous,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2165,Def Leppard,Def Leppard - Foolin,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2166,Def Leppard,Def Leppard - Love Bites,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2167,Def Leppard,Def Leppard - Nine Lives,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2169,Def Leppard,Def Leppard - Pour Some Sugar On Me,Rock,Metal,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Metal; may need new rule or removal
+2170,Def Leppard,Def Leppard - Rock Of Ages ,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2171,Def Leppard,Def Leppard - Too Late For Love,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2174,Demun Jones,Demun Jones - Backyard Lullaby,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2178,Demun Jones,Demun Jones - My Town,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2180,Demun Jones,Demun Jones - Tannerite,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2182,Demun Jones,Demun Jones - Truck Music,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2742,Demun Jones,Upchurch  Demun Jones  - Campfire Cologne,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2221,Faith No More,Faith No More - Epic,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2838,Hopsin,Hopsin - Ill Mind of Hopsin 5,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2856,Jelly Roll,Jelly Roll - Need a Favor,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2386,Kid Rock,Kid Rock - All Summer Long,Rock,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2387,Kid Rock,Kid Rock - American Bad Ass,Rock,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2388,Kid Rock,Kid Rock - American Rock 'n Roll,Rock,Country,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Country; may need new rule or removal
+2389,Kid Rock,Kid Rock - Cowboy,Rock,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2390,Kid Rock,Kid Rock - First Kiss,Rock,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2855,Kid Rock,Kid Rock - Let's Ride,Rock,Country,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Country; may need new rule or removal
+2391,Kid Rock,Kid Rock - Let_s Ride,Rock,Country,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Country; may need new rule or removal
+2393,Kid Rock,Kid Rock - Only God Knows Why,Rock,Country,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Country; may need new rule or removal
+2394,Kid Rock,Kid Rock - Picture,Rock,Country,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Country; may need new rule or removal
+2397,Kid Rock,Kid Rock - The Last Dance,Rock,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2529,Ryan Upchurch,Ryan Upchurch - Hollerboys,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2537,Sara Evans,Sara Evans - Suds In The Bucket,Country,Pop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2547,Shinedown,Second Chance - Shinedown,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2555,Shinedown,Shinedown - Cut The Cord,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2556,Shinedown,Shinedown - Dead Don_t Die,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2557,Shinedown,Shinedown - Enemies,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2558,Shinedown,Shinedown - Monsters,Rock,Metal,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Metal; may need new rule or removal
+2880,Shinedown,Shinedown - Second Chance,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2560,Shinedown,Shinedown - Simple Man,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2561,Shinedown,Shinedown - Sound of Madness,Rock,Metal,Classic Rock,Classic Rock,REVIEW,No rule covers Rock/Classic Rock -> Metal; may need new rule or removal
+2562,Shinedown,Shinedown - State Of My Head,Rock,Metal,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2217,Tom MacDonald,End Of The World - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2538,Tom MacDonald,Save A Life - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2548,Tom MacDonald,See God - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2572,Tom MacDonald,Still Me - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2573,Tom MacDonald,Still The One - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2590,Tom MacDonald,The Machine - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2595,Tom MacDonald,The System - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2624,Tom MacDonald,Tom MacDonald -  Buttholes,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2626,Tom MacDonald,Tom MacDonald - American Dreamz,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2629,Tom MacDonald,Tom MacDonald - Angels,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2631,Tom MacDonald,Tom MacDonald - Average Boy,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2633,Tom MacDonald,Tom MacDonald - Best Rapper Ever,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2634,Tom MacDonald,Tom MacDonald - Castles,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2636,Tom MacDonald,Tom MacDonald - Dear Rappers,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2637,Tom MacDonald,Tom MacDonald - Dirty Money,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2638,Tom MacDonald,Tom MacDonald - End Of The World,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2639,Tom MacDonald,Tom MacDonald - Everybody Hates Me,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2641,Tom MacDonald,Tom MacDonald - Fighter,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2642,Tom MacDonald,Tom MacDonald - Freedom's Not For Sale,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2643,Tom MacDonald,Tom MacDonald - Freedoms Not For Sale,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2645,Tom MacDonald,Tom MacDonald - Ghost,Pop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2646,Tom MacDonald,Tom MacDonald - Gravestones,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2648,Tom MacDonald,Tom MacDonald - Hatred,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2649,Tom MacDonald,Tom MacDonald - Helluvit,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2652,Tom MacDonald,Tom MacDonald - I Dont Care,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2653,Tom MacDonald,Tom MacDonald - I Hate Hip Hop,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2654,Tom MacDonald,Tom MacDonald - I Wish,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2655,Tom MacDonald,Tom MacDonald - Im Corny,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2656,Tom MacDonald,Tom MacDonald - Im Sorry,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2657,Tom MacDonald,Tom MacDonald - Luck You,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2659,Tom MacDonald,Tom MacDonald - Money,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2660,Tom MacDonald,Tom MacDonald - My Fans,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2663,Tom MacDonald,Tom MacDonald - Names,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2664,Tom MacDonald,Tom MacDonald - No Lives Matter,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2666,Tom MacDonald,Tom MacDonald - No Response,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2667,Tom MacDonald,Tom MacDonald - People So Stupid,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2668,Tom MacDonald,Tom MacDonald - Politically Incorrect,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2671,Tom MacDonald,Tom MacDonald - Riot,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2672,Tom MacDonald,Tom MacDonald - Save A Life,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2675,Tom MacDonald,Tom MacDonald - See God,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2676,Tom MacDonald,Tom MacDonald - Sellout,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2677,Tom MacDonald,Tom MacDonald - Sheeple,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2680,Tom MacDonald,Tom MacDonald - Still Me,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2681,Tom MacDonald,Tom MacDonald - Still The One,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2682,Tom MacDonald,Tom MacDonald - The Machine,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2683,Tom MacDonald,Tom MacDonald - The Music Industry,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2685,Tom MacDonald,Tom MacDonald - The System,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2687,Tom MacDonald,Tom MacDonald - This House,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2690,Tom MacDonald,Tom MacDonald - Trying To Kill Me,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2691,Tom MacDonald,Tom MacDonald - Underdogs,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2693,Tom MacDonald,Tom MacDonald - Way Off,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2697,Tom MacDonald,Tom MacDonald - Wild Ones,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2698,Tom MacDonald,Tom MacDonald ft. DAX - Blame The Rappers,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2640,Tom MacDonald,Tom Macdonald - Fake Fans,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2768,Tom MacDonald,Wild Ones - Tom MacDonald,Hip-Hop,Rock,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2706,Tone-Loc,Tone Loc - Wild Thing,Hip-Hop,Pop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2841,Unknown,Dax - Temptation,Hip-Hop,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2527,Upchurch,Ryan Upchurch - Black Sheep,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2528,Upchurch,Ryan Upchurch - Cowboy Movies,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2530,Upchurch,Ryan Upchurch - Love Her Again,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2531,Upchurch,Ryan Upchurch - Real Country,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2532,Upchurch,Ryan Upchurch - Same Ol Same Ol,Country,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2752,Van Zant,Van Zant - Help Somebody,Rock,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2753,Van Zant,Van Zant - Nobody Gonna Tell Me What to Do,Rock,Country,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2761,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,Hip-Hop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.
+2770,Zac Brown Band,Zac Brown Band - Heavy Is The Head,Country,Pop,,,REVIEW,No subgenre assigned to primary label; cannot validate secondary via rule engine. Needs subgenre assignment first.

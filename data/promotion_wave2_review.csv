@@ -1,0 +1,413 @@
+original_path,decision,notes
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\017 - Ice Cube - It Was A Good Day.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=017 - Ice Cube - It Was A Good Day (HipH
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\026 - Bone Thugs N Harmony - Crossroads.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=026 - Bone Thugs N Harmony - Crossroads 
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\030 - Snoop Dogg - Gin And Juice.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=030 - Snoop Dogg - Gin And Juice (HipHop
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\098 - Queen Latifah - U.N.I.T.Y..mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=098 - Queen Latifah - U.N.I.T.Y. (HipHop
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\102 - Eazy-E - Real Muthaphuckkin G's (Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=102 - Eazy-E - Real Muthaphuckkin G's (M
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\175 - 2Pac - I Get Around.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=175 - 2pac - I Get Around.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\236 - Bone Thugs n Harmony - Thuggish Ruggish Bone.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=236 - Bone Thugs n Harmony - Thuggish Ru
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\2Pac - Ambitionz Az A Ridah.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=2pac - Ambitionz Az a Ridah.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\2Pac - Hit 'Em Up (Dirty) (Music Video) HD.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\2Pac - Hit Em Up HD.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\2Pac - I Get Around.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=2Pac - I Get Around (HipHop).mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\319 - Beastie Boys - Intergalactic.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=319 - Beastie Boys - Intergalactic (HipH
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\390 - Ice Cube - You Know How We Do It.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=390 - Ice Cube - You Know How We Do It (
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\440 - The Roots - You Got Me ft. Erykah Badu.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=440 - The Roots - You Got Me ft. Erykah 
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\530 - Black Star - Respiration ft. Common.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=530 - Black Star - Respiration ft. Commo
+C:\Users\suppo\Downloads\New Music\Top1000\Alan Walker - Spectre.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Alan Walker - The Spectre.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Beastie Boys - Intergalactic.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Beastie Boys - Intergalactic.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Biggie Smalls - Notorious Thugs.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Biggie Smalls - Notorious Thugs.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Biggie Smalls - Notorious Thugs.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Biggie Smalls - Notorious Thugs (Alt 1).
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\black sabbath - sweet leaf.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Black Sabbath - Sweet Leaf.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\black sabbath - sweet leaf.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=black sabbath - sweet leaf (Alt 1).mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Black Star - Respiration ft. Common.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Black Star - Respiration ft. Common.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Bone Thugs N Harmony - 1st of tha Month.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Bone Thugs N Harmony - Crossroads.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Bone Thugs N Harmony - Crossroads.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Bone Thugs n Harmony - Thuggish Ruggish Bone.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Bone Thugs N Harmony - Thuggish Ruggish 
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Bone Thugs-n-Harmony - 1st of tha Month.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\CamRon - Hey Ma ft. Juelz Santana.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\CamRon - Oh Boy ft. Juelz Santana.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Charlie Daniels Band - The South's Gonna Do It (Live).mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Charlie Daniels Band - The South's Gonna
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Coolio - Gangsta's Paradise (feat. L.V.) [Official Music Video].mp3,keep_review,dup_risk=similar_title but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Craig Mack - Flava In Ya Ear (Remix) (Official Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Craig Mack - Flava In Ya Ear (Remix) (Of
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Craig Mack - Flava In Ya Ear.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Craig Mack - Flava in Ya Ear.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Dimitri Vegas & Like Mike vs W&W - Arcade.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Dimitri Vegas & Like Mike vs W&W - Waves.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Dio - The Last In Line.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Dio - The Last in Line.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Dio - The Last In Line.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Dio - The Last In Line (Alt 1).mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Dr Dre - Nuthin But A ＂G＂ Thang.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Dr Dre - Nuthin but a Thang.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Dr Dre - Nuthin But A ＂G＂ Thang.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Dr Dre - Nuthin But A ＂G＂ Thang (Alt 1).
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Dr Dre - Nuthin' But A ＂G＂ Thang [Official Music Video].mp3,keep_review,dup_risk=near_duplicate but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eazy-E - Real Muthaphuckkin G's (Music Video).mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Eazy-e - Real Muthaphuckkin G's.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eazy-E - Real Muthaphuckkin Gs.mp3,keep_review,dup_risk=near_duplicate but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Eric Church - Over When It's Over (Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Eric Church - Over When It's Over (Music
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Eric Church - Over When Its Over.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Eric Church - Over When Its Over.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Gang Starr - Above The Clouds.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Gang Starr - Above the Clouds.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Geto Boys - Mind Playing Tricks On Me (Official Video) [Explicit].mp3,keep_review,dup_risk=similar_title but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Geto Boys - Mind Playing Tricks On Me.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Geto Boys - Mind Playing Tricks on Me.mp
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Hank Williams Jr - Simple Man.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Hank Williams Jr - Simple Man.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Hank Williams Jr - Simple Man.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Hank Williams Jr - Simple Man (Alt 1).mp
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Heaven and Hell - Black Sabbath lyrics.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Heaven and Hell - Black Sabbath Lyrics.m
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Heaven and Hell - Black Sabbath lyrics.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Heaven and Hell - Black Sabbath lyrics (
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ice Cube - Check Yo Self.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ice Cube - It Was A Good Day.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Ice Cube - It Was a Good Day.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ice Cube - You Know How We Do It.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Ice Cube - You Know How We Do It.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\IceCube - Check Yo Self.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Kelly Clarkson - me.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Kelly Clarkson - me (Version 2).mp3
+C:\Users\suppo\Downloads\New Music\Top1000\Kelly Clarkson - mine.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Kelly Clarkson - Mine.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Kenny Chesney - Til It's Gone (Official Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Kenny Chesney - Til It's Gone (Official 
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Kenny Chesney - Til Its Gone.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Kenny Chesney - Til Its Gone.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Led Zeppelin - Rock and Roll HQ.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Led Zeppelin - Rock and Roll Hq.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Led Zeppelin - Rock and Roll HQ.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Led Zeppelin - Rock and Roll HQ (Alt 1).
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Martin Garrix - Now That I've Found You.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Martin Garrix - Now That Ive Found You.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MC Lyte 10% Diss.mp3,keep_review,fallback_parse; unreliable
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Mobb Deep - Quiet Storm ft. Lil Kim ft. Lil Kim.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Mobb Deep - Quiet Storm ft. Lil Kim ft. 
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Mobb Deep - Quiet Storm ft. Lil' Kim (Official Video) ft. Lil' Kim.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Mobb Deep - Quiet Storm ft. Lil' Kim (Of
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Mobb Deep - Shook Ones Pt. 1.mp3,keep_review,dup_risk=similar_title but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Nas - It Ain't Hard To Tell (Official Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Nas - It Ain't Hard To Tell (Official Vi
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Nas - It Aint Hard To Tell.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Nas - It Aint Hard to Tell.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Pantera - 5 Minutes Alone (Official Music Video) [4K Remaster].mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Pantera - 5 Minutes Alone.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Pantera - 5 Minutes Alone (Official Music Video) [4K Remaster].temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Pantera - 5 Minutes Alone (Official Musi
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Queen Latifah - U.N.I.T.Y..mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Queen Latifah - U.n.i.t.y..mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Savatage - Hall Of The Mountain King.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Savatage - Hall of the Mountain King.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Savatage - Hall Of The Mountain King.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Savatage - Hall Of The Mountain King (Al
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Slayer - Hell Awaits.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Slayer - Hell Awaits.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Slayer - Hell Awaits.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Slayer - Hell Awaits (Alt 1).mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Snoop Dogg - Gin And Juice.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Snoop Dogg - Gin and Juice.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Snoop Dogg - Who Am I (What's My Name)？.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Snoop Dogg - Who Am I？.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Souls Of Mischief - 93 'Til Infinity (Official Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Souls Of Mischief - 93 'Til Infinity (Of
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Souls Of Mischief - 93 Til Infinity.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Souls of Mischief - 93 Til Infinity.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Club\The Chainsmokers - Don't Let Me Down ft. Daya.mp3,keep_review,dup_risk=similar_title but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Pharcyde - Passin Me By.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=The Pharcyde - Passin Me By.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Pharcyde - Passin' Me By (Official HD Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=The Pharcyde - Passin' Me By (Official H
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Roots - You Got Me ft. Erykah Badu.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=The Roots - You Got Me ft. Erykah Badu.m
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\UFO - Doctor Doctor.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Ufo - Doctor Doctor.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\UFO - Doctor Doctor.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=UFO - Doctor Doctor (Alt 1).mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Club\W&W & MOTi - Spack Jarrow.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Club\W&W and MOTi - Spack Jarrow.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Wu-Tang Clan - Da Mystery Of Chessboxin' (Official HD Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Wu-Tang Clan - Da Mystery Of Chessboxin'
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Wu-Tang Clan - Da Mystery Of Chessboxin.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Wu-tang Clan - Da Mystery of Chessboxin.
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\ZZ Top Sharp Dressed Man.mp3,keep_review,fallback_parse; unreliable
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\2112： Overture ⧸ The Temples Of Syrinx ⧸ Discovery ⧸ Presentation ⧸ Oracle： The Dream ⧸ So....mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\50 Cent - 21 Questions (Official Music Video) ft. Nate Dogg.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=50 Cent - 21 Questions (Official Music V
+C:\Users\suppo\Downloads\New Music\Top1000\50 Cent - In Da Club.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\50 Cent - In Da Club.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\8 Ball and MJG- Space Age Pimpin.mp3,approve_primary,low_confidence col but conf=0.3; proposed=8 Ball and MJG - Space Age Pimpin.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\A Tribe Called Quest - Electric Relaxation (Official HD Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=A Tribe Called Quest - Electric Relaxati
+C:\Users\suppo\Downloads\New Music\Top1000\Aaria- Thug Love ft. Dreamdoll.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Aaria - Thug Love ft. Dreamdoll.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\ACDC- For Those About To Rock (with lyrics).mp3,approve_primary,low_confidence col but conf=0.3; proposed=ACDC - For Those About To Rock (with lyr
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Adrenaline Rush.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Alan Jackson - ＂Its Time You Learned About Goodbye＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Alan Jackson Anywhere On Earth You Are.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Alan Jackson - Anywhere On Earth You Are
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Alan Jackson Knew All Along.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Alan Jackson - Knew All Along.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Alan Jackson- Everything I Love.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Alan Jackson - Everything I Love.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\Alan Walker - Alone.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Alan Walker - Alone.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Alan Walker - Sing Me To Sleep (Marshmello Remix).mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Albert Collins Ice Pick.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Albert Collins - Ice Pick.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Alesso - I Wanna Know (Alesso & Deniz Koyu Remix ⧸ Audio) ft. Nico & Vinz.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Alesso - I Wanna Know (Alesso & Deniz Ko
+C:\Users\suppo\Downloads\New Music\Top1000_Country\All my Exs live in Texas- George Strait.mp3,approve_primary,low_confidence col but conf=0.3; proposed=All my Exs live in Texas - George Strait
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Allman Brothers Band - Soulshine.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Allman Brothers Band - Soulshine.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Amarillo By Morning.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ambitionz Az A Ridah.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Ambitionz Az A Ridah (HipHop).mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\American Girl performed by Tom Petty.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Tom Petty - American Girl performed.mp3
+"C:\Users\suppo\Downloads\New Music\Top1000\Arijit Singh： Pachtaoge ｜ Vicky Kaushal, Nora Fatehi ｜Jaani, B Praak, Arvindr Khaira ｜ Bhushan Kumar.mp3",keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Audio Two- Top Billin.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Audio Two - Top Billin.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Avicii Levels Skrillex Remix.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Avicii - Levels Skrillex Remix.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Axwell Λ Ingrosso - Thinking About You (Festival Mix).mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\B.B. King- Everyday I have the Blues.mp3,approve_primary,low_confidence col but conf=0.3; proposed=B.B. King - Everyday I have the Blues.mp
+C:\Users\suppo\Downloads\New Music\Top1000\Baby 9eno ＂ Free B.G. ＂ @tntshotit.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\Bach, Air.mp3",keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Back Where I Come From- Kenny Chesney.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Back Where I Come From - Kenny Chesney.m
+"C:\Users\suppo\Downloads\New Music\Top1000_Classical\Beethoven Piano Concerto No. 5 in E-flat major, Op. 73 Adagio Un Poco Mosso.mp3",approve_primary,low_confidence col but conf=0.3; proposed=Beethoven - Piano Concerto No. 5 in E-fl
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Bertie Higgins - ＂Key Largo＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+"C:\Users\suppo\Downloads\New Music\Top1000_Motown\Best Motown Hits of All Time 🎶 Soul Legends： Marvin Gaye, Smokey Robinson & James Brown.mp3",approve_primary,RESOLVED_PRIMARY high-conf; proposed=Best Motown Hits of All Time 🎶 Soul Lege
+"C:\Users\suppo\Downloads\New Music\Top1000_Motown\Best Motown Hits of All Time 🎶 Soul Legends： Marvin Gaye, Smokey Robinson & James Brown.temp.mp3",approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Best Motown Hits of All Time 🎶 Soul Lege
+"C:\Users\suppo\Downloads\New Music\Top1000_Classical\Best Version of Jesu, Joy Of Mans Desiring by Bach.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Bach - Best Version of Jesu, Joy Of Mans"
+C:\Users\suppo\Downloads\New Music\Top1000\Bfb Da Packman- Honey Pack.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Bfb Da Packman - Honey Pack.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Big L - Put It On (Official Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Big L - Put It On (Official Music Video)
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Big Pun - Still Not a Player (Official Video) ft. Joe.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Big Pun - Still Not a Player (Official V
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Black Sabbath ~ War Pigs.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Black Sabbath - ~ War Pigs.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Bone Thugs-N-Harmony ft 2pac thug luv lyrics.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Bone Thugs-N-Harmony - ft 2pac thug luv 
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Boogie Down Productions- South Bronx.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Boogie Down Productions - South Bronx.mp
+C:\Users\suppo\Downloads\New Music\Top1000\Bop Menaxe- Til The Rain Gone.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Bop Menaxe - Til The Rain Gone.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\Bop Menaxe- War Cry.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Bop Menaxe - War Cry.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Brandi Carlile Hallelujah.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\BT- Race Wars.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000\BTS- MIC Drop.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000\Calvin Harris - Summer.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Calvin Harris - Summer.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+"C:\Users\suppo\Downloads\New Music\Top1000\Calvin Harris, Rihanna - This Is What You Came For.mp3",keep_review,NEEDS_REVIEW state from Phase 6
+"C:\Users\suppo\Downloads\New Music\Top1000_Club\Calvin Harris, Rihanna - This Is What You Came For.mp3",hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\CANIBUS MAN.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000\Carine - Call 911 ｜ Official Music Video.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\Carine - Lolita ｜ Official Visualizer.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\Carine - On My Mind ｜ Official Music Video.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Charlie Daniels Band-The Souths Gonna Do It Again.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Charlie Daniels Band-The Souths Gonna Do
+C:\Users\suppo\Downloads\New Music\Top1000_Classical\CLAUDE DEBUSSY： CLAIR DE LUNE.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000\Clean Bandit - Rockabye.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Clean Bandit - Rockabye.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Coldplay - Hymn For The Weekend.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Coldplay - Hymn For The Weekend.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Coolio - Gangstas Paradise ft. L.V..mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Coolio - Gangstas Paradise ft. L.V..mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Coolio - Gangstas Paradise.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Coolio - Gangstas Paradise.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Cypress Hill - Hits from the Bong (Official Audio).mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Cypress Hill - Insane In The Brain (Official HD Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Cypress Hill - Insane In The Brain (Offi
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\DELAIN - The Quest And The Curse (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Delain - The Quest and the Curse Napalm 
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\DELAIN - The Quest And The Curse (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=DELAIN - The Quest And The Curse (Offici
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Denim and Leather-Saxon (studio version).mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Denim and Leather-saxon.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Denim and Leather-Saxon (studio version).temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Denim and Leather-Saxon (studio version)
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Dimitri Vegas & Like Mike ft. Wolfpack & Katy B - Find Tomorrow (Ocarina) (Official Videoclip).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Dimitri Vegas & Like Mike ft. Wolfpack &
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Dimitri Vegas & Like Mike vs Sander van Doorn - Project T (Martin Garrix Remix).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Dimitri Vegas & Like Mike vs Sander van 
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\DJ Jazzy Jeff & The Fresh Prince - Summertime (Official Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=DJ Jazzy Jeff & The Fresh Prince - Summe
+C:\Users\suppo\Downloads\New Music\Top1000_Club\DJ Snake - Let Me Love You ft. Justin Bieber (Marshmello Remix) [Premiere].mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Doc Holliday - Bad Company ⧸ Amazing Grace.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\DOMINUM - The Circus Is In Town (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Dominum - The Circus is in Town Napalm R
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\DOMINUM - The Circus Is In Town (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=DOMINUM - The Circus Is In Town (Officia
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Don Williams ~ No Use Running ~.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Don Williams - ~ No Use Running ~.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Don Williams ~ Shes With Me ~.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Don Williams - ~ Shes With Me ~.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Don Williams ~~The First Fool In Line ~~.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Don Williams - ~~The First Fool In Line 
+C:\Users\suppo\Downloads\New Music\Top1000\Dr. Dre - Still D.R.E. ft. Snoop Dogg.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Dr. Dre - Still D.R.E. ft. Snoop Dogg.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Dream Theater - ＂Pull Me Under＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Dwight Yoakam - ＂Waterfall＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Easton Corbin - A Little More Country Than That (Official Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Easton Corbin - A Little More Country Th
+C:\Users\suppo\Downloads\New Music\Top1000\Edine - 24⧸7.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+"C:\Users\suppo\Downloads\New Music\Top1000_Classical\Edvard Grieg, In the Hall of the Mountain King from ＂Peer Gynt＂.mp3",approve_primary,low_confidence col but conf=0.3; proposed=Edvard Grieg - In the Hall of the Mounta
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\elvis presley blue suede shoes color.mp3,approve_primary,low_confidence col but conf=0.3; proposed=elvis presley - blue suede shoes color.m
+C:\Users\suppo\Downloads\New Music\Top1000\Emile Mosseri - ＂My Greedy Heart＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000\Eminem - Lose Yourself.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eminem - Lose Yourself.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Eminem - Mockingbird.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eminem - Mockingbird.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eminem - My Name Is (Official Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Eminem - My Name Is (Official Music Vide
+C:\Users\suppo\Downloads\New Music\Top1000\Eminem - Rap God.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eminem - Rap God.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Eminem - Without Me.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eminem - Without Me.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Eminem ⧸ Nail in the coffin.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\EXIT EDEN - Femme Fatale (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Exit Eden - Femme Fatale Napalm Records.
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\EXIT EDEN - Femme Fatale (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=EXIT EDEN - Femme Fatale (Official Video
+"C:\Users\suppo\Downloads\New Music\Top1000\Fehr Rivas, Aleks Syntek- INMORTAL.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Fehr Rivas, Aleks Syntek - INMORTAL.mp3"
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Find Yourself by Brad Paisley.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Brad Paisley - Find Yourself.mp3
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Frank Sinatra, Nat King Cole, Ray Charles 🎷The Ultimate Jazz Playlist 🎶 Jazz Classics 50s 60s 70s.mp3",hold,COMPLEX_DUPLICATE: requires explicit review
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Frank Sinatra, Ray Charles, Nat King Cole 🎷The Ultimate Jazz Playlist 🎶 Jazz Classics 50s 60s 70s.mp3",keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Classical\Franz Joseph Haydn - ＂Surprise＂.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Franz Joseph Haydn - ＂Surprise＂.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Classical\Franz Liszt ~ Prelude to Transcendental Etudes.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Franz Liszt - ~ Prelude to Transcendenta
+"C:\Users\suppo\Downloads\New Music\Top1000\Fridayy, Chris Brown - ＂Dont Give It Away＂.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Fridayy, Chris Brown - ＂Dont Give It Awa"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Fugees - Fu-Gee-La (Official HD Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Fugees - Fu-Gee-La (Official HD Video) (
+C:\Users\suppo\Downloads\New Music\Top1000\Fun.： We Are Young ft. Janelle Monáe.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Gangstarr-Above The Clouds.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Gangstarr-Above The Clouds (HipHop).mp3
+C:\Users\suppo\Downloads\New Music\Top1000\George Michael - Careless Whisper (Official 4K Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=George Michael - Careless Whisper (Offic
+C:\Users\suppo\Downloads\New Music\Top1000_Country\George Strait Thats My Kind Of Woman.mp3,approve_primary,low_confidence col but conf=0.3; proposed=George Strait - Thats My Kind Of Woman.m
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Geto Boys-Mind Playing Tricks on Me.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Geto Boys-Mind Playing Tricks on Me (Hip
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ghostface Killah： winter warz.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Gluck： Orfeo ed Euridice ＂Che Faro Senza Euridice？＂ M. Horne.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Gregg Allman- I'm No Angel.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Gregg Allman - I'm No Angel.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\Guru Randhawa： High Rated Gabru Official Song ｜ DirectorGifty ｜ Bhushan Kumar ｜ T-Series.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000\GuttaTV- Straight Drop.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\HAMMERFALL - Hammer Of Dawn (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Hammerfall - Hammer of Dawn Napalm Recor
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\HAMMERFALL - Hammer Of Dawn (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=HAMMERFALL - Hammer Of Dawn (Official Vi
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Handel - Xerxes： Ombra Mai Fu.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Hideaway by John Mayall bluesbreakers & Eric Clapton.mp3,approve_primary,low_confidence col but conf=0.3; proposed=John Mayall bluesbreakers & Eric Clapton
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\House of Pain - Jump Around (Official 4K Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=House of Pain - Jump Around (Official 4K
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Howlin Wolf- Killing Floor.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Howlin Wolf - Killing Floor.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Classical\Händel： Harmonious Blacksmith.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ice T Colors.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Iced Earth- coming curse.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Iced Earth - coming curse.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\Imagine Dragons - Believer.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Imagine Dragons - Believer.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Jazz Classics 50s 60s 70s🎶Frank Sinatra, Louis Armstrong, Nat King Cole🎷Warm vintage jazz melodies.mp3",approve_primary,RESOLVED_PRIMARY high-conf; proposed=Jazz Classics - 50s 60s 70s🎶frank Sinatr
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Jazz Classics 50s 60s 70s🎶Frank Sinatra, Louis Armstrong, Nat King Cole🎷Warm vintage jazz melodies.temp.mp3",keep_review,dup_risk=near_duplicate but no Phase 6 state assigned
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Jazz Classics 50s-60s-70s 🎶🎷Nat King Cole, Louis Armstrong, Ray Charles, Frank Sinatra.mp3",approve_primary,RESOLVED_PRIMARY high-conf; proposed=Jazz Classics - 50s-60s-70s 🎶🎷nat King C
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Jazz Classics 50s-60s-70s 🎶🎷Nat King Cole, Louis Armstrong, Ray Charles, Frank Sinatra.temp.mp3",approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Jazz Classics 50s-60s-70s 🎶🎷Nat King Col
+"C:\Users\suppo\Downloads\New Music\Top1000\Jesús Alonso, La Fe de Vivir, canción de superación, para fluir con la vida. #musicaconsciente #fe.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Jesús Alonso - La Fe de Vivir, canción d"
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Johnny Copeland on acoustic guitar： Flying High.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Johnny Winter ⧸ Mean Mistreater.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Johnny Winter ⧸ Third Degree.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Johnny ＂Clyde＂ Copeland- Rock Me Baby- Part 1.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Johnny ＂Clyde＂ Copeland - Rock Me Baby- 
+"C:\Users\suppo\Downloads\New Music\Top1000_Country\Josh Turner, Silver Wings.mp3",approve_primary,low_confidence col but conf=0.3; proposed=Josh Turner - Silver Wings.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Judas Priest- Freewheel Burning with lyrics.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Judas Priest - Freewheel Burning with ly
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Judas Priest- The Sentinel with lyrics.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Judas Priest - The Sentinel with lyrics.
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Junior Wells Hoodoman Blues.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Junior Wells - Hoodoman Blues.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Just to See You Smile Lyrics By Tim McGraw.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Tim McGraw - Just to See You Smile Lyric
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Kacey Musgraves - Biscuits (Official Lyric Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Kacey Musgraves - Biscuits (Official Lyr
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\KAMELOT - Eventide (Official Video) ｜ Napalm Records.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=KAMELOT - Eventide (Official Video) ｜ Na
+C:\Users\suppo\Downloads\New Music\Top1000\Katy Perry Last Friday Night Lyrics.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Katy Perry - Last Friday Night Lyrics.mp
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Keb Mo ⧸ Dangerous Mood.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000\Kelsie Kimberlin - Road Trip ｜ #standwithukraine.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Kenny Chesney The Life.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Kenny Chesney - The Life.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Kenny Chesney ~ A Lot Of Things Different.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Kenny Chesney - ~ A Lot Of Things Differ
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Kenny Chesney- Better As A Memory.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Kenny Chesney - Better As A Memory.mp3
+"C:\Users\suppo\Downloads\New Music\Top1000_Country\Kenny Chesney- Nowhere To Go, Nowere To Be.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Kenny Chesney - Nowhere To Go, Nowere To"
+C:\Users\suppo\Downloads\New Music\Top1000\Kingzlee - Recipe ｜ Pressplay.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Kiss Black Diamond.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Kiss Deuce lyrics.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Kiss Deuce Lyrics.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Kiss Deuce lyrics.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Kiss Deuce lyrics (Alt 1).mp3
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\La Traviata ＂Addio, del passato＂ by Anna Netrebko. Russian subtitles.mp3",approve_primary,low_confidence col but conf=0.3; proposed=Anna Netrebko. Russian subtitles - La Tr
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\La Traviata： “Libiamo, ne’ lieti calici”.mp3",keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Leoncavallo - Pagliacci： Vesti La Giubba.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Little Willie John -You Hurt Me.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Little Willie John - -You Hurt Me.mp3
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Louis Armstrong, Nat King Cole & Frank Sinatra ： Best Old Songs 50s - 70s ｜ Nostalgic Vintage Jazz.mp3",approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Love Her Like Shes Leaving by Brad Paisley.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Brad Paisley - Love Her Like Shes Leavin
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Luciano Pavarotti： Celeste Aida.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Lycii - Yoko ｜ Diversity Release.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\Major Lazer - Cold Water.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Major Lazer - Cold Water.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Major Lazer - Cold Water.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Makin Plans by Miranda Lambert.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Miranda Lambert - Makin Plans.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\Marshmello - Alone.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Marshmello - Alone.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Martin Garrix - Animals (Official Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Martin Garrix - Animals (Official Video)
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Martin- Zac Brown Band Lyrics!.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Martin - Zac Brown Band Lyrics!.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Motown\Marvin Gaye ❤️ Let’s Get It On – Greatest Hits Full Album ｜ Top 100 Motown Soul Classics.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Marvin Gaye ❤️ Let’s Get it On - Greates
+C:\Users\suppo\Downloads\New Music\Top1000_Motown\Marvin Gaye ❤️ Let’s Get It On – Greatest Hits Full Album ｜ Top 100 Motown Soul Classics.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Marvin Gaye ❤️ Let’s Get It On – Greates
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MASTER P SONG ＂MISS MY HOMIES＂ IS A REAL TIMELESS CLASSIC.mp3,approve_primary,low_confidence col but conf=0.3; proposed=MASTER P - SONG ＂MISS MY HOMIES＂ IS A RE
+C:\Users\suppo\Downloads\New Music\Top1000\MC Fioti - Bum Bum Tam Tam ｜ Official Music Video.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\MC Kevinho - Olha a Explosão ｜ Official Music Video.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Metallica： Enter Sandman (Official Music Video).mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000\Metallica： Nothing Else Matters.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Metallica： One (Official Music Video).mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000\Michael Jackson - Billie Jean.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Disco\Michael Jackson - Billie Jean.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Mickey Newbury ： After All These Years.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000\Mike Posner - I Took A Pill In Ibiza.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Mike Posner - I Took A Pill In Ibiza.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Mile Ho Tum - Reprise Version ｜ Neha Kakkar ｜ Tony Kakkar ｜ Fever ｜ Gaurav Jang.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\MIRA - Bad Booty ｜ Official Video.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MIRA - Bad Booty ｜ Official Video.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\MIRA - Come With Me.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MIRA - Come With Me.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\MIRA - Duro ｜ Lyric Video.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MIRA - Duro ｜ Lyric Video.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\MIRA - Ladida ｜ Lyric Video.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MIRA - Ladida ｜ Lyric Video.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\MIRA - Love Again.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MIRA - Love Again.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\MIRA - Love Again.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+"C:\Users\suppo\Downloads\New Music\Top1000\MIRA - Ring, Ring ｜ Official Video.mp3",keep_review,NEEDS_REVIEW state from Phase 6
+"C:\Users\suppo\Downloads\New Music\Top1000_HipHop\MIRA - Ring, Ring ｜ Official Video.mp3",hold,COMPLEX_DUPLICATE: requires explicit review
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\MIRA - Ring, Ring ｜ Official Video.mp3",hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Miranda Lambert- Another Heartache.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Miranda Lambert - Another Heartache.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Miranda Lambert- Mama Im Alright.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Miranda Lambert - Mama Im Alright.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Missing Me Some You by Toby Keith.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Toby Keith - Missing Me Some You.mp3
+"C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Mobb Deep - Shook Ones, Pt. II (Official HD Video).mp3",approve_alternate,"RESOLVED_ALTERNATE collision-safe; alt=Mobb Deep - Shook Ones, Pt. II (Official"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Mobb Deep - Survival of the Fittest (Official HD Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Mobb Deep - Survival of the Fittest (Off
+"C:\Users\suppo\Downloads\New Music\Top1000_Classical\Mozart, Ah! vous dirai je maman Twinkle Twinkle, Little Star KV 265.mp3",approve_primary,low_confidence col but conf=0.3; proposed=Mozart - Ah! vous dirai je maman Twinkle
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\Mozart： Don Giovanni, K. 527 ⧸ Act 1 - ＂Là ci darem la mano＂.mp3",keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\muddy waters all aboard.mp3,approve_primary,low_confidence col but conf=0.3; proposed=muddy waters - all aboard.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Muddy Waters ~ My Home Is In The Delta.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Muddy Waters - ~ My Home Is In The Delta
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Muddy Waters ＂Trouble No More＂ 1974.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+"C:\Users\suppo\Downloads\New Music\Top1000\MysticBoogie by Bantunani ＂ode to Joy, hymne à la joie New album - Musicalist＂.mp3",keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Nas - Hate Me Now (Official HD Video) ft. Puff Daddy.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Nas - Hate Me Now (Official HD Video) ft
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Nas - Nas Is Like (Official Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Nas - Nas Is Like (Official Video) (Musi
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Naughty by Nature - Hip Hop Hooray (Official Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Naughty by Nature - Hip Hop Hooray (Offi
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Naughty By Nature - O.P.P. (Official Music Video) [HD].mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Naughty By Nature - O.P.P. (Official Mus
+"C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Neil Young- My My, Hey Hey (Out Of The Blue).mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Neil Young - My My, Hey Hey (Out Of The "
+"C:\Users\suppo\Downloads\New Music\Top1000_Country\Nights I Cant Remember, Friends Ill Never Forget by Toby Keith.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Toby Keith - Nights I Cant Remember, Fri"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Nirvana - Smells Like Teen Spirit (Official Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Nirvana - Smells Like Teen Spirit (Offic
+C:\Users\suppo\Downloads\New Music\Top1000\Ozuna - Se Preparó ｜ Odisea.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\OZZY OSBOURNE - ＂No More Tears＂ (Official Video).mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000\Paul Damixie - Hypnotised ｜ Official Visualiser.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\Paul Damixie - Secrets ｜ Official Music Video.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\POWERWOLF - Beast Of Gévaudan (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Powerwolf - Beast of Gévaudan Napalm Rec
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\POWERWOLF - Beast Of Gévaudan (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=POWERWOLF - Beast Of Gévaudan (Official 
+C:\Users\suppo\Downloads\New Music\Top1000\Proper Patola - Official Video ｜ Namaste England ｜ Arjun ｜ Parineeti ｜ Badshah ｜ Diljit ｜ Aastha.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Public Enemy- WELCOME TO THE TERRORDOME.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Public Enemy - WELCOME TO THE TERRORDOME
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Puccini： “O mio babbino caro” ⧸ Fleming · Marin · Berliner Philharmoniker.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Queen - Bohemian Rhapsody (2011 Digital Remaster).mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Queen - Bohemian Rhapsody (2011 Digital 
+"C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Raekwon - Ice Cream (Official HD Video) ft. Ghostface Killah, Method Man, Cappadonna.mp3",approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Raekwon - Ice Cream (Official HD Video) 
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\RAINBOW   Kill The King HQ   Original Studio version.mp3,approve_primary,low_confidence col but conf=0.3; proposed=RAINBOW - Kill The King HQ   Original St
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\Rameau ： Les sauvages, ＂Forêts paisibles＂, Les Indes galantes.mp3",keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Rossini - La Gazza Ladra： Overture.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Rossini： William Tell Overture： Final.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Roxanne Shante： ＂Have a Nice Day＂.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.0
+"C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Schoolly D- PSK, What Does It Mean？.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Schoolly D - PSK, What Does It Mean？.mp3"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Scorpions- Blackout (Remastered 2001).mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Scotty McCreery- I Cross My Heart Lyrics.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Scotty McCreery - I Cross My Heart Lyric
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\SERENITY - The End Of Babylon (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Serenity - The End of Babylon Napalm Rec
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\SERENITY - The End Of Babylon (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=SERENITY - The End Of Babylon (Official 
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Slayer ~ Angel of Death (Lyrics).mp3,approve_primary,low_confidence col but conf=0.3; proposed=Slayer - ~ Angel of Death (Lyrics).mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Slick Rick -la di da di lyrics.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Slick Rick - -la di da di lyrics.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\Smiley - Days of Summer ｜ Official Visualizer.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\Smiley - Let Me Go ｜ Official Visualiser.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\Smiley - Tomorrow ｜ Official Visualizer.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\sonny boy williamson help me.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Sonny Boy - Williamson Help Me.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\sonny boy williamson help me.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=sonny boy williamson help me (Alt 1).mp3
+C:\Users\suppo\Downloads\New Music\Top1000\SPIRITSAVER - ＂IM HIGH HAVE YOU MET ME？＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Classical\St. Pauls Suite By Gustav Holst No. 2 Ostinato.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Gustav Holst No. 2 Ostinato - St. Pauls 
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Steppenwolf - Born To Be Wild.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Steppenwolf - Born To Be Wild.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\SWAVAY- DUBLIN.mp3,keep_review,dup_risk=none but col=no_change conf=0.0
+C:\Users\suppo\Downloads\New Music\Top1000_Disco\Tavares heaven must be missing an angel.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Tavares - heaven must be missing an ange
+"C:\Users\suppo\Downloads\New Music\Top1000\Tera Fitoor Lyrical - Genius ｜ Utkarsh Sharma, Ishita Chauhan ｜ Arijit Singh ｜ Himesh Reshammiya.mp3",approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Tha Dogg Pound - ＂What Would You Do＂.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Tha Dogg Pound - ＂What Would You Do＂.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\tha Dogg Pound Gangstaz DPG New York New York uncensored Daz Dillinger Kurupt Snoop Doggy Dogg m2v.mp3,approve_primary,low_confidence col but conf=0.3; proposed=tha Dogg Pound - Gangstaz DPG New York N
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\The Byrds- I Wasn't Born To Follow.mp3,approve_primary,low_confidence col but conf=0.3; proposed=The Byrds - I Wasn't Born To Follow.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\The Chainsmokers & Coldplay - Something Just Like This.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\The Chainsmokers & Coldplay - Something Just Like This.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\The Chainsmokers - Dont Let Me Down ft. Daya.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\The Chainsmokers - Dont Let Me Down ft. Daya.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Notorious B.I.G. - Hypnotize (Official Music Video) [4K].mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=The Notorious B.I.G. - Hypnotize (Offici
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Notorious B.I.G. - Juicy (Official Video) [4K].mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=The Notorious B.I.G. - Juicy (Official V
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Notorious B.I.G. - Warning (Official Music Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=The Notorious B.I.G. - Warning (Official
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Notorious B.I.G. - Who Shot Ya？ (Official Audio).mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Pharcyde ＂Runnin＂ Version 2 from Labcabincalifornia.mp3,approve_primary,low_confidence col but conf=0.3; proposed=The Pharcyde - ＂Runnin＂ Version 2 from L
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Roots- No Alibi.mp3,approve_primary,low_confidence col but conf=0.3; proposed=The Roots - No Alibi.mp3
+C:\Users\suppo\Downloads\New Music\Top1000\The Weeknd - Cant Feel My Face.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\The Weeknd - Cant Feel My Face.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\The Weeknd - I Feel It Coming ft. Daft Punk.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\The Weeknd - I Feel It Coming ft. Daft Punk.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\The Weeknd - Starboy ft. Daft Punk ft. Daft Punk.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\The Weeknd - Starboy ft. Daft Punk ft. Daft Punk.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Disco\The Whispers - ＂And The Beat Goes On＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Tim McGraw- Where The Green Grass Grows.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Tim McGraw - Where The Green Grass Grows
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Toby Keith Old toy trains.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Toby Keith - Old toy trains.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Toby Keith That Dont Make Me A Bad Guy lyric video.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Toby Keith - That Dont Make Me A Bad Guy
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Toby Keith You Aint Much Fun.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Toby Keith - You Aint Much Fun.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Toby Keith- Aint Breakin Nothin.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Toby Keith - Aint Breakin Nothin.mp3
+"C:\Users\suppo\Downloads\New Music\Top1000\TOESUP, Smiley - Two Feet (DJ Dark Remix).mp3",keep_review,NEEDS_REVIEW state from Phase 6
+"C:\Users\suppo\Downloads\New Music\Top1000_Motown\Top 100 Motown Soul Classics 🎶 Timeless R&B Oldies from the 70s, 80s & 90s.mp3",keep_review,dup_risk=similar_title but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000\Tove Lo - Habits - Hippie Sabotage Remix.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Tove Lo - Habits - Hippie Sabotage Remix.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000\Travesuras - Nicky Jam ｜ Video Oficial.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000\twenty one pilots： Heathens.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000\twenty one pilots： Stressed Out.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Twista ‎- Overnight Celebrity.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Twista ‎ - Overnight Celebrity.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ultramagnetic MCs ⧸ EGO TRIPPING.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+"C:\Users\suppo\Downloads\New Music\Top1000\Vaaste Song： Dhvani Bhanushali, Tanishk Bagchi ｜ Nikhil DSouza ｜ Bhushan Kumar ｜ Radhika R, Vinay S.mp3",keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Van Halen- Runnin' with the devil.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Van Halen - Runnin' with the devil.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Verdi - Rigoletto： La Donna E Mobile.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+"C:\Users\suppo\Downloads\New Music\Top1000_Jazz\Vintage Jazz 1950s 🎷 Golden Classics by Frank Sinatra, Nat King Cole & Louis Armstrong.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Frank Sinatra, Nat King Cole & Louis Arm"
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\VISIONS OF ATLANTIS & WARKINGS - Pirates & Kings (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Visions of Atlantis & Warkings - Pirates
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\VISIONS OF ATLANTIS & WARKINGS - Pirates & Kings (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=VISIONS OF ATLANTIS & WARKINGS - Pirates
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\Vivaldi： Il Giustino, RV 717 ⧸ Act 2 - ＂Vedrò con mio diletto＂.mp3",keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\WARKINGS - Genghis Khan (feat. Orden Ogan) (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Warkings - Genghis Khan (Feat. Orden Oga
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\WARKINGS - Genghis Khan (feat. Orden Ogan) (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=WARKINGS - Genghis Khan (feat. Orden Oga
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\WARKINGS - Heart of Rage feat. Morgana le Fay (Official Video) ｜ Napalm Records.mp3,hold,COMPLEX_DUPLICATE: requires explicit review
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\WARKINGS - Hellfire feat. Morgana le Fay (Official Video) ｜ Napalm Records.mp3,keep_review,NEEDS_REVIEW state from Phase 6
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\WARKINGS - Monsters feat. Morgana le Fay (Official Video) ｜ Napalm Records.mp3,keep_review,dup_risk=similar_title but no Phase 6 state assigned
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Waylon Jennings ＂The Devil's Right Hand＂.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\WIND ROSE - To Be a Dwarf (Official Video) ｜ Napalm Records.mp3,approve_primary,RESOLVED_PRIMARY high-conf; proposed=Wind Rose - To Be a Dwarf Napalm Records
+C:\Users\suppo\Downloads\New Music\Top1000_Symphonic_Power Metal\WIND ROSE - To Be a Dwarf (Official Video) ｜ Napalm Records.temp.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=WIND ROSE - To Be a Dwarf (Official Vide
+"C:\Users\suppo\Downloads\New Music\Top1000_Country\With you, Without you by Brad Paisley.wmv.mp3",approve_primary,"low_confidence col but conf=0.3; proposed=Brad Paisley.wmv - With you, Without you"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Wu-Tang Clan - C.R.E.A.M. (Official HD Video).mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Wu-Tang Clan - C.R.E.A.M. (Official HD V
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Wu-Tang Clan - Triumph (Official HD Video) ft. Cappadonna.mp3,approve_alternate,RESOLVED_ALTERNATE collision-safe; alt=Wu-Tang Clan - Triumph (Official HD Vide
+C:\Users\suppo\Downloads\New Music\Top1000_Disco\Young Hearts Run Free by Candi Staton.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Candi Staton - Young Hearts Run Free.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Zac Brown Band - Colder Weather ｜ You Get What You Give.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Zac Brown Band - Knee Deep Feat. Jimmy Buffett ｜ You Get What You Give.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Zac Brown Band - Sweet Annie ｜ Uncaged.mp3,approve_primary,no dup risk; col=no_change; conf=1.0
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Zac Brown Band Cold Hearted lyrics.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Zac Brown Band - Cold Hearted lyrics.mp3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Zac Brown Band ~ Free Extended Version.mp3,approve_primary,low_confidence col but conf=0.3; proposed=Zac Brown Band - ~ Free Extended Version
+C:\Users\suppo\Downloads\New Music\Top1000_Country\＂But You Like Country Music＂ - Lyric Video Sunny Sweeney and Brennen Leigh.mp3,approve_primary,low_confidence col but conf=0.3; proposed=＂But You Like Country Music＂ - Lyric Vid
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\＂Going Down＂ - Freddie King.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\＂Going up the Country＂ - Canned Heat ⧸ WOODSTOCK '69.mp3,keep_review,dup_risk=none but col=illegal_chars conf=0.3
+C:\Users\suppo\Downloads\New Music\Top1000_Country\＂If I know me＂ by George Strait.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Country\＂If Love Was Fair＂ - Ashley Monroe.mp3,keep_review,low_confidence; conf=0.0; needs manual parse
+C:\Users\suppo\Downloads\New Music\Top1000_Country\＂It Did＂ - Blaine Larsen.mp3,keep_review,low_confidence; conf=0.0; needs manual parse

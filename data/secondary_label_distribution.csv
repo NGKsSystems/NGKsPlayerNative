@@ -1,0 +1,115 @@
+track_id,artist,title,primary_genre,secondary_genre,source,confidence,applied_by
+2174,Demun Jones,Demun Jones - Backyard Lullaby,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2178,Demun Jones,Demun Jones - My Town,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2180,Demun Jones,Demun Jones - Tannerite,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2182,Demun Jones,Demun Jones - Truck Music,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2742,Demun Jones,Upchurch  Demun Jones  - Campfire Cologne,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2856,Jelly Roll,Jelly Roll - Need a Favor,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2529,Ryan Upchurch,Ryan Upchurch - Hollerboys,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2527,Upchurch,Ryan Upchurch - Black Sheep,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2528,Upchurch,Ryan Upchurch - Cowboy Movies,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2530,Upchurch,Ryan Upchurch - Love Her Again,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2531,Upchurch,Ryan Upchurch - Real Country,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2532,Upchurch,Ryan Upchurch - Same Ol Same Ol,Country,Hip-Hop,manual,1.0,multi_label_phase_v1
+2537,Sara Evans,Sara Evans - Suds In The Bucket,Country,Pop,manual,0.8,multi_label_phase_v1
+2770,Zac Brown Band,Zac Brown Band - Heavy Is The Head,Country,Pop,manual,0.8,multi_label_phase_v1
+2082,Chris Stapleton,Chris Stapleton - Fire Away,Country,Rock,manual,1.0,multi_label_phase_v1
+2083,Chris Stapleton,Chris Stapleton - Friendship,Country,Rock,manual,1.0,multi_label_phase_v1
+2084,Chris Stapleton,Chris Stapleton - Hard Livin',Country,Rock,manual,1.0,multi_label_phase_v1
+2085,Chris Stapleton,Chris Stapleton - I Was Wrong,Country,Rock,manual,1.0,multi_label_phase_v1
+2086,Chris Stapleton,Chris Stapleton - Midnight Train To Memphis,Country,Rock,manual,1.0,multi_label_phase_v1
+2087,Chris Stapleton,Chris Stapleton - Millionaire,Country,Rock,manual,1.0,multi_label_phase_v1
+2088,Chris Stapleton,Chris Stapleton - Nobody to Blame,Country,Rock,manual,1.0,multi_label_phase_v1
+2089,Chris Stapleton,Chris Stapleton - Parachute,Country,Rock,manual,1.0,multi_label_phase_v1
+2090,Chris Stapleton,Chris Stapleton - Second One To Know,Country,Rock,manual,1.0,multi_label_phase_v1
+2091,Chris Stapleton,Chris Stapleton - Tryin To Untangle My Mind,Country,Rock,manual,1.0,multi_label_phase_v1
+2841,Unknown,Dax - Temptation,Hip-Hop,Country,manual,0.8,multi_label_phase_v1
+2706,Tone-Loc,Tone Loc - Wild Thing,Hip-Hop,Pop,manual,1.0,multi_label_phase_v1
+2838,Hopsin,Hopsin - Ill Mind of Hopsin 5,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2217,Tom MacDonald,End Of The World - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2538,Tom MacDonald,Save A Life - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2548,Tom MacDonald,See God - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2572,Tom MacDonald,Still Me - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2573,Tom MacDonald,Still The One - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2590,Tom MacDonald,The Machine - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2595,Tom MacDonald,The System - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2624,Tom MacDonald,Tom MacDonald -  Buttholes,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2626,Tom MacDonald,Tom MacDonald - American Dreamz,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2629,Tom MacDonald,Tom MacDonald - Angels,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2631,Tom MacDonald,Tom MacDonald - Average Boy,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2633,Tom MacDonald,Tom MacDonald - Best Rapper Ever,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2634,Tom MacDonald,Tom MacDonald - Castles,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2636,Tom MacDonald,Tom MacDonald - Dear Rappers,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2637,Tom MacDonald,Tom MacDonald - Dirty Money,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2638,Tom MacDonald,Tom MacDonald - End Of The World,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2639,Tom MacDonald,Tom MacDonald - Everybody Hates Me,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2640,Tom MacDonald,Tom Macdonald - Fake Fans,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2641,Tom MacDonald,Tom MacDonald - Fighter,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2642,Tom MacDonald,Tom MacDonald - Freedom's Not For Sale,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2643,Tom MacDonald,Tom MacDonald - Freedoms Not For Sale,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2646,Tom MacDonald,Tom MacDonald - Gravestones,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2648,Tom MacDonald,Tom MacDonald - Hatred,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2649,Tom MacDonald,Tom MacDonald - Helluvit,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2652,Tom MacDonald,Tom MacDonald - I Dont Care,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2653,Tom MacDonald,Tom MacDonald - I Hate Hip Hop,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2654,Tom MacDonald,Tom MacDonald - I Wish,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2655,Tom MacDonald,Tom MacDonald - Im Corny,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2656,Tom MacDonald,Tom MacDonald - Im Sorry,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2657,Tom MacDonald,Tom MacDonald - Luck You,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2659,Tom MacDonald,Tom MacDonald - Money,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2660,Tom MacDonald,Tom MacDonald - My Fans,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2664,Tom MacDonald,Tom MacDonald - No Lives Matter,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2666,Tom MacDonald,Tom MacDonald - No Response,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2667,Tom MacDonald,Tom MacDonald - People So Stupid,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2668,Tom MacDonald,Tom MacDonald - Politically Incorrect,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2671,Tom MacDonald,Tom MacDonald - Riot,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2672,Tom MacDonald,Tom MacDonald - Save A Life,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2675,Tom MacDonald,Tom MacDonald - See God,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2676,Tom MacDonald,Tom MacDonald - Sellout,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2677,Tom MacDonald,Tom MacDonald - Sheeple,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2680,Tom MacDonald,Tom MacDonald - Still Me,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2681,Tom MacDonald,Tom MacDonald - Still The One,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2682,Tom MacDonald,Tom MacDonald - The Machine,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2683,Tom MacDonald,Tom MacDonald - The Music Industry,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2685,Tom MacDonald,Tom MacDonald - The System,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2687,Tom MacDonald,Tom MacDonald - This House,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2690,Tom MacDonald,Tom MacDonald - Trying To Kill Me,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2691,Tom MacDonald,Tom MacDonald - Underdogs,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2693,Tom MacDonald,Tom MacDonald - Way Off,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2697,Tom MacDonald,Tom MacDonald - Wild Ones,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2698,Tom MacDonald,Tom MacDonald ft. DAX - Blame The Rappers,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2768,Tom MacDonald,Wild Ones - Tom MacDonald,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2663,Tom MacDonald,Tom MacDonald - Names,Hip-Hop,Rock,manual,1.0,multi_label_phase_v1
+2761,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,Hip-Hop,manual,1.0,multi_label_phase_v1
+2645,Tom MacDonald,Tom MacDonald - Ghost,Pop,Rock,manual,0.8,multi_label_phase_v1
+2386,Kid Rock,Kid Rock - All Summer Long,Rock,Country,manual,1.0,multi_label_phase_v1
+2387,Kid Rock,Kid Rock - American Bad Ass,Rock,Country,manual,1.0,multi_label_phase_v1
+2388,Kid Rock,Kid Rock - American Rock 'n Roll,Rock,Country,manual,1.0,multi_label_phase_v1
+2389,Kid Rock,Kid Rock - Cowboy,Rock,Country,manual,1.0,multi_label_phase_v1
+2390,Kid Rock,Kid Rock - First Kiss,Rock,Country,manual,1.0,multi_label_phase_v1
+2391,Kid Rock,Kid Rock - Let_s Ride,Rock,Country,manual,1.0,multi_label_phase_v1
+2393,Kid Rock,Kid Rock - Only God Knows Why,Rock,Country,manual,1.0,multi_label_phase_v1
+2394,Kid Rock,Kid Rock - Picture,Rock,Country,manual,1.0,multi_label_phase_v1
+2397,Kid Rock,Kid Rock - The Last Dance,Rock,Country,manual,1.0,multi_label_phase_v1
+2855,Kid Rock,Kid Rock - Let's Ride,Rock,Country,manual,1.0,multi_label_phase_v1
+2752,Van Zant,Van Zant - Help Somebody,Rock,Country,manual,1.0,multi_label_phase_v1
+2753,Van Zant,Van Zant - Nobody Gonna Tell Me What to Do,Rock,Country,manual,1.0,multi_label_phase_v1
+2162,Def Leppard,Def Leppard - Animal,Rock,Metal,manual,1.0,multi_label_phase_v1
+2163,Def Leppard,Def Leppard - Armageddon It,Rock,Metal,manual,1.0,multi_label_phase_v1
+2164,Def Leppard,Def Leppard - Dangerous,Rock,Metal,manual,1.0,multi_label_phase_v1
+2165,Def Leppard,Def Leppard - Foolin,Rock,Metal,manual,1.0,multi_label_phase_v1
+2166,Def Leppard,Def Leppard - Love Bites,Rock,Metal,manual,1.0,multi_label_phase_v1
+2167,Def Leppard,Def Leppard - Nine Lives,Rock,Metal,manual,1.0,multi_label_phase_v1
+2169,Def Leppard,Def Leppard - Pour Some Sugar On Me,Rock,Metal,manual,1.0,multi_label_phase_v1
+2170,Def Leppard,Def Leppard - Rock Of Ages ,Rock,Metal,manual,1.0,multi_label_phase_v1
+2171,Def Leppard,Def Leppard - Too Late For Love,Rock,Metal,manual,1.0,multi_label_phase_v1
+2221,Faith No More,Faith No More - Epic,Rock,Metal,manual,1.0,multi_label_phase_v1
+2547,Shinedown,Second Chance - Shinedown,Rock,Metal,manual,1.0,multi_label_phase_v1
+2555,Shinedown,Shinedown - Cut The Cord,Rock,Metal,manual,1.0,multi_label_phase_v1
+2556,Shinedown,Shinedown - Dead Don_t Die,Rock,Metal,manual,1.0,multi_label_phase_v1
+2557,Shinedown,Shinedown - Enemies,Rock,Metal,manual,1.0,multi_label_phase_v1
+2558,Shinedown,Shinedown - Monsters,Rock,Metal,manual,1.0,multi_label_phase_v1
+2560,Shinedown,Shinedown - Simple Man,Rock,Metal,manual,1.0,multi_label_phase_v1
+2561,Shinedown,Shinedown - Sound of Madness,Rock,Metal,manual,1.0,multi_label_phase_v1
+2562,Shinedown,Shinedown - State Of My Head,Rock,Metal,manual,1.0,multi_label_phase_v1
+2880,Shinedown,Shinedown - Second Chance,Rock,Metal,manual,1.0,multi_label_phase_v1

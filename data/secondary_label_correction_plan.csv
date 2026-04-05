@@ -1,0 +1,115 @@
+track_id,label_id,artist,title,primary_genre,secondary_genre,original_confidence,audit_confidence,in_benchmark,action,reason
+2174,804,Demun Jones,Demun Jones - Backyard Lullaby,Country,Hip-Hop,1.0,HIGH,True,KEEP,High confidence hybrid
+2178,805,Demun Jones,Demun Jones - My Town,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2180,806,Demun Jones,Demun Jones - Tannerite,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2182,807,Demun Jones,Demun Jones - Truck Music,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2742,808,Demun Jones,Upchurch  Demun Jones  - Campfire Cologne,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2856,811,Jelly Roll,Jelly Roll - Need a Favor,Country,Hip-Hop,1.0,HIGH,True,KEEP,High confidence hybrid
+2529,822,Ryan Upchurch,Ryan Upchurch - Hollerboys,Country,Hip-Hop,1.0,HIGH,True,KEEP,High confidence hybrid
+2527,887,Upchurch,Ryan Upchurch - Black Sheep,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2528,888,Upchurch,Ryan Upchurch - Cowboy Movies,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2530,889,Upchurch,Ryan Upchurch - Love Her Again,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2531,890,Upchurch,Ryan Upchurch - Real Country,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2532,891,Upchurch,Ryan Upchurch - Same Ol Same Ol,Country,Hip-Hop,1.0,HIGH,False,KEEP,High confidence hybrid
+2537,900,Sara Evans,Sara Evans - Suds In The Bucket,Country,Pop,0.8,LOW,True,REMOVE_CANDIDATE,"Low confidence, no subgenre support, non-major pair"
+2770,903,Zac Brown Band,Zac Brown Band - Heavy Is The Head,Country,Pop,0.8,LOW,True,REMOVE_CANDIDATE,"Low confidence, no subgenre support, non-major pair"
+2082,784,Chris Stapleton,Chris Stapleton - Fire Away,Country,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2083,785,Chris Stapleton,Chris Stapleton - Friendship,Country,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2084,786,Chris Stapleton,Chris Stapleton - Hard Livin',Country,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2085,787,Chris Stapleton,Chris Stapleton - I Was Wrong,Country,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2086,788,Chris Stapleton,Chris Stapleton - Midnight Train To Memphis,Country,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2087,789,Chris Stapleton,Chris Stapleton - Millionaire,Country,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2088,790,Chris Stapleton,Chris Stapleton - Nobody to Blame,Country,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2089,791,Chris Stapleton,Chris Stapleton - Parachute,Country,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2090,792,Chris Stapleton,Chris Stapleton - Second One To Know,Country,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2091,793,Chris Stapleton,Chris Stapleton - Tryin To Untangle My Mind,Country,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2841,902,Unknown,Dax - Temptation,Hip-Hop,Country,0.8,LOW,True,REMOVE_CANDIDATE,"Low confidence, no subgenre support, non-major pair"
+2706,886,Tone-Loc,Tone Loc - Wild Thing,Hip-Hop,Pop,1.0,HIGH,True,KEEP,High confidence hybrid
+2838,810,Hopsin,Hopsin - Ill Mind of Hopsin 5,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2217,832,Tom MacDonald,End Of The World - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2538,833,Tom MacDonald,Save A Life - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2548,834,Tom MacDonald,See God - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2572,835,Tom MacDonald,Still Me - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2573,836,Tom MacDonald,Still The One - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2590,837,Tom MacDonald,The Machine - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2595,838,Tom MacDonald,The System - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2624,839,Tom MacDonald,Tom MacDonald -  Buttholes,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2626,840,Tom MacDonald,Tom MacDonald - American Dreamz,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2629,841,Tom MacDonald,Tom MacDonald - Angels,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2631,842,Tom MacDonald,Tom MacDonald - Average Boy,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2633,843,Tom MacDonald,Tom MacDonald - Best Rapper Ever,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2634,844,Tom MacDonald,Tom MacDonald - Castles,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2636,845,Tom MacDonald,Tom MacDonald - Dear Rappers,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2637,846,Tom MacDonald,Tom MacDonald - Dirty Money,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2638,847,Tom MacDonald,Tom MacDonald - End Of The World,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2639,848,Tom MacDonald,Tom MacDonald - Everybody Hates Me,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2640,849,Tom MacDonald,Tom Macdonald - Fake Fans,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2641,850,Tom MacDonald,Tom MacDonald - Fighter,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2642,851,Tom MacDonald,Tom MacDonald - Freedom's Not For Sale,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2643,852,Tom MacDonald,Tom MacDonald - Freedoms Not For Sale,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2646,853,Tom MacDonald,Tom MacDonald - Gravestones,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2648,854,Tom MacDonald,Tom MacDonald - Hatred,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2649,855,Tom MacDonald,Tom MacDonald - Helluvit,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2652,856,Tom MacDonald,Tom MacDonald - I Dont Care,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2653,857,Tom MacDonald,Tom MacDonald - I Hate Hip Hop,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2654,858,Tom MacDonald,Tom MacDonald - I Wish,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2655,859,Tom MacDonald,Tom MacDonald - Im Corny,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2656,860,Tom MacDonald,Tom MacDonald - Im Sorry,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2657,861,Tom MacDonald,Tom MacDonald - Luck You,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2659,862,Tom MacDonald,Tom MacDonald - Money,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2660,863,Tom MacDonald,Tom MacDonald - My Fans,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2664,864,Tom MacDonald,Tom MacDonald - No Lives Matter,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2666,865,Tom MacDonald,Tom MacDonald - No Response,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2667,866,Tom MacDonald,Tom MacDonald - People So Stupid,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2668,867,Tom MacDonald,Tom MacDonald - Politically Incorrect,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2671,868,Tom MacDonald,Tom MacDonald - Riot,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2672,869,Tom MacDonald,Tom MacDonald - Save A Life,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2675,870,Tom MacDonald,Tom MacDonald - See God,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2676,871,Tom MacDonald,Tom MacDonald - Sellout,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2677,872,Tom MacDonald,Tom MacDonald - Sheeple,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2680,873,Tom MacDonald,Tom MacDonald - Still Me,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2681,874,Tom MacDonald,Tom MacDonald - Still The One,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2682,875,Tom MacDonald,Tom MacDonald - The Machine,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2683,876,Tom MacDonald,Tom MacDonald - The Music Industry,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2685,877,Tom MacDonald,Tom MacDonald - The System,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2687,878,Tom MacDonald,Tom MacDonald - This House,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2690,879,Tom MacDonald,Tom MacDonald - Trying To Kill Me,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2691,880,Tom MacDonald,Tom MacDonald - Underdogs,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2693,881,Tom MacDonald,Tom MacDonald - Way Off,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2697,882,Tom MacDonald,Tom MacDonald - Wild Ones,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2698,883,Tom MacDonald,Tom MacDonald ft. DAX - Blame The Rappers,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2768,884,Tom MacDonald,Wild Ones - Tom MacDonald,Hip-Hop,Rock,1.0,HIGH,False,KEEP,High confidence hybrid
+2663,885,Tom MacDonald,Tom MacDonald - Names,Hip-Hop,Rock,1.0,HIGH,True,KEEP,High confidence hybrid
+2761,894,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,Hip-Hop,1.0,HIGH,True,KEEP,High confidence hybrid
+2645,901,Tom MacDonald,Tom MacDonald - Ghost,Pop,Rock,0.8,HIGH,True,KEEP,High confidence hybrid
+2386,812,Kid Rock,Kid Rock - All Summer Long,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2387,813,Kid Rock,Kid Rock - American Bad Ass,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2388,814,Kid Rock,Kid Rock - American Rock 'n Roll,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2389,815,Kid Rock,Kid Rock - Cowboy,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2390,816,Kid Rock,Kid Rock - First Kiss,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2391,817,Kid Rock,Kid Rock - Let_s Ride,Rock,Country,1.0,HIGH,True,KEEP,High confidence hybrid
+2393,818,Kid Rock,Kid Rock - Only God Knows Why,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2394,819,Kid Rock,Kid Rock - Picture,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2397,820,Kid Rock,Kid Rock - The Last Dance,Rock,Country,1.0,HIGH,True,KEEP,High confidence hybrid
+2855,821,Kid Rock,Kid Rock - Let's Ride,Rock,Country,1.0,HIGH,True,KEEP,High confidence hybrid
+2752,892,Van Zant,Van Zant - Help Somebody,Rock,Country,1.0,HIGH,True,KEEP,High confidence hybrid
+2753,893,Van Zant,Van Zant - Nobody Gonna Tell Me What to Do,Rock,Country,1.0,HIGH,False,KEEP,High confidence hybrid
+2162,794,Def Leppard,Def Leppard - Animal,Rock,Metal,1.0,HIGH,True,KEEP,High confidence hybrid
+2163,795,Def Leppard,Def Leppard - Armageddon It,Rock,Metal,1.0,HIGH,True,KEEP,High confidence hybrid
+2164,796,Def Leppard,Def Leppard - Dangerous,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2165,797,Def Leppard,Def Leppard - Foolin,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2166,798,Def Leppard,Def Leppard - Love Bites,Rock,Metal,1.0,LOW,True,REMOVE_CANDIDATE,Track-level override: known incorrect assignment
+2167,799,Def Leppard,Def Leppard - Nine Lives,Rock,Metal,1.0,HIGH,True,KEEP,High confidence hybrid
+2169,801,Def Leppard,Def Leppard - Pour Some Sugar On Me,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2170,802,Def Leppard,Def Leppard - Rock Of Ages ,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2171,803,Def Leppard,Def Leppard - Too Late For Love,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2221,809,Faith No More,Faith No More - Epic,Rock,Metal,1.0,HIGH,True,KEEP,High confidence hybrid
+2547,823,Shinedown,Second Chance - Shinedown,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2555,824,Shinedown,Shinedown - Cut The Cord,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2556,825,Shinedown,Shinedown - Dead Don_t Die,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2557,826,Shinedown,Shinedown - Enemies,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2558,827,Shinedown,Shinedown - Monsters,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2560,828,Shinedown,Shinedown - Simple Man,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2561,829,Shinedown,Shinedown - Sound of Madness,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid
+2562,830,Shinedown,Shinedown - State Of My Head,Rock,Metal,1.0,HIGH,True,KEEP,High confidence hybrid
+2880,831,Shinedown,Shinedown - Second Chance,Rock,Metal,1.0,HIGH,False,KEEP,High confidence hybrid

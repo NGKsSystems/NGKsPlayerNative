@@ -1,0 +1,115 @@
+track_id,artist,title,primary_genre,aligned_subgenre,secondary_genre,rule_match,rule_type,decision,reason
+2082,Chris Stapleton,Chris Stapleton - Fire Away,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2083,Chris Stapleton,Chris Stapleton - Friendship,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2084,Chris Stapleton,Chris Stapleton - Hard Livin',Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2085,Chris Stapleton,Chris Stapleton - I Was Wrong,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2086,Chris Stapleton,Chris Stapleton - Midnight Train To Memphis,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2087,Chris Stapleton,Chris Stapleton - Millionaire,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2088,Chris Stapleton,Chris Stapleton - Nobody to Blame,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2089,Chris Stapleton,Chris Stapleton - Parachute,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2090,Chris Stapleton,Chris Stapleton - Second One To Know,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2091,Chris Stapleton,Chris Stapleton - Tryin To Untangle My Mind,Country,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2162,Def Leppard,Def Leppard - Animal,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2163,Def Leppard,Def Leppard - Armageddon It,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2164,Def Leppard,Def Leppard - Dangerous,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2165,Def Leppard,Def Leppard - Foolin,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2166,Def Leppard,Def Leppard - Love Bites,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2167,Def Leppard,Def Leppard - Nine Lives,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2169,Def Leppard,Def Leppard - Pour Some Sugar On Me,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2170,Def Leppard,Def Leppard - Rock Of Ages ,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2171,Def Leppard,Def Leppard - Too Late For Love,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2174,Demun Jones,Demun Jones - Backyard Lullaby,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2178,Demun Jones,Demun Jones - My Town,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2180,Demun Jones,Demun Jones - Tannerite,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2182,Demun Jones,Demun Jones - Truck Music,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2742,Demun Jones,Upchurch  Demun Jones  - Campfire Cologne,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2221,Faith No More,Faith No More - Epic,Rock,(none),Metal,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2838,Hopsin,Hopsin - Ill Mind of Hopsin 5,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2856,Jelly Roll,Jelly Roll - Need a Favor,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2386,Kid Rock,Kid Rock - All Summer Long,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2387,Kid Rock,Kid Rock - American Bad Ass,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2388,Kid Rock,Kid Rock - American Rock 'n Roll,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2389,Kid Rock,Kid Rock - Cowboy,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2390,Kid Rock,Kid Rock - First Kiss,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2855,Kid Rock,Kid Rock - Let's Ride,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2391,Kid Rock,Kid Rock - Let_s Ride,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2393,Kid Rock,Kid Rock - Only God Knows Why,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2394,Kid Rock,Kid Rock - Picture,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2397,Kid Rock,Kid Rock - The Last Dance,Rock,Classic Rock,Country,no,,REMOVE,No rule supports Rock/Classic Rock -> Country (fail-closed)
+2529,Ryan Upchurch,Ryan Upchurch - Hollerboys,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2537,Sara Evans,Sara Evans - Suds In The Bucket,Country,(none),Pop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2547,Shinedown,Second Chance - Shinedown,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2555,Shinedown,Shinedown - Cut The Cord,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2556,Shinedown,Shinedown - Dead Don_t Die,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2557,Shinedown,Shinedown - Enemies,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2558,Shinedown,Shinedown - Monsters,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2880,Shinedown,Shinedown - Second Chance,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2560,Shinedown,Shinedown - Simple Man,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2561,Shinedown,Shinedown - Sound of Madness,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2562,Shinedown,Shinedown - State Of My Head,Rock,Classic Rock,Metal,no,,REMOVE,No rule supports Rock/Classic Rock -> Metal (fail-closed)
+2217,Tom MacDonald,End Of The World - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2538,Tom MacDonald,Save A Life - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2548,Tom MacDonald,See God - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2572,Tom MacDonald,Still Me - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2573,Tom MacDonald,Still The One - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2590,Tom MacDonald,The Machine - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2595,Tom MacDonald,The System - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2624,Tom MacDonald,Tom MacDonald -  Buttholes,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2626,Tom MacDonald,Tom MacDonald - American Dreamz,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2629,Tom MacDonald,Tom MacDonald - Angels,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2631,Tom MacDonald,Tom MacDonald - Average Boy,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2633,Tom MacDonald,Tom MacDonald - Best Rapper Ever,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2634,Tom MacDonald,Tom MacDonald - Castles,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2636,Tom MacDonald,Tom MacDonald - Dear Rappers,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2637,Tom MacDonald,Tom MacDonald - Dirty Money,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2638,Tom MacDonald,Tom MacDonald - End Of The World,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2639,Tom MacDonald,Tom MacDonald - Everybody Hates Me,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2641,Tom MacDonald,Tom MacDonald - Fighter,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2642,Tom MacDonald,Tom MacDonald - Freedom's Not For Sale,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2643,Tom MacDonald,Tom MacDonald - Freedoms Not For Sale,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2645,Tom MacDonald,Tom MacDonald - Ghost,Pop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2646,Tom MacDonald,Tom MacDonald - Gravestones,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2648,Tom MacDonald,Tom MacDonald - Hatred,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2649,Tom MacDonald,Tom MacDonald - Helluvit,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2652,Tom MacDonald,Tom MacDonald - I Dont Care,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2653,Tom MacDonald,Tom MacDonald - I Hate Hip Hop,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2654,Tom MacDonald,Tom MacDonald - I Wish,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2655,Tom MacDonald,Tom MacDonald - Im Corny,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2656,Tom MacDonald,Tom MacDonald - Im Sorry,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2657,Tom MacDonald,Tom MacDonald - Luck You,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2659,Tom MacDonald,Tom MacDonald - Money,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2660,Tom MacDonald,Tom MacDonald - My Fans,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2663,Tom MacDonald,Tom MacDonald - Names,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2664,Tom MacDonald,Tom MacDonald - No Lives Matter,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2666,Tom MacDonald,Tom MacDonald - No Response,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2667,Tom MacDonald,Tom MacDonald - People So Stupid,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2668,Tom MacDonald,Tom MacDonald - Politically Incorrect,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2671,Tom MacDonald,Tom MacDonald - Riot,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2672,Tom MacDonald,Tom MacDonald - Save A Life,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2675,Tom MacDonald,Tom MacDonald - See God,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2676,Tom MacDonald,Tom MacDonald - Sellout,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2677,Tom MacDonald,Tom MacDonald - Sheeple,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2680,Tom MacDonald,Tom MacDonald - Still Me,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2681,Tom MacDonald,Tom MacDonald - Still The One,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2682,Tom MacDonald,Tom MacDonald - The Machine,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2683,Tom MacDonald,Tom MacDonald - The Music Industry,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2685,Tom MacDonald,Tom MacDonald - The System,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2687,Tom MacDonald,Tom MacDonald - This House,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2690,Tom MacDonald,Tom MacDonald - Trying To Kill Me,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2691,Tom MacDonald,Tom MacDonald - Underdogs,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2693,Tom MacDonald,Tom MacDonald - Way Off,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2697,Tom MacDonald,Tom MacDonald - Wild Ones,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2698,Tom MacDonald,Tom MacDonald ft. DAX - Blame The Rappers,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2640,Tom MacDonald,Tom Macdonald - Fake Fans,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2768,Tom MacDonald,Wild Ones - Tom MacDonald,Hip-Hop,(none),Rock,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2706,Tone-Loc,Tone Loc - Wild Thing,Hip-Hop,(none),Pop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2841,Unknown,Dax - Temptation,Hip-Hop,(none),Country,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2527,Upchurch,Ryan Upchurch - Black Sheep,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2528,Upchurch,Ryan Upchurch - Cowboy Movies,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2530,Upchurch,Ryan Upchurch - Love Her Again,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2531,Upchurch,Ryan Upchurch - Real Country,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2532,Upchurch,Ryan Upchurch - Same Ol Same Ol,Country,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2752,Van Zant,Van Zant - Help Somebody,Rock,(none),Country,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2753,Van Zant,Van Zant - Nobody Gonna Tell Me What to Do,Rock,(none),Country,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2761,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,(none),Hip-Hop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'
+2770,Zac Brown Band,Zac Brown Band - Heavy Is The Head,Country,(none),Pop,no,,REVIEW,Insufficient subgenre coverage: sub='(null)' conf='none'

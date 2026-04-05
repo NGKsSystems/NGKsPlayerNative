@@ -1,0 +1,7 @@
+label,current_support,proposed_additions,projected_support,projected_status,notes
+Country,83,0,83,STRONG (not targeted),
+Hip-Hop,33,17,50,TARGET_MET,Meets target of 50
+Metal,8,8,16,STILL_WEAK,Still 14 short of target 30
+Other,9,8,17,STILL_WEAK,Still 13 short of target 30
+Pop,11,18,29,IMPROVED_BUT_BELOW_TARGET,Still 1 short of target 30
+Rock,82,0,82,STRONG (not targeted),

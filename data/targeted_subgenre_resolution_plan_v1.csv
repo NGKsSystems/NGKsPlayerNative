@@ -1,0 +1,87 @@
+track_id,artist,title,primary_genre,secondary_genre,proposed_aligned_subgenre,evidence_tier,confidence,decision,rationale
+2082,Chris Stapleton,Chris Stapleton - Fire Away,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2083,Chris Stapleton,Chris Stapleton - Friendship,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2084,Chris Stapleton,Chris Stapleton - Hard Livin',Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2085,Chris Stapleton,Chris Stapleton - I Was Wrong,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2086,Chris Stapleton,Chris Stapleton - Midnight Train To Memphis,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2087,Chris Stapleton,Chris Stapleton - Millionaire,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2088,Chris Stapleton,Chris Stapleton - Nobody to Blame,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2089,Chris Stapleton,Chris Stapleton - Parachute,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2090,Chris Stapleton,Chris Stapleton - Second One To Know,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2091,Chris Stapleton,Chris Stapleton - Tryin To Untangle My Mind,Country,Rock,Outlaw Country,TIER_3,high,RESOLVE,"Chris Stapleton is a well-established Outlaw/Traditional Country artist. His raw, soulful, non-pop-production style aligns with the Outlaw Country tradition. Among available Country subgenres (Bluegrass, Country Pop, Outlaw Country), Outlaw Country is the unambiguous best fit. All 10 tracks in the DB are consistent with this classification."
+2174,Demun Jones,Demun Jones - Backyard Lullaby,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2178,Demun Jones,Demun Jones - My Town,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2180,Demun Jones,Demun Jones - Tannerite,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2182,Demun Jones,Demun Jones - Truck Music,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2742,Demun Jones,Upchurch  Demun Jones  - Campfire Cologne,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2221,Faith No More,Faith No More - Epic,Rock,Metal,Alternative,TIER_3,high,RESOLVE,"Faith No More is widely classified as Alternative Rock / Alternative Metal. Among available Rock subgenres (Alternative, Classic Rock, Grunge, Prog Rock, Punk, Shoegaze), Alternative (id=16) is the clear and unambiguous match. 'Epic' is their signature Alternative Rock track."
+2838,Hopsin,Hopsin - Ill Mind of Hopsin 5,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB for this artist
+2856,Jelly Roll,Jelly Roll - Need a Favor,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2529,Ryan Upchurch,Ryan Upchurch - Hollerboys,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2537,Sara Evans,Sara Evans - Suds In The Bucket,Country,Pop,Country Pop,TIER_3,high,RESOLVE,"Sara Evans is a well-known Country Pop artist. Her hit 'Suds In The Bucket' is a quintessential Country Pop song. Among available Country subgenres, Country Pop (id=48) is the unambiguous match."
+2217,Tom MacDonald,End Of The World - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2538,Tom MacDonald,Save A Life - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2548,Tom MacDonald,See God - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2572,Tom MacDonald,Still Me - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2573,Tom MacDonald,Still The One - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2590,Tom MacDonald,The Machine - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2595,Tom MacDonald,The System - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2624,Tom MacDonald,Tom MacDonald -  Buttholes,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2626,Tom MacDonald,Tom MacDonald - American Dreamz,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2629,Tom MacDonald,Tom MacDonald - Angels,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2631,Tom MacDonald,Tom MacDonald - Average Boy,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2633,Tom MacDonald,Tom MacDonald - Best Rapper Ever,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2634,Tom MacDonald,Tom MacDonald - Castles,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2636,Tom MacDonald,Tom MacDonald - Dear Rappers,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2637,Tom MacDonald,Tom MacDonald - Dirty Money,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2638,Tom MacDonald,Tom MacDonald - End Of The World,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2639,Tom MacDonald,Tom MacDonald - Everybody Hates Me,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2641,Tom MacDonald,Tom MacDonald - Fighter,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2642,Tom MacDonald,Tom MacDonald - Freedom's Not For Sale,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2643,Tom MacDonald,Tom MacDonald - Freedoms Not For Sale,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2645,Tom MacDonald,Tom MacDonald - Ghost,Pop,Rock,,,low,SKIP,No fitting Pop subgenre in DB for this track
+2646,Tom MacDonald,Tom MacDonald - Gravestones,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2648,Tom MacDonald,Tom MacDonald - Hatred,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2649,Tom MacDonald,Tom MacDonald - Helluvit,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2652,Tom MacDonald,Tom MacDonald - I Dont Care,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2653,Tom MacDonald,Tom MacDonald - I Hate Hip Hop,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2654,Tom MacDonald,Tom MacDonald - I Wish,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2655,Tom MacDonald,Tom MacDonald - Im Corny,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2656,Tom MacDonald,Tom MacDonald - Im Sorry,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2657,Tom MacDonald,Tom MacDonald - Luck You,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2659,Tom MacDonald,Tom MacDonald - Money,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2660,Tom MacDonald,Tom MacDonald - My Fans,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2663,Tom MacDonald,Tom MacDonald - Names,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2664,Tom MacDonald,Tom MacDonald - No Lives Matter,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2666,Tom MacDonald,Tom MacDonald - No Response,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2667,Tom MacDonald,Tom MacDonald - People So Stupid,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2668,Tom MacDonald,Tom MacDonald - Politically Incorrect,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2671,Tom MacDonald,Tom MacDonald - Riot,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2672,Tom MacDonald,Tom MacDonald - Save A Life,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2675,Tom MacDonald,Tom MacDonald - See God,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2676,Tom MacDonald,Tom MacDonald - Sellout,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2677,Tom MacDonald,Tom MacDonald - Sheeple,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2680,Tom MacDonald,Tom MacDonald - Still Me,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2681,Tom MacDonald,Tom MacDonald - Still The One,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2682,Tom MacDonald,Tom MacDonald - The Machine,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2683,Tom MacDonald,Tom MacDonald - The Music Industry,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2685,Tom MacDonald,Tom MacDonald - The System,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2687,Tom MacDonald,Tom MacDonald - This House,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2690,Tom MacDonald,Tom MacDonald - Trying To Kill Me,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2691,Tom MacDonald,Tom MacDonald - Underdogs,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2693,Tom MacDonald,Tom MacDonald - Way Off,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2697,Tom MacDonald,Tom MacDonald - Wild Ones,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2698,Tom MacDonald,Tom MacDonald ft. DAX - Blame The Rappers,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2640,Tom MacDonald,Tom Macdonald - Fake Fans,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2768,Tom MacDonald,Wild Ones - Tom MacDonald,Hip-Hop,Rock,,,low,SKIP,No fitting Hip-Hop subgenre in DB (not Trap/Boom Bap/Drill/Lo-Fi/G-Funk)
+2706,Tone-Loc,Tone Loc - Wild Thing,Hip-Hop,Pop,,,low,SKIP,No Pop Rap / Old School subgenre in DB; cannot resolve
+2841,Unknown,Dax - Temptation,Hip-Hop,Country,,,low,SKIP,"Placeholder artist 'Unknown', cannot determine subgenre"
+2527,Upchurch,Ryan Upchurch - Black Sheep,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2528,Upchurch,Ryan Upchurch - Cowboy Movies,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2530,Upchurch,Ryan Upchurch - Love Her Again,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2531,Upchurch,Ryan Upchurch - Real Country,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2532,Upchurch,Ryan Upchurch - Same Ol Same Ol,Country,Hip-Hop,,,low,SKIP,No Country Rap subgenre in DB; cannot resolve
+2752,Van Zant,Van Zant - Help Somebody,Rock,Country,Classic Rock,TIER_3,high,RESOLVE,"Van Zant (Johnny Van Zant / Donnie Van Zant) is from the Lynyrd Skynyrd / .38 Special family — quintessential Classic Rock / Southern Rock. Among available Rock subgenres, Classic Rock (id=19) is the best fit. Southern Rock is not in the DB; Classic Rock is the established parent category."
+2753,Van Zant,Van Zant - Nobody Gonna Tell Me What to Do,Rock,Country,Classic Rock,TIER_3,high,RESOLVE,"Van Zant (Johnny Van Zant / Donnie Van Zant) is from the Lynyrd Skynyrd / .38 Special family — quintessential Classic Rock / Southern Rock. Among available Rock subgenres, Classic Rock (id=19) is the best fit. Southern Rock is not in the DB; Classic Rock is the established parent category."
+2761,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,Hip-Hop,,,low,SKIP,Parody artist; no fitting Pop subgenre in DB
+2770,Zac Brown Band,Zac Brown Band - Heavy Is The Head,Country,Pop,Country Pop,TIER_3,medium,REVIEW,Zac Brown Band crosses Country/Rock/Pop styles. Country Pop is plausible but the band's catalog is stylistically diverse. 'Heavy Is The Head' leans more rock/country than pop. Marking REVIEW — not safe for automatic resolution.

@@ -1,0 +1,6 @@
+proposed_subgenre,currently_blocked_cases,would_become_rule_eligible,likely_keep_count,likely_remove_count,still_review_count,notes
+Country Rap,12,12,12,0,0,All 12 blocked cases become eligible. Rule: Country/Country Rap→secondary
+Rap Rock,55,55,55,0,0,All 55 blocked cases become eligible. Rule: Hip-Hop/Rap Rock→secondary
+Pop Rap,1,1,1,0,0,All 1 blocked cases become eligible. Rule: Hip-Hop/Pop Rap→secondary
+(already resolved — needs recheck),14,14,1,13,0,These tracks already have subgenres from targeted resolution. They just need a secondary recheck pass.
+(unresolvable edge cases),4,0,0,0,4,"Placeholder artist, comedy/parody, ambiguous, or too-rare cases"

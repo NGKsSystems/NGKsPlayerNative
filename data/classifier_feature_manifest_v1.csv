@@ -1,0 +1,21 @@
+feature_name,status,included_in_v1,notes
+harmonic_stability,KEEP,yes,"F=2.94, p=6.07e-03"
+loudness_lufs,KEEP,yes,"F=2.35, p=2.55e-02"
+avg_section_duration,KEEP,yes,"F=4.22, p=2.38e-04"
+tempo_stability,DOWNWEIGHT,yes,"F=1.01, p=4.22e-01"
+energy,DOWNWEIGHT,yes,"F=1.74, p=1.03e-01"
+danceability,DOWNWEIGHT,yes,"F=1.50, p=1.70e-01"
+section_count,DOWNWEIGHT,yes,"F=1.84, p=1.41e-01"
+bpm_detected,REMOVE,no,"F=0.61, p=7.45e-01 — excluded from v1"
+valence,REMOVE,no,"F=0.00, p=1.00e+00 — excluded from v1"
+spectral_centroid,CANDIDATE_ADD,no,Differentiates bright vs dark timbres — Electronic vs Rock
+spectral_rolloff,CANDIDATE_ADD,no,Frequency energy distribution — genre-correlated
+spectral_flux,CANDIDATE_ADD,no,Onset attack sharpness — drums vs sustained sounds
+onset_density,CANDIDATE_ADD,no,Rhythm complexity — Hip-Hop vs Country separation
+zero_crossing_rate,CANDIDATE_ADD,no,Noise vs tonal content — Metal vs Pop
+bass_energy,CANDIDATE_ADD,no,"Low-frequency energy — Hip-Hop, Electronic, Metal"
+mid_energy,CANDIDATE_ADD,no,"Vocal/instrument range — Pop, Country, Rock"
+high_energy,CANDIDATE_ADD,no,"Cymbal/hi-hat presence — Metal, Electronic"
+vocal_presence,CANDIDATE_ADD,no,Vocal vs instrumental balance — key genre separator
+instrumentalness,CANDIDATE_ADD,no,Electronic/Classical vs vocal genres
+rms_mean,CANDIDATE_ADD,no,Overall loudness profile

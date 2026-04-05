@@ -1,0 +1,116 @@
+original_path,original_name,new_artist,new_title,confidence,new_parse_method,recovery_status,notes
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Adrenaline Rush.mp3,Adrenaline Rush.mp3,Rush,Adrenaline,0.6,known_artist_end_match,partial_recovery,recovered via known_artist_end_match
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Alan Jackson - ＂Its Time You Learned About Goodbye＂.mp3,Alan Jackson - ＂Its Time You Learned About Goodbye＂.mp3,Alan Jackson,Its Time You Learned About Goodbye,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Amarillo By Morning.mp3,Amarillo By Morning.mp3,Morning,Amarillo,0.8,by_separator,good_recovery,recovered via by_separator
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Among The Living-Anthrax.mp3,Among The Living-Anthrax.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Annihilator Alison Hell (Remastered Version).mp3,Annihilator Alison Hell (Remastered Version).mp3,Annihilator Alison,Hell (Remastered Version),0.3,fallback_heuristic,weak_recovery,recovered via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ante Up Remix.mp3,Ante Up Remix.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\ARDN RUNNER UP.mp3,ARDN RUNNER UP.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Arise.mp3,Arise.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Baby 9eno ＂ Free B.G. ＂ @tntshotit.mp3,Baby 9eno ＂ Free B.G. ＂ @tntshotit.mp3,Baby 9eno,Free B.G. @tntshotit,0.7,unicode_cleanup+known_artist_match,good_recovery,unicode_cleaned; partial recovery via known_artist_match
+"C:\Users\suppo\Downloads\New Music\Top1000_Opera\Bach, Air.mp3","Bach, Air.mp3",Bach,Air,0.6,comma_separator,partial_recovery,recovered via comma_separator
+C:\Users\suppo\Downloads\New Music\Top1000_Classical\Beethovens 5th Symphony.mp3,Beethovens 5th Symphony.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Believe.mp3,Believe.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Bertie Higgins - ＂Key Largo＂.mp3,Bertie Higgins - ＂Key Largo＂.mp3,Bertie Higgins,Key Largo,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Black Dog (Remaster).mp3,Black Dog (Remaster).mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Brandi Carlile Hallelujah.mp3,Brandi Carlile Hallelujah.mp3,Brandi Carlile,Hallelujah,0.7,known_artist_match,good_recovery,recovered via known_artist_match
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\BT- Race Wars.mp3,BT- Race Wars.mp3,BT,Race Wars,0.8,hyphen_separator,good_recovery,recovered via hyphen_separator
+C:\Users\suppo\Downloads\New Music\Top1000\BTS- MIC Drop.mp3,BTS- MIC Drop.mp3,BTS,MIC Drop,0.8,hyphen_separator,good_recovery,recovered via hyphen_separator
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\CANIBUS MAN.mp3,CANIBUS MAN.mp3,CANIBUS,MAN,0.7,known_artist_match,good_recovery,recovered via known_artist_match
+C:\Users\suppo\Downloads\New Music\Top1000\Chavo ＂Tatum Jersey＂ Official Video.mp3,Chavo ＂Tatum Jersey＂ Official Video.mp3,Chavo Tatum,Jersey Official Video,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Communication Breakdown (Remaster).mp3,Communication Breakdown (Remaster).mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Country Music Channel.mp3,Country Music Channel.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\D.R.S Gangsta Lean.mp3,D.R.S Gangsta Lean.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Days of Summer.mp3,Days of Summer.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Dead Embryonic Cells.mp3,Dead Embryonic Cells.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Dead Presidents II.mp3,Dead Presidents II.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Dexys Midnight Runners ＂Because of You＂.mp3,Dexys Midnight Runners ＂Because of You＂.mp3,Dexys Midnight,Runners Because of You,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_Club\DISCONNECTED.mp3,DISCONNECTED.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Dont Go.mp3,Dont Go.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Doomsday.mp3,Doomsday.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Dream Theater - ＂Pull Me Under＂.mp3,Dream Theater - ＂Pull Me Under＂.mp3,Dream Theater,Pull Me Under,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Dwight Yoakam - ＂Waterfall＂.mp3,Dwight Yoakam - ＂Waterfall＂.mp3,Dwight Yoakam,Waterfall,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Earthrise.mp3,Earthrise.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ecstasy.mp3,Ecstasy.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Emile Mosseri - ＂My Greedy Heart＂.mp3,Emile Mosseri - ＂My Greedy Heart＂.mp3,Emile Mosseri,My Greedy Heart,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Exciter.mp3,Exciter.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Flying High Again.mp3,Flying High Again.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Forever Angel.mp3,Forever Angel.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Gangsta Gangsta.mp3,Gangsta Gangsta.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ghetto Cowboy.mp3,Ghetto Cowboy.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Grandmaster Melle Mel ＂Beat Street Breakdown＂.mp3,Grandmaster Melle Mel ＂Beat Street Breakdown＂.mp3,Grandmaster Melle,Mel Beat Street Breakdown,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Guilty in here.mp3,Guilty in here.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\GuttaTV- Straight Drop.mp3,GuttaTV- Straight Drop.mp3,GuttaTV,Straight Drop,0.8,hyphen_separator,good_recovery,recovered via hyphen_separator
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Hangar 18 (2004 Remix).mp3,Hangar 18 (2004 Remix).mp3,Hangar 18,(2004 Remix),0.3,fallback_heuristic,weak_recovery,recovered via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_Classical\Händel： Harmonious Blacksmith.mp3,Händel： Harmonious Blacksmith.mp3,Händel,Harmonious Blacksmith,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ice T Colors.mp3,Ice T Colors.mp3,Ice T,Colors,0.7,known_artist_match,good_recovery,recovered via known_artist_match
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Im Sorry-Blake Shelton.mp3,Im Sorry-Blake Shelton.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Immigrant Song (Remaster).mp3,Immigrant Song (Remaster).mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Jeep.mp3,Jeep.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Kashmir (Remaster).mp3,Kashmir (Remaster).mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Keep On.mp3,Keep On.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\KILLSHOT.mp3,KILLSHOT.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Kiss Black Diamond.mp3,Kiss Black Diamond.mp3,Kiss,Black Diamond,0.7,known_artist_match,good_recovery,recovered via known_artist_match
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Kurtis Blow-The Breaks.mp3,Kurtis Blow-The Breaks.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\LA CIUDAD -.mp3,LA CIUDAD -.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Last Friday Night.mp3,Last Friday Night.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Lin Que ＂Let It Fall＂.mp3,Lin Que ＂Let It Fall＂.mp3,Lin Que,Let It Fall,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000\M.A.R.I.A.M.mp3,M.A.R.I.A.M.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\M3Deep Cash Cow.mp3,M3Deep Cash Cow.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\Maria Callas sings ＂Casta Diva＂.mp3,Maria Callas sings ＂Casta Diva＂.mp3,Maria Callas,sings Casta Diva,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Mercyful Fate ＂Come to the Sabbath＂.mp3,Mercyful Fate ＂Come to the Sabbath＂.mp3,Mercyful Fate,Come to the Sabbath,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Metal Daze.mp3,Metal Daze.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Metallica-Master Of Puppets (Lyrics).mp3,Metallica-Master Of Puppets (Lyrics).mp3,Metallica-Master Of,Puppets (Lyrics),0.3,fallback_heuristic,weak_recovery,recovered via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Mind Mirage.mp3,Mind Mirage.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Miranda Lambert-Lyin Here.mp3,Miranda Lambert-Lyin Here.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Momurda.mp3,Momurda.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\Muddy Waters ＂Trouble No More＂ 1974.mp3,Muddy Waters ＂Trouble No More＂ 1974.mp3,Muddy Waters,Trouble No More 1974,0.7,unicode_cleanup+known_artist_match,good_recovery,unicode_cleaned; partial recovery via known_artist_match
+C:\Users\suppo\Downloads\New Music\Top1000\My Girl.mp3,My Girl.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Jazz\My Way.mp3,My Way.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Mychael 4.Babilonia.mp3,Mychael 4.Babilonia.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+"C:\Users\suppo\Downloads\New Music\Top1000\MysticBoogie by Bantunani ＂ode to Joy, hymne à la joie New album - Musicalist＂.mp3","MysticBoogie by Bantunani ＂ode to Joy, hymne à la joie New album - Musicalist＂.mp3","MysticBoogie by Bantunani ode to Joy, hymne à la joie New album",Musicalist,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Club\N4sty.mp3,N4sty.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Nebula.mp3,Nebula.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\No Vaseline.mp3,No Vaseline.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Notorious Thugs.mp3,Notorious Thugs.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Over the Mountain.mp3,Over the Mountain.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\OZZY OSBOURNE - ＂No More Tears＂ (Official Video).mp3,OZZY OSBOURNE - ＂No More Tears＂ (Official Video).mp3,OZZY OSBOURNE,No More Tears (Official Video),1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000\PAIN IS LIFE.mp3,PAIN IS LIFE.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Phat Planet.mp3,Phat Planet.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Por Las Malas.mp3,Por Las Malas.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Raiser Natty -.mp3,Raiser Natty -.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Ras Kass ＂Miami Life＂ Explicit.mp3,Ras Kass ＂Miami Life＂ Explicit.mp3,Ras Kass,Miami Life Explicit,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Rebirth Of Slick.mp3,Rebirth Of Slick.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Redneck Music.mp3,Redneck Music.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Renegade.mp3,Renegade.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Ride on Sonny.mp3,Ride on Sonny.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Rogue Planet.mp3,Rogue Planet.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Sahara.mp3,Sahara.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Scorpions- Blackout (Remastered 2001).mp3,Scorpions- Blackout (Remastered 2001).mp3,Scorpions,Blackout (Remastered 2001),0.8,hyphen_separator,good_recovery,recovered via hyphen_separator
+C:\Users\suppo\Downloads\New Music\Top1000_Country\Somewhere Between~Keith Whitley.mp3,Somewhere Between~Keith Whitley.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Southern Rock Channel.mp3,Southern Rock Channel.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\SPIRITSAVER - ＂IM HIGH HAVE YOU MET ME？＂.mp3,SPIRITSAVER - ＂IM HIGH HAVE YOU MET ME？＂.mp3,SPIRITSAVER,IM HIGH HAVE YOU MET ME？,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Stereo love.mp3,Stereo love.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Superstar.mp3,Superstar.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\SWAVAY- DUBLIN.mp3,SWAVAY- DUBLIN.mp3,SWAVAY,DUBLIN,0.8,hyphen_separator,good_recovery,recovered via hyphen_separator
+C:\Users\suppo\Downloads\New Music\Top1000_Hard Rock_Metal\Symphony Of Destruction (2004 Digital Remaster).mp3,Symphony Of Destruction (2004 Digital Remaster).mp3,Symphony Of,Destruction (2004 Digital Remaster),0.3,fallback_heuristic,weak_recovery,recovered via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Takeover.mp3,Takeover.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000\Tesoro.mp3,Tesoro.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Disco\The Commodores-Brick House.mp3,The Commodores-Brick House.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\The Light.mp3,The Light.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Disco\The Whispers - ＂And The Beat Goes On＂.mp3,The Whispers - ＂And The Beat Goes On＂.mp3,The Whispers,And The Beat Goes On,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Country\The World~Brad Paisley.mp3,The World~Brad Paisley.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Thug Luv.mp3,Thug Luv.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Touch It.mp3,Touch It.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Warren Haynes-Blue radio.mp3,Warren Haynes-Blue radio.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Southern Rock\Waylon Jennings ＂The Devil's Right Hand＂.mp3,Waylon Jennings ＂The Devil's Right Hand＂.mp3,Waylon Jennings,The Devil's Right Hand,0.7,unicode_cleanup+known_artist_match,good_recovery,unicode_cleaned; partial recovery via known_artist_match
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Whats The Difference.mp3,Whats The Difference.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Club\Why Not.mp3,Why Not.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Xxplosive.mp3,Xxplosive.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_HipHop\Young MC ＂Bust A Move＂.mp3,Young MC ＂Bust A Move＂.mp3,Young MC,Bust A Move,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic
+C:\Users\suppo\Downloads\New Music\Top1000\ช้ำคือเรา -.mp3,ช้ำคือเรา -.mp3,,,0.0,no_parse,unrecoverable,"no pattern found, keep HELD"
+C:\Users\suppo\Downloads\New Music\Top1000_Blues\＂Going Down＂ - Freddie King.mp3,＂Going Down＂ - Freddie King.mp3,Going Down,Freddie King,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Country\＂If I know me＂ by George Strait.mp3,＂If I know me＂ by George Strait.mp3,George Strait,If I know me,0.8,unicode_cleanup+by_separator,good_recovery,unicode_cleaned; partial recovery via by_separator
+C:\Users\suppo\Downloads\New Music\Top1000_Country\＂If Love Was Fair＂ - Ashley Monroe.mp3,＂If Love Was Fair＂ - Ashley Monroe.mp3,If Love Was Fair,Ashley Monroe,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Country\＂It Did＂ - Blaine Larsen.mp3,＂It Did＂ - Blaine Larsen.mp3,It Did,Blaine Larsen,1.0,unicode_cleanup+standard,good_recovery,unicode_cleaned; improved via unicode cleanup
+C:\Users\suppo\Downloads\New Music\Top1000_Opera\＂Three Little Maids From School Are We＂.mp3,＂Three Little Maids From School Are We＂.mp3,Three Little,Maids From School Are We,0.3,unicode_cleanup+fallback_heuristic,weak_recovery,unicode_cleaned; partial recovery via fallback_heuristic

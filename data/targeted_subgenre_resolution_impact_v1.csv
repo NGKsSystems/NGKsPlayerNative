@@ -1,0 +1,87 @@
+track_id,artist,title,primary_genre,new_aligned_subgenre,secondary_genre,would_be_rule_eligible,likely_outcome,notes
+2082,Chris Stapleton,Chris Stapleton - Fire Away,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2083,Chris Stapleton,Chris Stapleton - Friendship,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2084,Chris Stapleton,Chris Stapleton - Hard Livin',Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2085,Chris Stapleton,Chris Stapleton - I Was Wrong,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2086,Chris Stapleton,Chris Stapleton - Midnight Train To Memphis,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2087,Chris Stapleton,Chris Stapleton - Millionaire,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2088,Chris Stapleton,Chris Stapleton - Nobody to Blame,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2089,Chris Stapleton,Chris Stapleton - Parachute,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2090,Chris Stapleton,Chris Stapleton - Second One To Know,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2091,Chris Stapleton,Chris Stapleton - Tryin To Untangle My Mind,Country,Outlaw Country,Rock,yes,REMOVE,No rule for Country/Outlaw Country→Rock
+2174,Demun Jones,Demun Jones - Backyard Lullaby,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2178,Demun Jones,Demun Jones - My Town,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2180,Demun Jones,Demun Jones - Tannerite,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2182,Demun Jones,Demun Jones - Truck Music,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2742,Demun Jones,Upchurch  Demun Jones  - Campfire Cologne,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2221,Faith No More,Faith No More - Epic,Rock,Alternative,Metal,yes,REMOVE,No rule for Rock/Alternative→Metal
+2838,Hopsin,Hopsin - Ill Mind of Hopsin 5,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2856,Jelly Roll,Jelly Roll - Need a Favor,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2529,Ryan Upchurch,Ryan Upchurch - Hollerboys,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2537,Sara Evans,Sara Evans - Suds In The Bucket,Country,Country Pop,Pop,yes,KEEP,explicit_hybrid: Country Pop→Pop
+2217,Tom MacDonald,End Of The World - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2538,Tom MacDonald,Save A Life - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2548,Tom MacDonald,See God - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2572,Tom MacDonald,Still Me - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2573,Tom MacDonald,Still The One - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2590,Tom MacDonald,The Machine - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2595,Tom MacDonald,The System - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2624,Tom MacDonald,Tom MacDonald -  Buttholes,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2626,Tom MacDonald,Tom MacDonald - American Dreamz,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2629,Tom MacDonald,Tom MacDonald - Angels,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2631,Tom MacDonald,Tom MacDonald - Average Boy,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2633,Tom MacDonald,Tom MacDonald - Best Rapper Ever,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2634,Tom MacDonald,Tom MacDonald - Castles,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2636,Tom MacDonald,Tom MacDonald - Dear Rappers,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2637,Tom MacDonald,Tom MacDonald - Dirty Money,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2638,Tom MacDonald,Tom MacDonald - End Of The World,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2639,Tom MacDonald,Tom MacDonald - Everybody Hates Me,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2641,Tom MacDonald,Tom MacDonald - Fighter,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2642,Tom MacDonald,Tom MacDonald - Freedom's Not For Sale,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2643,Tom MacDonald,Tom MacDonald - Freedoms Not For Sale,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2645,Tom MacDonald,Tom MacDonald - Ghost,Pop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2646,Tom MacDonald,Tom MacDonald - Gravestones,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2648,Tom MacDonald,Tom MacDonald - Hatred,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2649,Tom MacDonald,Tom MacDonald - Helluvit,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2652,Tom MacDonald,Tom MacDonald - I Dont Care,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2653,Tom MacDonald,Tom MacDonald - I Hate Hip Hop,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2654,Tom MacDonald,Tom MacDonald - I Wish,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2655,Tom MacDonald,Tom MacDonald - Im Corny,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2656,Tom MacDonald,Tom MacDonald - Im Sorry,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2657,Tom MacDonald,Tom MacDonald - Luck You,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2659,Tom MacDonald,Tom MacDonald - Money,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2660,Tom MacDonald,Tom MacDonald - My Fans,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2663,Tom MacDonald,Tom MacDonald - Names,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2664,Tom MacDonald,Tom MacDonald - No Lives Matter,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2666,Tom MacDonald,Tom MacDonald - No Response,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2667,Tom MacDonald,Tom MacDonald - People So Stupid,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2668,Tom MacDonald,Tom MacDonald - Politically Incorrect,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2671,Tom MacDonald,Tom MacDonald - Riot,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2672,Tom MacDonald,Tom MacDonald - Save A Life,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2675,Tom MacDonald,Tom MacDonald - See God,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2676,Tom MacDonald,Tom MacDonald - Sellout,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2677,Tom MacDonald,Tom MacDonald - Sheeple,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2680,Tom MacDonald,Tom MacDonald - Still Me,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2681,Tom MacDonald,Tom MacDonald - Still The One,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2682,Tom MacDonald,Tom MacDonald - The Machine,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2683,Tom MacDonald,Tom MacDonald - The Music Industry,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2685,Tom MacDonald,Tom MacDonald - The System,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2687,Tom MacDonald,Tom MacDonald - This House,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2690,Tom MacDonald,Tom MacDonald - Trying To Kill Me,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2691,Tom MacDonald,Tom MacDonald - Underdogs,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2693,Tom MacDonald,Tom MacDonald - Way Off,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2697,Tom MacDonald,Tom MacDonald - Wild Ones,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2698,Tom MacDonald,Tom MacDonald ft. DAX - Blame The Rappers,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2640,Tom MacDonald,Tom Macdonald - Fake Fans,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2768,Tom MacDonald,Wild Ones - Tom MacDonald,Hip-Hop,(none),Rock,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2706,Tone-Loc,Tone Loc - Wild Thing,Hip-Hop,(none),Pop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2841,Unknown,Dax - Temptation,Hip-Hop,(none),Country,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2527,Upchurch,Ryan Upchurch - Black Sheep,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2528,Upchurch,Ryan Upchurch - Cowboy Movies,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2530,Upchurch,Ryan Upchurch - Love Her Again,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2531,Upchurch,Ryan Upchurch - Real Country,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2532,Upchurch,Ryan Upchurch - Same Ol Same Ol,Country,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2752,Van Zant,Van Zant - Help Somebody,Rock,Classic Rock,Country,yes,REMOVE,No rule for Rock/Classic Rock→Country
+2753,Van Zant,Van Zant - Nobody Gonna Tell Me What to Do,Rock,Classic Rock,Country,yes,REMOVE,No rule for Rock/Classic Rock→Country
+2761,Weird Al Yankovic,Weird Al Yankovic - Word Crimes,Pop,(none),Hip-Hop,no,STILL_REVIEW,Primary still lacks aligned subgenre
+2770,Zac Brown Band,Zac Brown Band - Heavy Is The Head,Country,(none),Pop,no,STILL_REVIEW,Primary still lacks aligned subgenre

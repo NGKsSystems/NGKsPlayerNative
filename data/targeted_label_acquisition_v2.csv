@@ -1,0 +1,36 @@
+track_id,artist,title,current_label_state,likely_v2_genre,evidence_source,confidence_tier,review_priority,notes
+2225,5FDPVEVO,Five Finger Death Punch - Coming Down,unlabeled,Metal,artist_name,high,1,
+2232,5FDPVEVO,Five Finger Death Punch - My Nemesis,unlabeled,Metal,artist_name,high,2,
+2233,5FDPVEVO,Five Finger Death Punch - The Bleeding,unlabeled,Metal,artist_name,high,3,
+2224,Five Finger Death Punch,Five Finger Death Punch - Brighter Side Of Grey,unlabeled,Metal,artist_name,high,4,
+2198,DJ LOA,DJ LOA - Don’t Say Goodbye Remix,unlabeled,Other,artist_name,medium,5,
+2148,Dan Pocaigue,Dan Pocaigue - Its You,unlabeled,Other,artist_name,medium,6,
+2338,JD Crutch,JD Crutch - Apo Magi,unlabeled,Other,artist_name,medium,7,
+2367,Josh Wawa White,Josh White - Movin' About My Ways,unlabeled,Other,artist_name,medium,8,
+2383,KC DeLeon Guerrero,KC DeLeon Guerrero - Pot Fabot Munga Piniti,unlabeled,Other,artist_name,medium,9,
+2771,Samuelu Faoliu,Zipso - Fika Mai Le Pese,unlabeled,Other,artist_name,medium,10,
+1953,Airborne,Airbourne - Runnin' Wild,unlabeled,Metal,artist_name,medium,11,
+2199,Dokken,Dokken - Just Got Lucky,unlabeled,Metal,artist_name,medium,12,
+2291,Girish & The Chronicles,Girish And The Chronicles - Love's Damnation,unlabeled,Metal,artist_name,medium,13,
+2292,Girish & The Chronicles,Girish And The Chronicles - Primeval Desire,unlabeled,Metal,artist_name,medium,14,
+2289,Girish & The Chronicles,Girish and The Chronicles - Hail To The Heroes,unlabeled,Metal,artist_name,medium,15,
+2340,Jeff Scott Soto,Jeff Scott Soto ft. Spektra - Last To Know,unlabeled,Metal,artist_name,medium,16,
+2458,New Horizon,New Horizon - Stronger Than Steel,unlabeled,Metal,artist_name,medium,17,
+2525,Rust n' Rage,Rust n Rage - Heartbreaker,unlabeled,Metal,artist_name,medium,18,
+2559,Shinedown,Shinedown - Planet Zero,unlabeled,Metal,artist_name,medium,19,
+2515,"Pagan RIP, RIP",RIP - Not All Wounds Bleed,unlabeled,Metal,artist_name,low,20,Low confidence — likely needs listening review
+2783,RIP,RIP - Blackout Mind,unlabeled,Metal,artist_name,low,21,Low confidence — likely needs listening review
+2784,RIP,RIP - Blood on the Gravel,unlabeled,Metal,artist_name,low,22,Low confidence — likely needs listening review
+2786,RIP,RIP - Caged In My Mind,unlabeled,Metal,artist_name,low,23,Low confidence — likely needs listening review
+2787,RIP,RIP - Forgive Me,unlabeled,Metal,artist_name,low,24,Low confidence — likely needs listening review
+2788,RIP,RIP - I Write So I Don’t Die,unlabeled,Metal,artist_name,low,25,Low confidence — likely needs listening review
+2790,RIP,RIP - The Devil Don’t Need Chains,unlabeled,Metal,artist_name,low,26,Low confidence — likely needs listening review
+2791,RIP,RIP - The Things You’ll Never See,unlabeled,Metal,artist_name,low,27,Low confidence — likely needs listening review
+2792,RIP,RIP - Too Quiet To Cry,unlabeled,Metal,artist_name,low,28,Low confidence — likely needs listening review
+2793,RIP,RIP - Wasting Away,unlabeled,Metal,artist_name,low,29,Low confidence — likely needs listening review
+2794,RIP,RIP - When My Mind Ain’t Mine,unlabeled,Metal,artist_name,low,30,Low confidence — likely needs listening review
+2795,RIP,RIP - Whiskey and Shadows,unlabeled,Metal,artist_name,low,31,Low confidence — likely needs listening review
+2517,RIP,RIP - Woke Up Tired Again,unlabeled,Metal,artist_name,low,32,Low confidence — likely needs listening review
+2597,The Tubes,The Tubes - She's A Beauty,unlabeled,Pop,artist_name,medium,33,
+2759,Weird Al Yankovic,Weird Al Yankovic - Amish Paradise,unlabeled,Pop,artist_name,low,34,Low confidence — likely needs listening review
+2760,Weird Al Yankovic,Weird Al Yankovic - I Lost On Jeopardy,unlabeled,Pop,artist_name,low,35,Low confidence — likely needs listening review

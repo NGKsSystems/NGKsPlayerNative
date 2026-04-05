@@ -1,0 +1,44 @@
+label_id,track_id,artist,title,genre,old_subgenre_id,new_subgenre_id,new_subgenre_name,tier,evidence,applied_by,timestamp
+361,2304,3 Doors Down,Here Without You - Doors Down,Rock,,16,Alternative,tier3,Artist '3 Doors Down' has consistent 'Alternative' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+16,1938,AC,AC-DC - Flick of the Switch,Rock,,19,Classic Rock,tier3,Artist 'AC' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+62,1985,Billy Idol,Billy Idol - White Wedding,Rock,,16,Alternative,tier3,Artist 'Billy Idol' has consistent 'Alternative' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+72,1995,Billy Squier,Billy Squire - Lonely Is the Night,Rock,,19,Classic Rock,tier3,Artist 'Billy Squier' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+73,1996,Billy Squier,Billy Squire - My Kinda Lover,Rock,,19,Classic Rock,tier3,Artist 'Billy Squier' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+235,2162,Def Leppard,Def Leppard - Animal,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+236,2163,Def Leppard,Def Leppard - Armageddon It,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+237,2164,Def Leppard,Def Leppard - Dangerous,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+238,2165,Def Leppard,Def Leppard - Foolin,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+239,2166,Def Leppard,Def Leppard - Love Bites,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+240,2167,Def Leppard,Def Leppard - Nine Lives,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+241,2168,Def Leppard,Def Leppard - Personal Jesus,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+243,2170,Def Leppard,Def Leppard - Rock Of Ages ,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+244,2171,Def Leppard,Def Leppard - Too Late For Love,Rock,,19,Classic Rock,tier3,Artist 'Def Leppard' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+263,2192,Disturbed,Disturbed - Feeding the Fire,Rock,,19,Classic Rock,tier3,Artist 'Disturbed' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+264,2193,Disturbed,Disturbed - Hey You,Rock,,19,Classic Rock,tier3,Artist 'Disturbed' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+307,2243,Foo Fighters,Foo Fighters - Learn To Fly,Rock,,16,Alternative,tier3,Artist 'Foo Fighters' has consistent 'Alternative' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+433,2386,Kid Rock,Kid Rock - All Summer Long,Rock,,19,Classic Rock,tier3,Artist 'Kid Rock' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+434,2387,Kid Rock,Kid Rock - American Bad Ass,Rock,,19,Classic Rock,tier3,Artist 'Kid Rock' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+436,2389,Kid Rock,Kid Rock - Cowboy,Rock,,19,Classic Rock,tier3,Artist 'Kid Rock' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+437,2390,Kid Rock,Kid Rock - First Kiss,Rock,,19,Classic Rock,tier3,Artist 'Kid Rock' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+443,2397,Kid Rock,Kid Rock - The Last Dance,Rock,,19,Classic Rock,tier3,Artist 'Kid Rock' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+447,2401,Kiss,Kiss - Heaven's On Fire,Rock,,19,Classic Rock,tier3,Artist 'Kiss' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+480,2439,Molly Hatchet,Molly Hatchet - Flirtin' With Disaster,Rock,,19,Classic Rock,tier3,Artist 'Molly Hatchet' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+482,2441,Molly Hatchet,Molly Hatchet - Whiskey Man,Rock,,19,Classic Rock,tier3,Artist 'Molly Hatchet' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+491,2450,Mötley Crüe,Motley Crue - Wild Side,Rock,,19,Classic Rock,tier3,Artist 'Mötley Crüe' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+520,2487,Poison,Poison - Talk Dirty To Me,Rock,,19,Classic Rock,tier3,Artist 'Poison' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+522,2489,Queen,Queen - Fat Bottomed Girls,Rock,,19,Classic Rock,tier3,Artist 'Queen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+523,2490,Queen,Queen - Hammer to Fall,Rock,,19,Classic Rock,tier3,Artist 'Queen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+524,2491,Queen,Queen - Headlong,Rock,,19,Classic Rock,tier3,Artist 'Queen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+525,2492,Queen,Queen - I Want It All,Rock,,19,Classic Rock,tier3,Artist 'Queen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+527,2494,Queen,Queen - Seven Seas Of Rhye,Rock,,19,Classic Rock,tier3,Artist 'Queen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+528,2495,Queen,Queen - Show Must Go On,Rock,,19,Classic Rock,tier3,Artist 'Queen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+530,2497,Queensrÿche,Queensrÿche - Empire,Rock,,19,Classic Rock,tier3,Artist 'Queensrÿche' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+572,2547,Shinedown,Second Chance - Shinedown,Rock,,19,Classic Rock,tier3,Artist 'Shinedown' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+580,2555,Shinedown,Shinedown - Cut The Cord,Rock,,19,Classic Rock,tier3,Artist 'Shinedown' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+581,2556,Shinedown,Shinedown - Dead Don_t Die,Rock,,19,Classic Rock,tier3,Artist 'Shinedown' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+582,2557,Shinedown,Shinedown - Enemies,Rock,,19,Classic Rock,tier3,Artist 'Shinedown' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+766,2880,Shinedown,Shinedown - Second Chance,Rock,,19,Classic Rock,tier3,Artist 'Shinedown' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+584,2560,Shinedown,Shinedown - Simple Man,Rock,,19,Classic Rock,tier3,Artist 'Shinedown' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+586,2562,Shinedown,Shinedown - State Of My Head,Rock,,19,Classic Rock,tier3,Artist 'Shinedown' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+729,2748,Van Halen,Van Halen - Jump,Rock,,19,Classic Rock,tier3,Artist 'Van Halen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z
+730,2749,Van Halen,Van Halen - Panama,Rock,,19,Classic Rock,tier3,Artist 'Van Halen' has consistent 'Classic Rock' pattern in Rock,subgenre_backfill_v1,2026-04-04T21:30:11Z

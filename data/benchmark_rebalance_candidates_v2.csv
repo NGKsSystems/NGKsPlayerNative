@@ -1,0 +1,42 @@
+track_id,artist,title,original_genre,v2_genre,source,confidence,selection_reason,priority
+1972,Avenged Sevenfold,Avenged Sevenfold - Hail To The King,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+1978,Bad Wolves,Bad Wolves - If Tomorrow Never Comes,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2223,Five Finger Death Punch,Five Finger Death Punch - Blue On Black,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2226,Five Finger Death Punch,Five Finger Death Punch - Darkness Settles In,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2227,Five Finger Death Punch,Five Finger Death Punch - Gone Away,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2229,Five Finger Death Punch,Five Finger Death Punch - I Apologize,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2231,Five Finger Death Punch,Five Finger Death Punch - Living The Dream,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2234,Five Finger Death Punch,Five Finger Death Punch - The Tragic Truth,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2235,Five Finger Death Punch,Five Finger Death Punch - To Be Alone,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2236,Five Finger Death Punch,Five Finger Death Punch - Trouble,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2238,Five Finger Death Punch,Five Finger Death Punch - When the Seasons Change,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2319,Iron Maiden,Iron Maiden - Wasted Years ,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2376,Judas Priest,Judas Priest - Turbo Lover,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+2488,Pop Evil,Pop Evil - Boss's Daughter,Metal,Metal,manual,high,Fill Metal deficit (24 needed),P1
+1921,38 Special,38 Special - Back Where You Belong,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+1968,Animotion,Animotion - Obsession,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+1989,Billy Joel,Billy Joel - Pressure,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+1993,Billy Squier,Billy Squier - Everybody Wants You,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2035,Bryan Adams,Brian Adams - Summer of '69,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2065,Carrie Underwood,Carrie Underwood - Before He Cheats,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2151,Daryle Singletary,Daryle Singletary - Too Much Fun,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2213,Elton John,Elton John - Levon,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2308,Hootie & The Blowfish,Hootie & The Blowfish - Only Wanna Be With You,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2332,Jason Aldean,Jason Aldean - Take a Little Ride,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2339,Jd Crutch,Jd Crutch - Bente Uno Yo' Gi Presu,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2406,LEN,Len - Steal My Sunshine,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2430,Mark Chesnutt,Mark Chestnut - It Sure Is Monday,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2518,Robin Thicke,Robin Thick - Blurred Lines,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2523,Roxette,Roxette - Joyride,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2416,The B-52's,Love Shack - The B-52's,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2735,Travis Tritt,Travis Tritt - Where Corn Don't Grow,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2740,Uncle Kracker,Uncle Kracker - Good To Be Me,Pop,Pop,manual,high,Fill Pop deficit (22 needed),P1
+2013,Bob Marley & The Wailers,Bob Marley - Three Little Birds,Reggae,Other,manual,high,Fill Other deficit (21 needed); constituent genre: Reggae,P1
+2534,Sammy Johnson,Sammy Johnson - Don't Say Goodbye,Reggae,Other,manual,high,Fill Other deficit (21 needed); constituent genre: Reggae,P1
+2551,Shaggy,Shaggy - It Wasn't Me,Reggae,Other,manual,high,Fill Other deficit (21 needed); constituent genre: Reggae,P1
+2774,Stick Figure,Stick Figure – ＂Angels Above Me＂ (Official Music Video),Reggae,Other,manual,high,Fill Other deficit (21 needed); constituent genre: Reggae,P1
+2382,Kapena,Kapena - Don't Say Goodbye ,World,Other,manual,high,Fill Other deficit (21 needed); constituent genre: World,P1
+2550,Shaggy,Shaggy - Angel,World,Other,manual,high,Fill Other deficit (21 needed); constituent genre: World,P1
+2297,Television's Greatest Hits Band,Greg Kihn Band - Jeopardy,Soundtrack,Other,manual,high,Fill Other deficit (21 needed); constituent genre: Soundtrack,P1
+2835,Stick Figure,Stick Figure – Angels Above Me,Reggae,Other,manual,medium,Fill Other deficit (21 needed); constituent genre: Reggae,P1
+2499,Adam Calhoun,Ramble On - Adam Calhoun,Hip-Hop,Hip-Hop,manual,high,Fill Hip-Hop deficit (1 needed),P3
