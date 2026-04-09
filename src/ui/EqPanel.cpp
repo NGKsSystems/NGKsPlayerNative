@@ -1,6 +1,7 @@
 #include "ui/EqPanel.h"
 #include "ui/EngineBridge.h"
 
+#include <cstdio>
 #include <QFont>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -238,6 +239,9 @@ void EqPanel::wireSignals()
                 else
                     bridge_->setEqBandGain(band, gainDb);
                 bandDbLabels_[band]->setText(QString::number(gainDb, 'f', 1));
+                std::fprintf(stderr, "MIX_EQ_SET deck=%d band=%d gainDb=%.1f\n",
+                             deckIndex_, band, gainDb);
+                std::fflush(stderr);
             });
     }
 

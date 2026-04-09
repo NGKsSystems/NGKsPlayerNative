@@ -11,22 +11,20 @@
 // Owns the waveform display state machine. Rendering reads from this;
 // it does NOT invent behavior.
 //
-// States:  EMPTY → OVERVIEW → CUE_FOCUS → STATIC_PLAY / LIVE_SCROLL
-// Modes:   LIVE  (play = LIVE_SCROLL)
-//          STATIC (play = STATIC_PLAY)
+// States:  EMPTY → OVERVIEW → CUE_FOCUS → LIVE_SCROLL
+// Mode:    Always LIVE — no STATIC full-track view.
 // ═══════════════════════════════════════════════════════════════════
 
 enum class WaveViewState : uint8_t {
     EMPTY,         // No track loaded
-    OVERVIEW,      // Full-track overview
-    CUE_FOCUS,     // Centered on cue/start/hot cue position
-    STATIC_PLAY,   // Waveform fixed, playhead moves across
-    LIVE_SCROLL    // Waveform scrolls, playhead fixed
+    OVERVIEW,      // Full-track overview (only on stop)
+    CUE_FOCUS,     // Centered on cue/start/hot cue position (~15% of track)
+    STATIC_PLAY,   // DEPRECATED — kept for compile compat, never entered
+    LIVE_SCROLL    // Waveform scrolls, playhead fixed (~12s window)
 };
 
 enum class WaveUserMode : uint8_t {
-    LIVE,          // Play → LIVE_SCROLL
-    STATIC         // Play → STATIC_PLAY
+    LIVE           // Play → LIVE_SCROLL (only mode)
 };
 
 inline const char* waveViewStateName(WaveViewState s) {
@@ -43,7 +41,6 @@ inline const char* waveViewStateName(WaveViewState s) {
 inline const char* waveUserModeName(WaveUserMode m) {
     switch (m) {
         case WaveUserMode::LIVE:   return "LIVE";
-        case WaveUserMode::STATIC: return "STATIC";
     }
     return "UNKNOWN";
 }
@@ -104,7 +101,7 @@ private:
 
     int deckIndex_{0};
     WaveViewState state_{WaveViewState::EMPTY};
-    WaveUserMode  userMode_{WaveUserMode::STATIC};
+    WaveUserMode  userMode_{WaveUserMode::LIVE};
 
     bool trackLoaded_{false};
     bool trackPlaying_{false};

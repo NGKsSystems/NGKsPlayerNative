@@ -1,5 +1,5 @@
 #include "engine/EngineCore.h"
-
+// MIXER_PANEL_BUILDOUT_V1A
 #include "engine/audio/AudioIO_Juce.h"
 #include "engine/DiagLog.h"
 #include "engine/domain/CrossfadeAssignment.h"
@@ -207,6 +207,11 @@ void computeCrossfadeWeights(const ngks::EngineSnapshot& snapshot, float x, MixM
             mixMatrix.decks[i].masterWeight *= scale;
         }
     }
+
+    // DECK_S is the Simple Player — always route to master at full weight,
+    // independent of crossfader. Applied after DJ normalization so it
+    // never attenuates DJ decks and vice versa.
+    mixMatrix.decks[ngks::DECK_S].masterWeight = 1.0f;
 
     // Apply per-deck mute: zero master contribution for muted decks
     for (uint8_t i = 0; i < ngks::MAX_DECKS; ++i) {
@@ -2306,6 +2311,11 @@ ngks::CommandResult EngineCore::applyCommand(ngks::EngineSnapshot& snapshot, con
             return ngks::CommandResult::RejectedInvalidSlot;
         }
         return ngks::CommandResult::Applied;
+    case ngks::CommandType::SetDeckFilter:
+        if (!audioGraph.setDeckFilter(command.deck, command.floatValue)) {
+            return ngks::CommandResult::RejectedInvalidSlot;
+        }
+        return ngks::CommandResult::Applied;
     case ngks::CommandType::SetMasterFxGain:
         if (!audioGraph.setMasterFxGain(command.slotIndex, command.floatValue)) {
             return ngks::CommandResult::RejectedInvalidSlot;
@@ -2467,17 +2477,19 @@ void EngineCore::process(float* left, float* right, int numSamples) noexcept
     const auto masterMeters = masterBus_.process(left, right, numSamples);
 
     // Full Mono mode (after master bus gain/limiting):
-    // master summed to mono → LEFT, cue summed to mono → RIGHT (with cue volume)
+    // master summed to mono → LEFT, cue summed to mono → RIGHT (with cue volume + cue/master blend)
     if (outputMode_.load(std::memory_order_relaxed) == 1
         && graphStats.cueBusL != nullptr
         && graphStats.cueBusR != nullptr) {
         const int cueSamples = std::min(numSamples, graphStats.cueBusSamples);
         const float cueVol = cueVolume_.load(std::memory_order_relaxed);
+        const float cueMix = cueMixRatio_.load(std::memory_order_relaxed);
+        // cueMix: 0.0=cue only, 0.5=balanced, 1.0=master only (in headphone channel)
         for (int i = 0; i < cueSamples; ++i) {
             const float masterMono = 0.5f * (left[i] + right[i]);
             const float cueMono = 0.5f * (graphStats.cueBusL[i] + graphStats.cueBusR[i]) * cueVol;
             left[i] = masterMono;
-            right[i] = cueMono;
+            right[i] = cueMono * (1.0f - cueMix) + masterMono * cueMix;
         }
     }
     working.masterRmsL = masterMeters.masterRmsL;
@@ -2706,6 +2718,12 @@ std::vector<ngks::WaveMinMax> EngineCore::getWaveformOverview(ngks::DeckId deckI
 {
     if (deckId >= ngks::MAX_DECKS) return {};
     return audioGraph.getDeckNode(deckId).generateWaveformOverview(numBins);
+}
+
+std::vector<ngks::BandEnergy> EngineCore::getBandEnergyOverview(ngks::DeckId deckId, int numBins)
+{
+    if (deckId >= ngks::MAX_DECKS) return {};
+    return audioGraph.getDeckNode(deckId).generateBandEnergyOverview(numBins);
 }
 
 bool EngineCore::isDeckFullyDecoded(ngks::DeckId deckId) const

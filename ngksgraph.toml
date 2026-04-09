@@ -71,7 +71,6 @@ src_glob = [
 ]
 include_dirs = ["src", "third_party/JUCE/modules"]
 defines = [
-  "DEBUG",
   "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
@@ -79,9 +78,8 @@ defines = [
   "JUCE_MODULE_AVAILABLE_juce_core=1",
   "JUCE_MODULE_AVAILABLE_juce_dsp=1",
   "JUCE_MODULE_AVAILABLE_juce_events=1",
-  "_DEBUG",
 ]
-cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
+cflags = ["/EHsc", "/FS", "/Zc:__cplusplus", "/bigobj", "/permissive-"]
 libs = []
 lib_dirs = []
 ldflags = []
@@ -102,7 +100,6 @@ src_glob = [
 ]
 include_dirs = ["src", "third_party/JUCE/modules"]
 defines = [
-  "DEBUG",
   "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
@@ -110,9 +107,8 @@ defines = [
   "JUCE_MODULE_AVAILABLE_juce_core=1",
   "JUCE_MODULE_AVAILABLE_juce_dsp=1",
   "JUCE_MODULE_AVAILABLE_juce_events=1",
-  "_DEBUG",
 ]
-cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
+cflags = ["/EHsc", "/FS", "/Zc:__cplusplus", "/bigobj", "/permissive-"]
 libs = []
 lib_dirs = []
 ldflags = []
@@ -125,7 +121,6 @@ type = "staticlib"
 src_glob = ["src/ui/*.h", "src/ui/EngineBridge.cpp"]
 include_dirs = ["src", "third_party/JUCE/modules"]
 defines = [
-  "DEBUG",
   "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
@@ -143,12 +138,11 @@ defines = [
   "QT_WIDGETS_LIB",
   "UNICODE",
   "WIN64",
-  "_DEBUG",
   "_ENABLE_EXTENDED_ALIGNED_STORAGE",
   "_UNICODE",
   "_WIN64",
 ]
-cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
+cflags = ["/EHsc", "/FS", "/Zc:__cplusplus", "/bigobj", "/permissive-"]
 libs = []
 lib_dirs = []
 ldflags = []
@@ -161,7 +155,6 @@ type = "exe"
 src_glob = ["tools/headless_main.cpp"]
 include_dirs = ["src", "third_party/JUCE/modules"]
 defines = [
-  "DEBUG",
   "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
@@ -169,9 +162,8 @@ defines = [
   "JUCE_MODULE_AVAILABLE_juce_core=1",
   "JUCE_MODULE_AVAILABLE_juce_dsp=1",
   "JUCE_MODULE_AVAILABLE_juce_events=1",
-  "_DEBUG",
 ]
-cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
+cflags = ["/EHsc", "/FS", "/Zc:__cplusplus", "/bigobj", "/permissive-"]
 libs = ["kernel32.lib", "user32.lib", "gdi32.lib", "winspool.lib", "shell32.lib", "ole32.lib", "oleaut32.lib", "uuid.lib", "comdlg32.lib", "advapi32.lib"]
 lib_dirs = []
 ldflags = []
@@ -184,7 +176,6 @@ type = "exe"
 src_glob = ["tools/state_machine_smoke.cpp"]
 include_dirs = ["src", "third_party/JUCE/modules"]
 defines = [
-  "DEBUG",
   "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
@@ -195,13 +186,12 @@ defines = [
   "QT_CORE_LIB",
   "UNICODE",
   "WIN64",
-  "_DEBUG",
   "_ENABLE_EXTENDED_ALIGNED_STORAGE",
   "_UNICODE",
   "_WIN64",
 ]
-cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
-libs = ["Qt6Cored", "advapi32", "comdlg32", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool"]
+cflags = ["/EHsc", "/FS", "/Zc:__cplusplus", "/bigobj", "/permissive-"]
+libs = ["Qt6Core", "advapi32", "comdlg32", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool"]
 lib_dirs = []
 ldflags = []
 cxx_std = 17
@@ -210,10 +200,9 @@ links = ["NGKsEngine", "NGKsUiBridge", "NGKsJuceModules"]
 [[targets]]
 name = "native"
 type = "exe"
-src_glob = ["src/ui/main.cpp", "src/ui/EqPanel.cpp", "src/ui/DeckStrip.cpp", "src/ui/WaveformState.cpp"]
+src_glob = ["src/ui/main.cpp", "src/ui/EqPanel.cpp", "src/ui/DeckStrip.cpp", "src/ui/WaveformState.cpp", "src/ui/TagReaderService.cpp", "src/ui/TagWriterService.cpp", "src/ui/AlbumArtService.cpp", "src/ui/TagEditorController.cpp", "src/ui/TagEditorView.cpp", "src/ui/TagDatabaseService.cpp", "src/ui/AudioAnalysisService.cpp", "src/ui/KeyDetectionService.cpp", "src/ui/TransitionValidationService.cpp", "src/ui/BpmResolverService.cpp", "src/ui/AnalysisQualityFlag.cpp", "src/ui/AnalysisComparator.cpp"]
 include_dirs = ["src", "third_party/JUCE/modules"]
 defines = [
-  "DEBUG",
   "JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
   "JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
@@ -232,13 +221,12 @@ defines = [
   "QT_WIDGETS_LIB",
   "UNICODE",
   "WIN64",
-  "_DEBUG",
   "_ENABLE_EXTENDED_ALIGNED_STORAGE",
   "_UNICODE",
   "_WIN64",
 ]
-cflags = ["/EHsc", "/FS", "/MDd", "/Od", "/Zc:__cplusplus", "/Zi", "/bigobj", "/permissive-"]
-libs = ["Qt6Cored", "Qt6Guid", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd", "advapi32", "comdlg32", "d3d11", "d3d12", "dxgi", "dxguid", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool", "ws2_32"]
+cflags = ["/EHsc", "/FS", "/Zc:__cplusplus", "/bigobj", "/permissive-"]
+libs = ["Qt6Core", "Qt6Gui", "Qt6Network", "Qt6OpenGL", "Qt6Qml", "Qt6Quick", "Qt6Sql", "Qt6Widgets", "advapi32", "comdlg32", "d3d11", "d3d12", "dxgi", "dxguid", "gdi32", "kernel32", "mpr", "ole32", "oleaut32", "shell32", "user32", "userenv", "uuid", "winspool", "ws2_32"]
 lib_dirs = []
 ldflags = []
 cxx_std = 17
@@ -266,7 +254,7 @@ include_dirs = [
   "C:/Qt/6.10.2/msvc2022_64/include/QtWidgets",
 ]
 lib_dirs = ["C:/Qt/6.10.2/msvc2022_64/lib"]
-libs = ["Qt6Cored", "Qt6Guid", "Qt6Networkd", "Qt6OpenGLd", "Qt6Qmld", "Qt6Quickd", "Qt6Sqld", "Qt6Widgetsd"]
+libs = ["Qt6Core", "Qt6Gui", "Qt6Network", "Qt6OpenGL", "Qt6Qml", "Qt6Quick", "Qt6Sql", "Qt6Widgets"]
 
 [ai]
 enabled = false

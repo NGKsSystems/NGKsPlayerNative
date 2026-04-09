@@ -1,0 +1,17 @@
+metric,value
+total_duplicate_rows,290
+total_KEEP,128
+total_DELETE_planned,162
+total_DELETE_executed,68
+total_blocked_validation,94
+blocked_size_mismatch,69
+blocked_hash_mismatch,0
+blocked_file_missing,1
+blocked_primary_missing,24
+blocked_other,0
+blocked_at_execution,0
+skipped_at_execution,0
+intake_before,3231
+intake_after,3163
+ready_normalized,401
+tmp_files_fixed,0

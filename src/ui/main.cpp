@@ -3416,37 +3416,14 @@ private:
         djDeckA_ = new DeckStrip(0, QStringLiteral("#e07020"), &bridge_, page);
         colA->addWidget(djDeckA_, 1);
 
-        auto* libLabelA = new QLabel(QStringLiteral("LIBRARY A"), page);
-        {
-            QFont f = libLabelA->font(); f.setPointSizeF(7.0); f.setBold(true);
-            libLabelA->setFont(f);
-        }
-        libLabelA->setStyleSheet(QStringLiteral(
-            "color: #e07020; background: transparent; padding: 1px 2px;"));
-        colA->addWidget(libLabelA);
-
-        djLibTreeA_ = new QTreeWidget(page);
-        djLibTreeA_->setHeaderLabels({
-            QStringLiteral("Name"), QStringLiteral("Artist"),
-            QStringLiteral("BPM"), QStringLiteral("Key")});
-        djLibTreeA_->setRootIsDecorated(false);
-        djLibTreeA_->setSelectionMode(QAbstractItemView::SingleSelection);
-        djLibTreeA_->setAlternatingRowColors(false);
-        djLibTreeA_->setFixedHeight(140);
-        djLibTreeA_->header()->setStretchLastSection(false);
-        djLibTreeA_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-        djLibTreeA_->setColumnWidth(1, 120);
-        djLibTreeA_->setColumnWidth(2, 45);
-        djLibTreeA_->setColumnWidth(3, 45);
-        djLibTreeA_->setStyleSheet(QStringLiteral(
-            "QTreeWidget { background: #0a0c12; color: #ccc;"
-            "  border: 1px solid rgba(224,112,32,40); font-size: 8pt; }"
-            "QTreeWidget::item { padding: 2px 4px; }"
-            "QTreeWidget::item:hover { background: rgba(224,112,32,12); }"
-            "QTreeWidget::item:selected { background: rgba(224,112,32,30); color: #fff; }"
-            "QHeaderView::section { background: #111; color: #888; border: none;"
-            "  padding: 2px 4px; font-size: 7pt; font-weight: bold; }"));
-        colA->addWidget(djLibTreeA_);
+        // ── DJ Library A placeholder (library not initialized) ──
+        auto* libPlaceholderA = new QLabel(QStringLiteral("DJ Library not initialized"), page);
+        libPlaceholderA->setAlignment(Qt::AlignCenter);
+        libPlaceholderA->setFixedHeight(100);
+        libPlaceholderA->setStyleSheet(QStringLiteral(
+            "color: #3a3a3a; background: #0a0c12; border: 1px solid #1a1e28;"
+            " font-size: 8pt; border-radius: 3px;"));
+        colA->addWidget(libPlaceholderA);
         deckRow->addLayout(colA, 5);
 
         // ── Master section column (center) ──
@@ -3567,37 +3544,14 @@ private:
         djDeckB_ = new DeckStrip(1, QStringLiteral("#2080e0"), &bridge_, page);
         colB->addWidget(djDeckB_, 1);
 
-        auto* libLabelB = new QLabel(QStringLiteral("LIBRARY B"), page);
-        {
-            QFont f = libLabelB->font(); f.setPointSizeF(7.0); f.setBold(true);
-            libLabelB->setFont(f);
-        }
-        libLabelB->setStyleSheet(QStringLiteral(
-            "color: #2080e0; background: transparent; padding: 1px 2px;"));
-        colB->addWidget(libLabelB);
-
-        djLibTreeB_ = new QTreeWidget(page);
-        djLibTreeB_->setHeaderLabels({
-            QStringLiteral("Name"), QStringLiteral("Artist"),
-            QStringLiteral("BPM"), QStringLiteral("Key")});
-        djLibTreeB_->setRootIsDecorated(false);
-        djLibTreeB_->setSelectionMode(QAbstractItemView::SingleSelection);
-        djLibTreeB_->setAlternatingRowColors(false);
-        djLibTreeB_->setFixedHeight(140);
-        djLibTreeB_->header()->setStretchLastSection(false);
-        djLibTreeB_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-        djLibTreeB_->setColumnWidth(1, 120);
-        djLibTreeB_->setColumnWidth(2, 45);
-        djLibTreeB_->setColumnWidth(3, 45);
-        djLibTreeB_->setStyleSheet(QStringLiteral(
-            "QTreeWidget { background: #0a0c12; color: #ccc;"
-            "  border: 1px solid rgba(32,128,224,40); font-size: 8pt; }"
-            "QTreeWidget::item { padding: 2px 4px; }"
-            "QTreeWidget::item:hover { background: rgba(32,128,224,12); }"
-            "QTreeWidget::item:selected { background: rgba(32,128,224,30); color: #fff; }"
-            "QHeaderView::section { background: #111; color: #888; border: none;"
-            "  padding: 2px 4px; font-size: 7pt; font-weight: bold; }"));
-        colB->addWidget(djLibTreeB_);
+        // ── DJ Library B placeholder (library not initialized) ──
+        auto* libPlaceholderB = new QLabel(QStringLiteral("DJ Library not initialized"), page);
+        libPlaceholderB->setAlignment(Qt::AlignCenter);
+        libPlaceholderB->setFixedHeight(100);
+        libPlaceholderB->setStyleSheet(QStringLiteral(
+            "color: #3a3a3a; background: #0a0c12; border: 1px solid #1a1e28;"
+            " font-size: 8pt; border-radius: 3px;"));
+        colB->addWidget(libPlaceholderB);
         deckRow->addLayout(colB, 5);
 
         layout->addLayout(deckRow, 1);
@@ -3703,66 +3657,9 @@ private:
             hb->start(200);
         }
 
-        // ── Per-deck library double-click wiring (deck-locked) ──
-        QObject::connect(djLibTreeA_, &QTreeWidget::itemDoubleClicked, this,
-            [this](QTreeWidgetItem* item, int) {
-            const int trackIdx = item->data(0, Qt::UserRole).toInt();
-            if (trackIdx < 0 || trackIdx >= static_cast<int>(allTracks_.size())) return;
-            const auto& t = allTracks_[trackIdx];
-            djDeckA_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
-            djDeckA_->loadTrack(t.filePath);
-            qInfo().noquote() << QStringLiteral("DJ_LIBA_LOAD track=%1")
-                .arg(t.filePath);
-            qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=0 bpm=%1 source=%2 path=%3 title=%4")
-                .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
-                .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
-                .arg(t.filePath, t.title);
-        });
-
-        QObject::connect(djLibTreeB_, &QTreeWidget::itemDoubleClicked, this,
-            [this](QTreeWidgetItem* item, int) {
-            const int trackIdx = item->data(0, Qt::UserRole).toInt();
-            if (trackIdx < 0 || trackIdx >= static_cast<int>(allTracks_.size())) return;
-            const auto& t = allTracks_[trackIdx];
-            djDeckB_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
-            djDeckB_->loadTrack(t.filePath);
-            qInfo().noquote() << QStringLiteral("DJ_LIBB_LOAD track=%1")
-                .arg(t.filePath);
-            qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=1 bpm=%1 source=%2 path=%3 title=%4")
-                .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
-                .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
-                .arg(t.filePath, t.title);
-        });
-
-        // ── DeckStrip LOAD button wiring (each loads from its own library) ──
-        QObject::connect(djDeckA_, &DeckStrip::loadRequested, this, [this](int) {
-            auto* sel = djLibTreeA_->currentItem();
-            if (!sel) return;
-            const int idx = sel->data(0, Qt::UserRole).toInt();
-            if (idx >= 0 && idx < static_cast<int>(allTracks_.size())) {
-                const auto& t = allTracks_[idx];
-                djDeckA_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
-                djDeckA_->loadTrack(t.filePath);
-                qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=0 bpm=%1 source=%2 path=%3")
-                    .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
-                    .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
-                    .arg(t.filePath);
-            }
-        });
-        QObject::connect(djDeckB_, &DeckStrip::loadRequested, this, [this](int) {
-            auto* sel = djLibTreeB_->currentItem();
-            if (!sel) return;
-            const int idx = sel->data(0, Qt::UserRole).toInt();
-            if (idx >= 0 && idx < static_cast<int>(allTracks_.size())) {
-                const auto& t = allTracks_[idx];
-                djDeckB_->setTrackMetadata(t.title, t.artist, t.bpm, t.musicalKey);
-                djDeckB_->loadTrack(t.filePath);
-                qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_BEGIN deck=1 bpm=%1 source=%2 path=%3")
-                    .arg(t.bpm.isEmpty() ? QStringLiteral("unknown") : t.bpm)
-                    .arg(t.bpm.isEmpty() ? QStringLiteral("none") : (t.legacyImported ? QStringLiteral("legacy_db") : QStringLiteral("id3_tag")))
-                    .arg(t.filePath);
-            }
-        });
+        // ── DeckStrip LOAD buttons: library is offline, no-op ──
+        QObject::connect(djDeckA_, &DeckStrip::loadRequested, this, [](int) {});
+        QObject::connect(djDeckB_, &DeckStrip::loadRequested, this, [](int) {});
 
         // Wire snapshot refresh
         QObject::connect(&bridge_, &EngineBridge::djSnapshotUpdated, this, [this]() {
@@ -3770,7 +3667,6 @@ private:
             if (djDeckB_) djDeckB_->refreshFromSnapshot();
             if (djMasterMeterL_) djMasterMeterL_->setLevel(static_cast<float>(bridge_.masterPeakL()));
             if (djMasterMeterR_) djMasterMeterR_->setLevel(static_cast<float>(bridge_.masterPeakR()));
-            refreshDjLibraryHighlights();
         });
 
         // ── Device-lost overlay banner + Recover Audio button ──
@@ -3876,102 +3772,11 @@ private:
         return page;
     }
 
-    /// Populate the per-deck DJ library trees from the master library.
-    void populateDjLibraryTrees()
-    {
-        auto fill = [this](QTreeWidget* tree) {
-            if (!tree) return;
-            tree->clear();
-            for (int i = 0; i < static_cast<int>(allTracks_.size()); ++i) {
-                const auto& t = allTracks_[i];
-                auto* item = new QTreeWidgetItem(tree);
-                // Column 0: full filename without extension (DJ-friendly display)
-                QFileInfo fi(t.filePath);
-                const QString djName = fi.completeBaseName();
-                item->setText(0, djName.isEmpty() ? QStringLiteral("Unknown") : djName);
-                // Column 1: Artist only
-                const QString artist = t.artist.isEmpty()
-                    ? QStringLiteral("Unknown") : t.artist;
-                item->setText(1, artist);
-                // Column 2: BPM (centered)
-                item->setText(2, t.bpm);
-                item->setTextAlignment(2, Qt::AlignCenter);
-                // Column 3: Key (centered)
-                item->setText(3, t.musicalKey);
-                item->setTextAlignment(3, Qt::AlignCenter);
-                // Store track index + filename stem for loaded-track matching
-                item->setData(0, Qt::UserRole, i);
-                item->setData(0, Qt::UserRole + 1, fi.completeBaseName());
-            }
-        };
-        fill(djLibTreeA_);
-        fill(djLibTreeB_);
-        // Reset cached highlight state so next snapshot triggers refresh
-        djLibHighlightLabelA_.clear();
-        djLibHighlightLabelB_.clear();
-        djLibHighlightPlayingA_ = false;
-        djLibHighlightPlayingB_ = false;
-    }
+    /// DJ library is offline — stub to prevent call-site errors.
+    void populateDjLibraryTrees() { /* library not initialized */ }
 
-    /// Update loaded/playing row highlights in DJ library trees.
-    /// Only re-paints when state actually changes (cached comparison).
-    void refreshDjLibraryHighlights()
-    {
-        if (!djLibTreeA_ || !djLibTreeB_) return;
-
-        const QString labelA = bridge_.deckTrackLabel(0);
-        const QString labelB = bridge_.deckTrackLabel(1);
-        const bool playingA = bridge_.deckIsPlaying(0);
-        const bool playingB = bridge_.deckIsPlaying(1);
-
-        // Early-out if nothing changed
-        if (labelA == djLibHighlightLabelA_ && labelB == djLibHighlightLabelB_
-            && playingA == djLibHighlightPlayingA_ && playingB == djLibHighlightPlayingB_)
-            return;
-
-        djLibHighlightLabelA_ = labelA;
-        djLibHighlightLabelB_ = labelB;
-        djLibHighlightPlayingA_ = playingA;
-        djLibHighlightPlayingB_ = playingB;
-
-        // Helper: apply highlight to a single tree for its deck.
-        // accentR/G/B = deck accent colour components.
-        auto applyHighlight = [](QTreeWidget* tree, const QString& loadedLabel,
-                                 bool playing, int accentR, int accentG, int accentB) {
-            static const QBrush clear;                       // default (no colour)
-            // Loaded but not playing: subtle tint
-            const QBrush loadedBg(QColor(accentR, accentG, accentB, 30));
-            // Playing: brighter tint
-            const QBrush playingBg(QColor(accentR, accentG, accentB, 55));
-            // Left accent bar (playing indicator) — tiny colored decoration
-            const QColor barColor(accentR, accentG, accentB, 200);
-
-            const int count = tree->topLevelItemCount();
-            for (int i = 0; i < count; ++i) {
-                auto* item = tree->topLevelItem(i);
-                const QString stem = item->data(0, Qt::UserRole + 1).toString();
-                const bool isLoaded = (!loadedLabel.isEmpty() && stem == loadedLabel);
-
-                if (isLoaded && playing) {
-                    for (int c = 0; c < 4; ++c)
-                        item->setBackground(c, playingBg);
-                    // Column-0 left accent: use a small coloured icon as bar
-                    item->setForeground(0, QBrush(barColor));
-                } else if (isLoaded) {
-                    for (int c = 0; c < 4; ++c)
-                        item->setBackground(c, loadedBg);
-                    item->setForeground(0, QBrush(QColor(0xcc, 0xcc, 0xcc)));
-                } else {
-                    for (int c = 0; c < 4; ++c)
-                        item->setBackground(c, clear);
-                    item->setForeground(0, QBrush(QColor(0xcc, 0xcc, 0xcc)));
-                }
-            }
-        };
-
-        applyHighlight(djLibTreeA_, labelA, playingA, 224, 112, 32);   // orange
-        applyHighlight(djLibTreeB_, labelB, playingB, 32, 128, 224);   // blue
-    }
+    /// DJ library is offline — stub to prevent call-site errors.
+    void refreshDjLibraryHighlights() { /* library not initialized */ }
 
     // ── Library helpers ──
     void refreshLibraryList()
@@ -5033,8 +4838,7 @@ private:
     DeckStrip* djDeckA_{nullptr};
     DeckStrip* djDeckB_{nullptr};
     QSlider* djCrossfader_{nullptr};
-    QTreeWidget* djLibTreeA_{nullptr};
-    QTreeWidget* djLibTreeB_{nullptr};
+    // djLibTreeA_/B_ removed — library stripped for rebuild
     LevelMeter* djMasterMeterL_{nullptr};
     LevelMeter* djMasterMeterR_{nullptr};
     QSlider* djCueMix_{nullptr};
@@ -5045,10 +4849,7 @@ private:
     QLabel* djRecoveryStatusLabel_{nullptr};
     QPushButton* djRecoverBtn_{nullptr};
     QTimer* djBannerDismissTimer_{nullptr};
-    QString djLibHighlightLabelA_;
-    QString djLibHighlightLabelB_;
-    bool djLibHighlightPlayingA_{false};
-    bool djLibHighlightPlayingB_{false};
+    // djLibHighlight* removed — library stripped for rebuild
     int lastActiveDjDeck_{0};
 
     QLabel* engineStatusLabel_{nullptr};

@@ -317,6 +317,7 @@ def build_promotion_candidates(decisions):
         rq_row = rq_map.get(path, {})
         ds_row = ds_map.get(path, {})
         alt_row = alt_map.get(path, {})
+        proposed_name = os.path.basename(path)
 
         if decision == "approve_primary":
             proposed_name = rq_row.get("proposed_name", "")

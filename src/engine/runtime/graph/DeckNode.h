@@ -22,6 +22,16 @@ struct WaveMinMax {
     float rms;  ///< root-mean-square energy of bucket
 };
 
+/// Broad frequency-band energy per time slice.
+/// Lightweight analysis — NOT stem separation. Uses time-domain
+/// inter-sample-difference technique to estimate spectral distribution.
+struct BandEnergy {
+    float low;      ///< low-frequency energy (bass / sub)
+    float lowMid;   ///< low-mid energy (body / warmth)
+    float highMid;  ///< high-mid energy (vocals / presence)
+    float high;     ///< high-frequency energy (hats / cymbals / air)
+};
+
 class DeckNode {
 public:
     DeckNode();
@@ -55,6 +65,11 @@ public:
     /// Returns a vector of `numBins` WaveMinMax pairs preserving peak/valley shape.
     /// Thread-safe: acquires shared_lock on bufferMutex_.
     std::vector<WaveMinMax> generateWaveformOverview(int numBins) const;
+
+    /// Generate broad frequency-band energy overview.
+    /// Lightweight time-domain analysis: inter-sample-difference partitioning.
+    /// Thread-safe: acquires shared_lock on bufferMutex_.
+    std::vector<BandEnergy> generateBandEnergyOverview(int numBins) const;
 
     /// Returns true once the full file (not just preload) is decoded.
     bool isFullyDecoded() const noexcept;

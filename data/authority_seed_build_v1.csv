@@ -1,0 +1,779 @@
+canonical_artist,canonical_title,source,confidence,seed_result
+AC-DC,For Those About To Rock,operator_verified,1.0,seeded
+Tom Petty,American Girl,operator_verified,1.0,seeded
+Brad Paisley,"With you, Without you",operator_verified,1.0,seeded
+Brad Paisley,Policeman,operator_verified,1.0,seeded
+Snoop Dogg ft. Pharrell,Drop It Like Its Hot by,operator_verified,1.0,seeded
+Edine,24-7,operator_verified,1.0,seeded
+Gonzalez,Haven't Stopped Dancing Yet,operator_verified,1.0,seeded
+Hard,Kief Brown,operator_verified,1.0,seeded
+Ice-T,6 N the Mornin,operator_verified,1.0,seeded
+Ice-T,Im Your Pusher,operator_verified,1.0,seeded
+Blake Shelton,Im Sorry,operator_verified,1.0,seeded
+Johnny Copeland,Flying High,operator_verified,1.0,seeded
+Kelsie Kimberlin,Road Trip,operator_verified,1.0,seeded
+Kenney Chesney,Living in Paradise,operator_verified,1.0,seeded
+Leoncavallo Pagliacciï,Vesti La Giubba,operator_verified,1.0,seeded
+Luciano Pavarottiï,Celeste Aida,operator_verified,1.0,seeded
+Metallica,Enter Sandman,operator_verified,1.0,seeded
+Metallica,One,operator_verified,1.0,seeded
+Mickey Newbury,After All These Years,operator_verified,1.0,seeded
+Miranda Lambert,Lyin Here,operator_verified,1.0,seeded
+Mozart  Don  Giovanni,527 Act 1,operator_verified,1.0,seeded
+Tim Mcgraw,My Best Friend,operator_verified,1.0,seeded
+Paul Damixie,Hypnotised,operator_verified,1.0,seeded
+Smiley,Days of Summer,operator_verified,1.0,seeded
+Smiley,Let Me Go,operator_verified,1.0,seeded
+Smiley,Tomorrow,operator_verified,1.0,seeded
+Stormy Weather,Beneath Velvet Skies,operator_verified,1.0,seeded
+The Commodores,Brick House,operator_verified,1.0,seeded
+Travesuras,Nicky Jam,operator_verified,1.0,seeded
+Twenty One Pilots,Heathens,operator_verified,1.0,seeded
+Twenty One Pilots,Stressed Out,operator_verified,1.0,seeded
+Verdi,Rigoletto,operator_verified,1.0,seeded
+Geto Boys,Mind Playing Tricks on Me,operator_verified,1.0,seeded
+2Pac,2Pac - I Get Around,clean_high_confidence,0.76,seeded
+Bad Bunny,BAD BUNNY - ESTAMOS BIEN | X100PRE (Video Oficial),clean_high_confidence,0.76,seeded
+BeastieBoys,Beastie Boys - Intergalactic,clean_high_confidence,0.743,seeded
+Biggie Smalls,Biggie Smalls - Notorious Thugs,clean_high_confidence,0.76,seeded
+Black Sabbath,Sweet Leaf,clean_high_confidence,0.64,seeded
+BlackStarVEVO,Black Star - Respiration ft. Common,clean_high_confidence,0.673,seeded
+Bone Thugs-N-Harmony,Bone Thugs N Harmony - Crossroads,clean_high_confidence,0.739,seeded
+Bone Thugs-N-Harmony,Bone Thugs n Harmony - Thuggish Ruggish Bone,clean_high_confidence,0.739,seeded
+Charlie Daniels,Charlie Daniels Band - The South's Gonna Do It (Live),clean_high_confidence,0.72,seeded
+Delain,The Quest and the Curse Napalm Records (Alt 1),clean_high_confidence,0.64,seeded
+Eric Church,Eric Church - Over When It's Over (Live Performance Video),clean_high_confidence,0.76,seeded
+Hank Williams,Hank Williams Jr - Simple Man,clean_high_confidence,0.72,seeded
+Ice Cube / Cubevision,Ice Cube - It Was A Good Day,clean_high_confidence,0.72,seeded
+Ice Cube / Cubevision,Ice Cube - You Know How We Do It,clean_high_confidence,0.72,seeded
+Bad Bunny,J BALVIN x BAD BUNNY - LA CANCIÓN | OASIS (Video Oficial),clean_high_confidence,0.72,seeded
+James Vickery,James Vickery - Pressure (with SG Lewis) | LIVE from London - Part 3 | The Old Vinyl Factory,clean_high_confidence,0.76,seeded
+Jesús Alonso,"Jesús Alonso, La Fe de Vivir, canción de superación, para fluir con la vida. #musicaconsciente #fe",clean_high_confidence,0.76,seeded
+Kamelot,Under Grey Skies ft. Charlotte Wessels Napalm Records,clean_high_confidence,0.64,seeded
+Kelsie Kimberlin,Kelsie Kimberlin - Road Trip | #standwithukraine,clean_high_confidence,0.76,seeded
+Ozuna,Ozuna - Se Preparó (Video Oficial) | Odisea,clean_high_confidence,0.76,seeded
+Powerwolf,Beast of Gévaudan Napalm Records (Alt 1),clean_high_confidence,0.64,seeded
+PTM,PTM - If It Was Easy | Lyrics Video,clean_high_confidence,0.76,seeded
+QueenLatifahVEVO,Queen Latifah - U.N.I.T.Y.,clean_high_confidence,0.691,seeded
+Savatage,Hall of the Mountain King,clean_high_confidence,0.64,seeded
+Slayer,Hell Awaits,clean_high_confidence,0.64,seeded
+SnoopDoggTV,Snoop Dogg - Gin And Juice,clean_high_confidence,0.703,seeded
+The Roots,The Roots - You Got Me ft. Erykah Badu,clean_high_confidence,0.76,seeded
+Ufo,Doctor Doctor,clean_high_confidence,0.64,seeded
+Wind Rose,To Be a Dwarf Napalm Records (Alt 1),clean_high_confidence,0.64,seeded
+Zac Brown Band,Zac Brown Band - Keep Me In Mind | You Get What You Give,clean_high_confidence,0.76,seeded
+Tekashi 6ix9ine,6ix9ine - BEBE ft. Anuel AA,clean_high_confidence,0.72,seeded
+Tekashi 6ix9ine,"6ix9ine - FEFE ft. Nicki Minaj, Murda Beatz",clean_high_confidence,0.72,seeded
+Alaina Castillo,Alaina Castillo - éxtasis,clean_high_confidence,0.76,seeded
+Alan Walker,Alan Walker - Alone,clean_high_confidence,0.76,seeded
+Alan Walker,Alan Walker - Faded,clean_high_confidence,0.76,seeded
+Alan Walker,Alan Walker - The Spectre,clean_high_confidence,0.76,seeded
+Alejo,Alejo - RT (Video Oficial),clean_high_confidence,0.76,seeded
+Alex Rose,"Alex Rose, Dalex - La Segura (Video Oficial)",clean_high_confidence,0.72,seeded
+Alex Rose,"Alex Rose, Lil Cake  - GFP (Video Oficial)",clean_high_confidence,0.72,seeded
+AlexandRRa,AlexandRRa - 🔥Make Me Go,clean_high_confidence,0.76,seeded
+Alx Veliz,Alx Veliz - MARQUESINA (Video Oficial),clean_high_confidence,0.76,seeded
+Amy Winehouse,Amy Winehouse - Back To Black,clean_high_confidence,0.76,seeded
+Anuel AA,Anuel AA - Ella Quiere Beber (Remix) ft. Romeo Santos,clean_high_confidence,0.76,seeded
+Anuel AA,Anuel AA - Ella Quiere Beber (Video Oficial),clean_high_confidence,0.76,seeded
+Anuel AA,"Anuel AA, Daddy Yankee, Karol G, Ozuna & J Balvin - China (Video Oficial)",clean_high_confidence,0.72,seeded
+Anuel AA,"Anuel AA, KAROL G - Secreto",clean_high_confidence,0.72,seeded
+Ariana Grande,Ariana Grande - Problem ft. Iggy Azalea,clean_high_confidence,0.76,seeded
+T-Series,"Arijit Singh: Pachtaoge | Vicky Kaushal, Nora Fatehi |Jaani, B Praak, Arvindr Khaira | Bhushan Kumar",clean_high_confidence,0.64,seeded
+Audioslave,Like a Stone,clean_high_confidence,0.64,seeded
+Avicii,Avicii - Waiting For Love,clean_high_confidence,0.76,seeded
+Aya Nakamura,Aya Nakamura - Djadja (Clip officiel),clean_high_confidence,0.76,seeded
+Bad Bunny,BAD BUNNY x DRAKE - MÍA (Video Oficial),clean_high_confidence,0.72,seeded
+Beyoncé,Beyoncé - Halo,clean_high_confidence,0.76,seeded
+Biehu,BIEHU - Better without me,clean_high_confidence,0.76,seeded
+Billie Eilish,Billie Eilish - bad guy,clean_high_confidence,0.76,seeded
+Billie Eilish,"Billie Eilish, Khalid - lovely",clean_high_confidence,0.72,seeded
+blackbear,blackbear - me & ur ghost,clean_high_confidence,0.76,seeded
+BLACKPINK,BLACKPINK - 'Kill This Love' M/V,clean_high_confidence,0.76,seeded
+BLOWSOM,BLOWSOM - HOPE YOU'LL FIND OUT,clean_high_confidence,0.76,seeded
+Bon Jovi,Bon Jovi - Livin' On A Prayer,clean_high_confidence,0.76,seeded
+Calum Scott,"Calum Scott, Leona Lewis - You Are The Reason (Duet Version)",clean_high_confidence,0.72,seeded
+Calvin Harris,Calvin Harris & Disciples - How Deep Is Your Love,clean_high_confidence,0.72,seeded
+Camila Cabello,Camila Cabello - Havana (Vertical Video) ft. Young Thug,clean_high_confidence,0.76,seeded
+Carlos Vives,"Carlos Vives, Shakira - La Bicicleta",clean_high_confidence,0.72,seeded
+Carly Rae Jepsen,Carly Rae Jepsen - Call Me Maybe,clean_high_confidence,0.76,seeded
+Cautious Clay,"Cautious Clay, Joshua Karpeh - Ohio",clean_high_confidence,0.72,seeded
+Chynoy Nacho,Chino y Nacho - Andas En Mi Cabeza ft. Daddy Yankee,clean_high_confidence,0.712,seeded
+Chris Tijera,Chris Tijera x  Dj Lokey - INTOCABLE (VIDEO OFICIAL),clean_high_confidence,0.72,seeded
+Christian Daniel Oficial,Christian Daniel & Kevin Garcia - Me Va A Extrañar (Ricardo Montaner Cover),clean_high_confidence,0.677,seeded
+CNCO,CNCO - Reggaetón Lento (Bailemos),clean_high_confidence,0.76,seeded
+Daddy Yankee,Daddy Yankee & Snow - Con Calma (Video Oficial),clean_high_confidence,0.72,seeded
+Daddy Yankee,Daddy Yankee - Dura (Video Oficial),clean_high_confidence,0.76,seeded
+Daddy Yankee,Daddy Yankee - Limbo (Video Oficial),clean_high_confidence,0.76,seeded
+Daddy Yankee,Daddy Yankee - Shaky Shaky (Video Oficial),clean_high_confidence,0.76,seeded
+Dalex,"Dalex - Pa Mi (Remix) ft. Sech, Rafa Pabön, Cazzu, Feid, Khea and Lenny Tavarez",clean_high_confidence,0.76,seeded
+David Guetta,David Guetta & Showtek - Bad ft.Vassy (Lyrics Video),clean_high_confidence,0.72,seeded
+Smiley,Days of Summer (Toesup Remix),clean_high_confidence,0.8,seeded
+Phi Tribe,Definition Of | 559 | 432Hz,clean_high_confidence,0.64,seeded
+Dermot Kennedy,Dermot Kennedy - All My Friends (A Film By Brendan Canty),clean_high_confidence,0.76,seeded
+soyyodioni,Dioni - Khelani (Video Lyric),clean_high_confidence,0.72,seeded
+DJ Khaled,"DJ Khaled - I'm The One ft. Justin Bieber, Quavo, Chance the Rapper, Lil Wayne",clean_high_confidence,0.76,seeded
+DJ Snake,DJ Snake - Let Me Love You ft. Justin Bieber,clean_high_confidence,0.76,seeded
+DJ Snake,"DJ Snake, Lil Jon - Turn Down for What",clean_high_confidence,0.72,seeded
+Don Omar,Don Omar - Danza Kuduro ft. Lucenzo,clean_high_confidence,0.76,seeded
+MaddBayy,Don't Go (lofi Remix),clean_high_confidence,0.8,seeded
+Dr. Dre,Dr. Dre - Still D.R.E. ft. Snoop Dogg,clean_high_confidence,0.76,seeded
+Drake,Drake - God's Plan,clean_high_confidence,0.76,seeded
+Drake,Drake - Hotline Bling,clean_high_confidence,0.76,seeded
+DYNAMICS,DYNAMICS Dance Medley - VOL 2 (I'm a Believer | Friends Theme | Livin' La Vida Loca),clean_high_confidence,0.72,seeded
+Ed Sheeran,Ed Sheeran - American Town (Live Acoustic),clean_high_confidence,0.76,seeded
+El Emisario,El Emisario ❌ MaestroEIM - Amantes (Video Oficial),clean_high_confidence,0.72,seeded
+Emile Mosseri,"Emile Mosseri - ""My Greedy Heart""",clean_high_confidence,0.76,seeded
+EminemMusic,Eminem - Love The Way You Lie ft. Rihanna,clean_high_confidence,0.72,seeded
+EminemMusic,Eminem - Not Afraid,clean_high_confidence,0.72,seeded
+EminemMusic,Eminem - Rap God (Explicit),clean_high_confidence,0.72,seeded
+Enrique Iglesias,"Enrique Iglesias - Bailando ft. Descemer Bueno, Gente De Zona",clean_high_confidence,0.76,seeded
+Enrique Iglesias,Enrique Iglesias - DUELE EL CORAZON ft. Wisin,clean_high_confidence,0.76,seeded
+Enrique Iglesias,Enrique Iglesias - El Perdedor (Pop) ft. Marco Antonio Solís,clean_high_confidence,0.76,seeded
+French Montana,French Montana - Unforgettable ft. Swae Lee,clean_high_confidence,0.76,seeded
+Luciente,Fridah x Luciente - TU VAINA LOCA,clean_high_confidence,0.72,seeded
+Gaby Crush,Gaby Crush - Me Cambiaste (Video Oficial),clean_high_confidence,0.76,seeded
+Guns N' Roses,Guns N' Roses - November Rain,clean_high_confidence,0.76,seeded
+Ha*Ash,HA-ASH - Lo Aprendí de Ti (Primera Fila - Hecho Realidad [En Vivo]),clean_high_confidence,0.76,seeded
+Humberto e Ronaldo,Humberto e Ronaldo - Não Fala Não Pra Mim feat. Jerry Smith,clean_high_confidence,0.76,seeded
+Huncho Bookie,Huncho Bookie - All Luv,clean_high_confidence,0.76,seeded
+Iggy Azalea,Iggy Azalea - Fancy ft. Charli XCX,clean_high_confidence,0.76,seeded
+ImagineDragons,Imagine Dragons - Radioactive,clean_high_confidence,0.746,seeded
+ImagineDragons,Imagine Dragons - Thunder,clean_high_confidence,0.746,seeded
+ivri,ivri - inversion,clean_high_confidence,0.76,seeded
+J Balvin,J Balvin - 6 AM ft. Farruko,clean_high_confidence,0.76,seeded
+James Arthur,James Arthur - Say You Won't Let Go,clean_high_confidence,0.76,seeded
+Real Emaj,Jeep,clean_high_confidence,0.64,seeded
+Jeins D,Jeins D -  LA CONEXION   (🔥VIDEO OFICIAL🔥,clean_high_confidence,0.76,seeded
+Jennifer Lopez,"Jennifer Lopez, Pitbull - On The Floor",clean_high_confidence,0.72,seeded
+Jessie J,"Jessie J - Bang Bang ft. Ariana Grande, Nicki Minaj",clean_high_confidence,0.76,seeded
+Jesús Alonso,"Jesús Alonso - 'Quiero saber', canción. #humanidad #documental #cantautor #canciondeautor",clean_high_confidence,0.76,seeded
+Jesús Alonso,"Jesús Alonso, La Fe de Vivir, canción de superación, para fluir con la vida. #musicaconsciente #fe",clean_high_confidence,0.64,seeded
+Joey Montana,Joey Montana - Picky,clean_high_confidence,0.76,seeded
+Joey Trap,Joey Trap - Holy Ghost,clean_high_confidence,0.76,seeded
+Johnny Orlando,Johnny Orlando - Phobias,clean_high_confidence,0.76,seeded
+Jonathan Moly,Jonathan Moly - HABLANDOLE AL SILENCIO ft. Jambene & Trainer  (Video Oficial) - Metamorfosis,clean_high_confidence,0.76,seeded
+Juan Guillermo,Juan Guillermo - Carola (Video Lyric),clean_high_confidence,0.76,seeded
+Justin Bieber,Justin Bieber - Baby ft. Ludacris,clean_high_confidence,0.76,seeded
+Justin Bieber,Justin Bieber - Love Yourself (PURPOSE : The Movement),clean_high_confidence,0.76,seeded
+Justin Bieber,Justin Bieber - Never Say Never ft. Jaden,clean_high_confidence,0.76,seeded
+Justin Bieber,Justin Bieber - Sorry (PURPOSE : The Movement),clean_high_confidence,0.76,seeded
+Justin Love,Justin Love - No Friends Prod. The ATG,clean_high_confidence,0.76,seeded
+Katy Perry,Katy Perry - Dark Horse ft. Juicy J,clean_high_confidence,0.76,seeded
+Katy Perry,Katy Perry - Roar,clean_high_confidence,0.76,seeded
+KatyPerrySongLyricsZ,Katy Perry Last Friday Night (TGIF) Lyrics,clean_high_confidence,0.64,seeded
+Ant Utama,Keep On,clean_high_confidence,0.8,seeded
+Kelly Clarkson,Kelly Clarkson - i hate love (Live at The Belasco Theater),clean_high_confidence,0.76,seeded
+Kelly Clarkson,Kelly Clarkson - red flag collector (Live at The Belasco Theater),clean_high_confidence,0.76,seeded
+Kelsie Kimberlin,Kelsie Kimberlin - Road Trip | #standwithukraine,clean_high_confidence,0.76,seeded
+Kevin Ross,Kevin Ross - Ready For It (One Mic Performance) (feat. @EricBellinger ),clean_high_confidence,0.76,seeded
+KYE COLORS,KYE COLORS - PHIL COLLINS,clean_high_confidence,0.76,seeded
+Cheerful Music,LA CIUDAD - (Lyrics Video),clean_high_confidence,0.64,seeded
+La Pitufina,La Pitufina x Pla la Sustancia - Yo Tengo  [Video Oficial] @PlaLaSustancia,clean_high_confidence,0.72,seeded
+Katy Perry,Last Friday Night (T.G.I.F.),clean_high_confidence,0.8,seeded
+T-Series Apna Punjab,"Laung Laachi Title Song | Mannat Noor | Ammy Virk, Neeru Bajwa,Amberdeep | Latest Punjabi Song 2018",clean_high_confidence,0.64,seeded
+LILDALLAS,Lil Dallas - Yea Yea Pt. 3 (Dir. By 916Visionary),clean_high_confidence,0.739,seeded
+lilbubblegum,lilbubblegum & jasiah - slurpy,clean_high_confidence,0.72,seeded
+LMFAOVEVO,"LMFAO - Party Rock Anthem (Audio) ft. Lauren Bennett, GoonRock",clean_high_confidence,0.72,seeded
+LMFAOVEVO,"LMFAO - Party Rock Anthem ft. Lauren Bennett, GoonRock",clean_high_confidence,0.72,seeded
+LONELYSPRINGmusic,LONELY SPRING - Misfit (Eurovision Song Contest 2023 Finalist for Germany),clean_high_confidence,0.68,seeded
+Los Ángeles Azules,Los Ángeles Azules - Nunca Es Suficiente ft. Natalia Lafourcade (Live),clean_high_confidence,0.76,seeded
+lourdiz,Lourdiz - Somersault,clean_high_confidence,0.76,seeded
+MagicRecordsPoland,Lucenzo And Don Omar Danza Kuduro,clean_high_confidence,0.64,seeded
+Luis Fonsi,Luis Fonsi - Despacito ft. Daddy Yankee,clean_high_confidence,0.76,seeded
+Luis Fonsi,"Luis Fonsi, Demi Lovato - Échame La Culpa",clean_high_confidence,0.72,seeded
+Wow money,M.A.R.I.A.M,clean_high_confidence,0.64,seeded
+M3deep,M3Deep Cash Cow (VIDEO),clean_high_confidence,0.64,seeded
+MacBoyDeroVEVO,MacBoy Dero - Whats The Move,clean_high_confidence,0.68,seeded
+Marília Mendonça,Marília Mendonça - Ciumeira (Todos Os Cantos - Ao Vivo),clean_high_confidence,0.76,seeded
+Michael Jackson,Michael Jackson - They Don't Care About Us,clean_high_confidence,0.76,seeded
+Michaël Brun,"Michaël Brun, Masego, Jozzy and Bayka - Charge It",clean_high_confidence,0.72,seeded
+Michel Teló,Michel Teló - Ai Se Eu Te Pego -  Video Oficial (Assim você me mata),clean_high_confidence,0.76,seeded
+Mike Posner,Mike Posner - I Took A Pill In Ibiza (Seeb Remix) (Explicit),clean_high_confidence,0.76,seeded
+Monterosmusic,Monteros - La misma canciòn (Video oficial),clean_high_confidence,0.72,seeded
+NFrealmusic,NF - HAPPY,clean_high_confidence,0.72,seeded
+Nicki Minaj,Nicki Minaj - Anaconda,clean_high_confidence,0.76,seeded
+NickyJamTV,22. Hasta el Amanecer - Nicky Jam | Video Oficial,clean_high_confidence,0.697,seeded
+Nicolukas,NICOLUKAS | Bebe$uki | Video Oficial,clean_high_confidence,0.64,seeded
+o2 Tbb,o2 Tbb  - TRUCO O TRATO (Video Oficial),clean_high_confidence,0.76,seeded
+Omarion,Omarion - Big Vibez (Dance Take Ver.),clean_high_confidence,0.76,seeded
+One Direction,One Direction - Story of My Life,clean_high_confidence,0.76,seeded
+OneRepublic,OneRepublic - Counting Stars,clean_high_confidence,0.76,seeded
+Ozuna,Ozuna - Se Preparó (Video Oficial) | Odisea,clean_high_confidence,0.76,seeded
+Ozuna,Ozuna - Síguelo Bailando (Video Oficial),clean_high_confidence,0.76,seeded
+Ozuna,Ozuna x Romeo Santos - El Farsante (Remix) (Video Oficial),clean_high_confidence,0.72,seeded
+P!NK,P!nk - Just Give Me A Reason ft. Nate Ruess,clean_high_confidence,0.76,seeded
+DEMON$ MEASURED NIGHT$,PAIN IS LIFE (freestyle),clean_high_confidence,0.64,seeded
+Phil Makes,Phil Makes - Rainmaker,clean_high_confidence,0.76,seeded
+Piso 21,Piso 21 - Déjala Que Vuelva (feat. Manuel Turizo) [Video Oficial],clean_high_confidence,0.76,seeded
+Pitbull,"Pitbull - Give Me Everything ft. Ne-Yo, Afrojack, Nayer",clean_high_confidence,0.76,seeded
+Pitbull,Pitbull - Rain Over Me ft. Marc Anthony,clean_high_confidence,0.76,seeded
+Juniel Di Hache,Por Las Malas,clean_high_confidence,0.64,seeded
+Post Malone,Post Malone & Swae Lee - Sunflower,clean_high_confidence,0.72,seeded
+Radiohead,Radiohead - Creep,clean_high_confidence,0.76,seeded
+Reik,"Reik - Me Niego ft. Ozuna, Wisin",clean_high_confidence,0.76,seeded
+Rihanna,Rihanna - Diamonds,clean_high_confidence,0.76,seeded
+Rihanna,Rihanna - Stay ft. Mikky Ekko,clean_high_confidence,0.76,seeded
+Rihanna,Rihanna - We Found Love ft. Calvin Harris,clean_high_confidence,0.76,seeded
+Rihanna,Rihanna - What's My Name? ft. Drake,clean_high_confidence,0.76,seeded
+Rihanna,Rihanna - Work (Explicit) ft. Drake,clean_high_confidence,0.76,seeded
+Roger,ROGER   -  Luz (Video Oficial),clean_high_confidence,0.76,seeded
+Ruzzell,Ruzzell - CAOS (Video Oficial),clean_high_confidence,0.76,seeded
+SAM SMITH,Sam Smith - Too Good At Goodbyes,clean_high_confidence,0.76,seeded
+Samantha Urbani,Samantha Urbani - More Than a Feeling,clean_high_confidence,0.76,seeded
+Sean Paul,Sean Paul - No Lie ft. Dua Lipa,clean_high_confidence,0.76,seeded
+Shakira,Shakira - La La La (Brazil 2014) ft. Carlinhos Brown,clean_high_confidence,0.76,seeded
+Shawn Mendes,Shawn Mendes - Treat You Better,clean_high_confidence,0.76,seeded
+Shawn Mendes,"Shawn Mendes, Camila Cabello - Señorita",clean_high_confidence,0.72,seeded
+Sia,Sia - Cheap Thrills (Performance Edit),clean_high_confidence,0.76,seeded
+Sir J,SIR J  x JC KARO - EL MALEANTE,clean_high_confidence,0.72,seeded
+Skrillex,Skrillex with Bobby Raps - Leave Me Like This,clean_high_confidence,0.72,seeded
+SWAVAY,SWAVAY- DUBLIN (Featuring NASAAN & Ben Reilly),clean_high_confidence,0.76,seeded
+Mb-Lu,Tesoro,clean_high_confidence,0.8,seeded
+The Weeknd,The Weeknd - In Your Eyes ft Kenny G (Time100 Live Performance),clean_high_confidence,0.76,seeded
+The Weeknd,The Weeknd - The Hills,clean_high_confidence,0.76,seeded
+Tiësto,Tiësto - BLUE,clean_high_confidence,0.76,seeded
+TriipOut Wood,Triipout Wood - Quarter Ticket Feat. Nj Threat (@THREATTV1) Shot by (@watchthescreen777),clean_high_confidence,0.76,seeded
+T-Series,"Vaaste Song: Dhvani Bhanushali, Tanishk Bagchi | Nikhil D'Souza | Bhushan Kumar | Radhika R, Vinay S",clean_high_confidence,0.64,seeded
+will i am,will.i.am - Scream & Shout ft. Britney Spears,clean_high_confidence,0.71,seeded
+Willie Gomez,Willie Gomez - Mira Cómo Baila,clean_high_confidence,0.76,seeded
+XXXTENTACION,XXXTENTACION - changes,clean_high_confidence,0.76,seeded
+Yandel,"Yandel, Luar La L -  CLICK (Video Oficial)",clean_high_confidence,0.72,seeded
+Yandel,"Yandel, Myke Towers - Borracho y Loco (Video Oficial)",clean_high_confidence,0.72,seeded
+Young Miko,Young Miko - wiggy,clean_high_confidence,0.76,seeded
+Young Miko,"Young Miko, Jowell & Randy - ID",clean_high_confidence,0.72,seeded
+YUNG BAE,"Yung Bae, Nile Rodgers - Awesome Ways",clean_high_confidence,0.72,seeded
+Zizzy Poppin,Zizzy Poppin - 5.7L Ft. DJ Eve Ready,clean_high_confidence,0.76,seeded
+Zizzy Poppin,Zizzy Poppin - Motel 6 Ft. Kayla The Southern Soul Princess,clean_high_confidence,0.76,seeded
+Zizzy Poppin,Zizzy Poppin - Part 5.L.I.M.E,clean_high_confidence,0.76,seeded
+Zé Neto e Cristiano,Zé Neto e Cristiano - NOTIFICAÇÃO PREFERIDA - #EsqueceOMundoLaFora,clean_high_confidence,0.76,seeded
+Zé Neto e Cristiano,Zé Neto e Cristiano - STATUS QUE EU NÃO QUERIA - #EsqueceOMundoLaFora,clean_high_confidence,0.76,seeded
+PugPiano,ช้ำคือเรา - [Cover By สมอารมณ์ x Pimthitiii],clean_high_confidence,0.64,seeded
+Bruno Rosa,Albert Collins   Ice Pick,clean_high_confidence,0.64,seeded
+randomandrare,Charles Brown Black Night (1950),clean_high_confidence,0.64,seeded
+anneesvinyl,elvis presley blue suede shoes color,clean_high_confidence,0.64,seeded
+Swedebreakers,Hideaway by John Mayall bluesbreakers & Eric Clapton,clean_high_confidence,0.64,seeded
+AUSEY1,Johnny Winter / Mean Mistreater,clean_high_confidence,0.64,seeded
+AUSEY1,Johnny Winter / Third Degree,clean_high_confidence,0.64,seeded
+Thom Pernice,Junior Wells Hoodoman Blues,clean_high_confidence,0.64,seeded
+Francesco Renna,Keb' Mo' / Dangerous Mood,clean_high_confidence,0.64,seeded
+Traveler Into The Blue,Little Walter-You'd Better Watch Yourself,clean_high_confidence,0.64,seeded
+MUDDYWATERSVEVO,Muddy Waters - Mannish Boy (Audio),clean_high_confidence,0.686,seeded
+jose el,muddy waters all aboard,clean_high_confidence,0.64,seeded
+TheCoolBlues,Muddy Waters ~ My Home Is In The Delta,clean_high_confidence,0.64,seeded
+dh,"Muddy Waters ""Trouble No More"" 1974",clean_high_confidence,0.64,seeded
+jopalmtreetwo,sonny boy williamson  help me,clean_high_confidence,0.64,seeded
+jopalmtreetwo,sonny boy williamson  help me,clean_high_confidence,0.64,seeded
+robotocho,Tell Mama ~ Etta James,clean_high_confidence,0.64,seeded
+castout888,Beethoven's 5th Symphony,clean_high_confidence,0.64,seeded
+mothball22,Carol of the Bells aka The Ukranian Carol,clean_high_confidence,0.64,seeded
+FacundoJG,"Edvard Grieg, In the Hall of the Mountain King from ""Peer Gynt""",clean_high_confidence,0.64,seeded
+Felix Offenbach,Franz Liszt ~ Prelude to Transcendental Etudes (Russell Sherman - Piano),clean_high_confidence,0.64,seeded
+tnsnamesoralong,"[Jandó Jenő] Händel: Harmonious Blacksmith for Piano, HWV430",clean_high_confidence,0.64,seeded
+Natalie Schwamova,"Mozart, Ah! vous dirai je maman Twinkle Twinkle, Little Star  KV 265",clean_high_confidence,0.64,seeded
+OrchestraSheets,St. Pauls Suite Gustav Holst 1. Jig,clean_high_confidence,0.64,seeded
+MovieMongerHZ,Toccata and Fugue in D Minor (Best Version Ever),clean_high_confidence,0.64,seeded
+Afrojack,Afrojack vs. THIRTY SECONDS TO MARS - Do Or Die (Remix),clean_high_confidence,0.72,seeded
+Ahrix,Ahrix - Nova,clean_high_confidence,0.76,seeded
+Alan Walker,Alan Walker - Sing Me To Sleep,clean_high_confidence,0.76,seeded
+Alan Walker,Alan Walker x David Whistle - Routine,clean_high_confidence,0.72,seeded
+Alesso,Alesso - I Wanna Know ft. Nico & Vinz,clean_high_confidence,0.76,seeded
+Alesso,Alesso - Sweet Escape ft. Sirena,clean_high_confidence,0.76,seeded
+Avicii,Avicii - Hey Brother,clean_high_confidence,0.76,seeded
+Avicii,Avicii - Lay Me Down,clean_high_confidence,0.76,seeded
+Axwell Λ Ingrosso,Axwell Λ Ingrosso - Thinking About You,clean_high_confidence,0.76,seeded
+Calvin Harris,Calvin Harris - Blame ft. John Newman,clean_high_confidence,0.76,seeded
+Caribou,CARIBOU - Never Come Back,clean_high_confidence,0.76,seeded
+Dani 3Palacios “El Tripas” 🎙️,Dani 3Palacios - No Tomorrow ft. F4st,clean_high_confidence,0.72,seeded
+Dani 3Palacios “El Tripas” 🎙️,Dani 3Palacios - Vodka,clean_high_confidence,0.72,seeded
+Why Not,DISCONNECTED,clean_high_confidence,0.8,seeded
+DJ Snake,DJ Snake - Middle ft. Bipolar Sunshine,clean_high_confidence,0.76,seeded
+Clap Codex,Earthrise,clean_high_confidence,0.8,seeded
+Elektronomia,Elektronomia & Stahl! - Journey,clean_high_confidence,0.72,seeded
+Halsey,Halsey - Hurricane (Arty Remix/Audio),clean_high_confidence,0.76,seeded
+Hardwell,Hardwell - Eclipse (OUT NOW!) #UnitedWeAre,clean_high_confidence,0.76,seeded
+Jon Bellion,Jon Bellion - All Time Low (Video),clean_high_confidence,0.76,seeded
+Jonas Blue,Jonas Blue - Perfect Strangers ft. JP Cooper,clean_high_confidence,0.76,seeded
+Krewella,Krewella - Alive (Pegboard Nerds Remix),clean_high_confidence,0.76,seeded
+Kygo,Kygo & Selena Gomez - It Ain't Me (Audio),clean_high_confidence,0.72,seeded
+Grupo LemonGrass,LemonGrass - Sing Me to Sleep (Alan Walker Cover),clean_high_confidence,0.72,seeded
+Madeon,Madeon - Finale,clean_high_confidence,0.76,seeded
+Madeon,Madeon - Icarus,clean_high_confidence,0.76,seeded
+Mandragora,Mandragora - Amsterdam Fire,clean_high_confidence,0.76,seeded
+Martin Garrix,Martin Garrix & Jay Hardway - Spotless,clean_high_confidence,0.72,seeded
+Martin Garrix,Martin Garrix & Mesto - WIEE,clean_high_confidence,0.72,seeded
+DJ Martin Jensen,Martin Jensen - Solo Dance (4K),clean_high_confidence,0.72,seeded
+Mike Perry,Mike Perry - Inside the Lines ft. Casso,clean_high_confidence,0.76,seeded
+Julien Riess,Mind Mirage,clean_high_confidence,0.8,seeded
+"Whynot, Rude Vibes Threesome",N4sty (feat. Rude Vibes Threesome),clean_high_confidence,0.8,seeded
+Brisa (ES),Nebula,clean_high_confidence,0.8,seeded
+RanchaTek,Phat Planet,clean_high_confidence,0.8,seeded
+Whynot,Redneck Music,clean_high_confidence,0.8,seeded
+"Clap Codex, Sabura",Rogue Planet,clean_high_confidence,0.8,seeded
+Romero,Romero - SIE LIEBT TECHNO (TikTok Exclusive),clean_high_confidence,0.76,seeded
+Hensonn,Sahara,clean_high_confidence,0.8,seeded
+Skrillex,Skrillex - Summit (feat. Ellie Goulding) [Video by Pilerats],clean_high_confidence,0.76,seeded
+Stan Christ,Stan Christ & ORYMA - Mental Misery [DA0026],clean_high_confidence,0.72,seeded
+STARLEY,Starley - Call On Me (Ryan Riback Remix),clean_high_confidence,0.76,seeded
+MusicNRemixs,Stereo love (Radio Edit),clean_high_confidence,0.64,seeded
+The Chainsmokers,The Chainsmokers - Closer (Lyric) ft. Halsey,clean_high_confidence,0.76,seeded
+The Chainsmokers,The Chainsmokers - Don't Let Me Down (Hardwell & Sephyx Remix [Audio]) ft. Daya,clean_high_confidence,0.76,seeded
+The Chainsmokers,The Chainsmokers - Let You Go Ft. Great Good Fine Ok,clean_high_confidence,0.76,seeded
+The Weeknd,The Weeknd - Can't Feel My Face (Martin Garrix Remix),clean_high_confidence,0.76,seeded
+Tiësto,Tiësto - Red Lights,clean_high_confidence,0.76,seeded
+Tobu,Tobu - Candyland,clean_high_confidence,0.76,seeded
+Tobu,Tobu - Hope (Original Mix),clean_high_confidence,0.76,seeded
+Cash Cash,Tritonal x Cash Cash - Untouchable,clean_high_confidence,0.72,seeded
+W&W,W&W - How Many (Extended Mix),clean_high_confidence,0.76,seeded
+Whynot,Why Not,clean_high_confidence,0.8,seeded
+yvonnedenice,Alan Jackson Anywhere On Earth You Are,clean_high_confidence,0.64,seeded
+royb5000,Alan Jackson Knew All Along,clean_high_confidence,0.64,seeded
+Ashley Monroe,Ashley Monroe - Weed Instead Of Roses,clean_high_confidence,0.76,seeded
+Dwight Yoakam,Believe,clean_high_confidence,0.8,seeded
+kirkfan2255,Big Star Kenny Chesney with lyrics,clean_high_confidence,0.64,seeded
+Laura Bell Bundy,Biography | Who is LBB | Laura Bell Bundy,clean_high_confidence,0.64,seeded
+BlaineLarsenVEVO,Blaine Larsen - How Do You Get That Lonely,clean_high_confidence,0.691,seeded
+BRADPAISLEY,Brad Paisley - Country Nation,clean_high_confidence,0.743,seeded
+BRADPAISLEY,Brad Paisley - Hard Life (Pseudo Video),clean_high_confidence,0.743,seeded
+BRADPAISLEY,Brad Paisley - Old Alabama ft. Alabama,clean_high_confidence,0.743,seeded
+greygriffin1,Brad Paisley's I'm Still A Guy,clean_high_confidence,0.64,seeded
+Brandi Carlile,Brandi Carlile - The Story,clean_high_confidence,0.76,seeded
+Brandi Carlile,Brandi Carlile - Turpentine,clean_high_confidence,0.76,seeded
+mborray07,Brandi Carlile Hallelujah,clean_high_confidence,0.64,seeded
+Cam,Cam - Half Broke Heart (Audio),clean_high_confidence,0.76,seeded
+Darryl Worley,Darryl Worley - A Good Day To Run,clean_high_confidence,0.76,seeded
+Darryl Worley,Darryl Worley - Awful Beautiful Life (Final),clean_high_confidence,0.76,seeded
+Darryl Worley,Darryl Worley - Have You Forgotten?,clean_high_confidence,0.76,seeded
+Darryl Worley,Darryl Worley - I Miss My Friend,clean_high_confidence,0.76,seeded
+David Nail,David Nail - Red Light,clean_high_confidence,0.76,seeded
+David Nail,David Nail - Whatever She's Got,clean_high_confidence,0.76,seeded
+SoulStylistJukeBox,"Dexys Midnight Runners ""Because of You""",clean_high_confidence,0.64,seeded
+Marianne Menon,Don Williams ~ No Use Running ~,clean_high_confidence,0.64,seeded
+Marianne Menon,Don Williams ~ She's With Me ~,clean_high_confidence,0.64,seeded
+Marianne Menon,Don Williams ~~The First Fool In Line ~~,clean_high_confidence,0.64,seeded
+Easton Corbin,Easton Corbin - A Little More Country Than That (Acoustic Version),clean_high_confidence,0.76,seeded
+Easton Corbin,Easton Corbin - All Over The Road,clean_high_confidence,0.76,seeded
+Easton Corbin,Easton Corbin - Are You With Me,clean_high_confidence,0.76,seeded
+Easton Corbin,Easton Corbin - Lovin' You Is Fun,clean_high_confidence,0.76,seeded
+EastonCorbinFan,Easton Corbin-The Way Love Looks,clean_high_confidence,0.703,seeded
+Elvis Costello,Elvis Costello & The Attractions - Good Year For The Roses,clean_high_confidence,0.72,seeded
+Florida Georgia Line,Florida Georgia Line - H.O.L.Y.,clean_high_confidence,0.76,seeded
+George Strait,George Strait - Living For The Night,clean_high_confidence,0.76,seeded
+J Vod,George Strait That's My Kind Of Woman,clean_high_confidence,0.64,seeded
+tagmedown,Guilty in here,clean_high_confidence,0.64,seeded
+Cameron Lipich,Highway 20 ride lyrics,clean_high_confidence,0.64,seeded
+Morgan,I Can Still Make Cheyenne (George Strait) with Lyrics,clean_high_confidence,0.64,seeded
+SuperPeachGurl109,I Loved Her First Lyrics,clean_high_confidence,0.64,seeded
+Jason Aldean,Jason Aldean - Amarillo Sky,clean_high_confidence,0.76,seeded
+Jason Aldean,Jason Aldean - Night Train,clean_high_confidence,0.76,seeded
+Jo Hikk,Jo Hikk - The Big Spoon,clean_high_confidence,0.76,seeded
+Amit Tyagi,Jolene Zac brown band,clean_high_confidence,0.64,seeded
+Josh Kelley,Josh Kelley - Georgia Clay,clean_high_confidence,0.76,seeded
+JoshOTismyman,"Josh Turner, Silver Wings",clean_high_confidence,0.64,seeded
+Justin Moore,Justin Moore - If Heaven Wasn't So Far Away,clean_high_confidence,0.76,seeded
+Justin Moore,Justin Moore - Kinda Don't Care (Instant Grat Video),clean_high_confidence,0.76,seeded
+Justin Moore,Justin Moore - Point At You,clean_high_confidence,0.76,seeded
+Justin Moore,Justin Moore - Til My Last Day,clean_high_confidence,0.76,seeded
+Brandon House,Keith Whitley   I Get The Picture,clean_high_confidence,0.64,seeded
+Kenny Chesney,Kenny Chesney - Old Blue Chair,clean_high_confidence,0.76,seeded
+Kenny Chesney,Kenny Chesney - When I See This Bar,clean_high_confidence,0.76,seeded
+chasityk117,Kenny Chesney The Life,clean_high_confidence,0.64,seeded
+sambelting,kenny chesney way down here,clean_high_confidence,0.64,seeded
+Poisonchickkris,Kenny Chesney ~ A Lot Of Things Different ( Lyrics On Screen),clean_high_confidence,0.64,seeded
+Laura Bell Bundy,Laura Bell Bundy - Drop On By,clean_high_confidence,0.76,seeded
+Laura Bell Bundy,Laura Bell Bundy - Kentucky Dirty,clean_high_confidence,0.76,seeded
+Lee Ann Womack,Lee Ann Womack - I May Hate Myself In The Morning,clean_high_confidence,0.76,seeded
+Lee Ann Womack,Lee Ann Womack - Send It On Down,clean_high_confidence,0.76,seeded
+Lee Ann Womack,Lee Ann Womack - Solitary Thinkin',clean_high_confidence,0.76,seeded
+Brendan G,Love Her Like She's Leaving by Brad Paisley,clean_high_confidence,0.64,seeded
+Maddie & Tae,Maddie & Tae - Downside Of Growing Up (Acoustic),clean_high_confidence,0.76,seeded
+Mark Wills Music,Mark Wills - 19 Somethin' (Version 1),clean_high_confidence,0.72,seeded
+Mark Wills Music,Mark Wills - Back At One,clean_high_confidence,0.72,seeded
+Mark Wills Music,Mark Wills - Places I've Never Been,clean_high_confidence,0.72,seeded
+Mark Wills Music,Mark Wills - She's In Love,clean_high_confidence,0.72,seeded
+countrymusiccowgirl,Me And Your Cigarettes,clean_high_confidence,0.64,seeded
+Miranda Lambert,Miranda Lambert - Dead Flowers,clean_high_confidence,0.76,seeded
+ranfan,Miranda Lambert-Something That I Like About A Honky Tonk,clean_high_confidence,0.64,seeded
+tammylynz,Neon Blue ~ The Mavericks,clean_high_confidence,0.64,seeded
+Post Monroe,"Post Monroe: ""Dixie Dust""",clean_high_confidence,0.64,seeded
+RaeLynn,RaeLynn - God Made Girls,clean_high_confidence,0.76,seeded
+Rascal Flatts,Rascal Flatts - What Hurts The Most,clean_high_confidence,0.76,seeded
+Maddie & Tae,Shut Up And Fish,clean_high_confidence,0.8,seeded
+uronthehill,Somewhere Between~Keith Whitley,clean_high_confidence,0.64,seeded
+Sunny Sweeney,Sunny Sweeney - From A Table Away,clean_high_confidence,0.76,seeded
+Terri Clark,Terri Clark - Girls Lie Too,clean_high_confidence,0.76,seeded
+The Mavericks,The Mavericks - Back In Your Arms Again,clean_high_confidence,0.76,seeded
+The Mavericks,The Mavericks - Born To Be Blue,clean_high_confidence,0.76,seeded
+The Mavericks,The Mavericks - Things I Cannot Change,clean_high_confidence,0.76,seeded
+xoItalianGirl92xo,The World~Brad Paisley ( with lyrics ),clean_high_confidence,0.64,seeded
+Tim McGraw,"Tim McGraw - Highway Don't Care ft. Taylor Swift, Keith Urban",clean_high_confidence,0.76,seeded
+Tim McGraw,Tim McGraw - One Of Those Nights,clean_high_confidence,0.76,seeded
+Tim McGraw,Tim McGraw - Top Of The World (Live),clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - A Little Less Talk And A Lot More Action,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - A Little Too Late,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - As Good As I Once Was,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - Does That Blue Moon Ever Shine On You,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - God Love Her,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - He Ain't Worth Missing,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - High Maintenance Woman,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - How Do You Like Me Now?!,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - I Love This Bar,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - I Wanna Talk About Me,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - Love Me If You Can,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - My List,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - Red Solo Cup (Live),clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - Trailerhood,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - Whiskey Girl,clean_high_confidence,0.76,seeded
+Toby Keith,Toby Keith - Who's Your Daddy?,clean_high_confidence,0.76,seeded
+Daniel Putman,Toby Keith Old toy trains,clean_high_confidence,0.64,seeded
+msknowitall8,Toby Keith You Ain't Much Fun,clean_high_confidence,0.64,seeded
+hellno357,Zac Brown Band Cold Hearted lyrics,clean_high_confidence,0.64,seeded
+Blackhatdreams,Zac Brown Band ~ Free Extended Version,clean_high_confidence,0.64,seeded
+browneyesca,"""If I know me"" by George Strait",clean_high_confidence,0.64,seeded
+jigga1981,Aint No Stopping Us Now Mcfadden and Whitehead,clean_high_confidence,0.64,seeded
+dariostellamusic1,Disco Tex And The Sex O Lettes   Get Dancing,clean_high_confidence,0.64,seeded
+KoolandthegangShow,Kool & The Gang - Celebration,clean_high_confidence,0.644,seeded
+KoolandthegangShow,Kool & The Gang - Get Down On It,clean_high_confidence,0.644,seeded
+Erwann Athème,MacArthur Park Donna Summer,clean_high_confidence,0.64,seeded
+carferico,Tavares heaven must be missing an angel,clean_high_confidence,0.64,seeded
+BrothersJohnsonVEVO,The Brothers Johnson - Stomp!,clean_high_confidence,0.668,seeded
+Accept,Accept - Balls To The Wall,clean_high_confidence,0.76,seeded
+Aerosmith,Aerosmith - Sweet Emotion (Live),clean_high_confidence,0.76,seeded
+themetalman34,Among The Living-Anthrax,clean_high_confidence,0.64,seeded
+Anthrax,Anthrax - Indians,clean_high_confidence,0.76,seeded
+Sepultura,Arise,clean_high_confidence,0.8,seeded
+Gabrielle Marie,Black Sabbath ~ War Pigs,clean_high_confidence,0.64,seeded
+Anthrax,Caught In A Mosh,clean_high_confidence,0.8,seeded
+Sepultura,Dead Embryonic Cells,clean_high_confidence,0.8,seeded
+Ozzy Osbourne,Diary of a Madman,clean_high_confidence,0.8,seeded
+Dio: The King of Rock 'n' Roll,Dio - Holy Diver,clean_high_confidence,0.72,seeded
+Judas Priest,Exciter,clean_high_confidence,0.8,seeded
+Ozzy Osbourne,Flying High Again,clean_high_confidence,0.8,seeded
+Guns N' Roses,Guns N' Roses - November Rain,clean_high_confidence,0.76,seeded
+Guns N' Roses,Guns N' Roses - Welcome To The Jungle,clean_high_confidence,0.76,seeded
+Jose Perez,Iced Earth-A Question of Heaven,clean_high_confidence,0.64,seeded
+Judas Priest,Judas Priest - Painkiller,clean_high_confidence,0.76,seeded
+KISS,Kiss - Rock And Roll All Nite (From Kiss eXposed),clean_high_confidence,0.76,seeded
+ercarda95,Kiss Black Diamond,clean_high_confidence,0.64,seeded
+Stav Karas,Kiss Deuce lyrics,clean_high_confidence,0.64,seeded
+Stav Karas,Kiss Deuce lyrics,clean_high_confidence,0.64,seeded
+Marilyn Manson,Marilyn Manson - The Beautiful People,clean_high_confidence,0.76,seeded
+WhoTendsTheFire,"Mercyful Fate ""Come to the Sabbath""",clean_high_confidence,0.64,seeded
+Manowar,Metal Daze,clean_high_confidence,0.8,seeded
+motleycrue0910,Motley Crue - Shout At The Devil (Demo),clean_high_confidence,0.68,seeded
+Ozzy Osbourne,Over the Mountain,clean_high_confidence,0.8,seeded
+Queensrÿche,Queensryche - Revolution Calling,clean_high_confidence,0.724,seeded
+Queensrÿche Ultimate,Queensrÿche - Queen Of The Reich lyrics,clean_high_confidence,0.72,seeded
+QuietRiotVEVO,Quiet Riot - Bang Your Head (Metal Health),clean_high_confidence,0.673,seeded
+Mika Michel,RAINBOW   Kill The King HQ   Original Studio version,clean_high_confidence,0.64,seeded
+Rush,Rush - Tom Sawyer,clean_high_confidence,0.76,seeded
+RushX11XhsuR,Rush - Working Man,clean_high_confidence,0.72,seeded
+Savatage,Hall Of The Mountain King,clean_high_confidence,0.64,seeded
+Scorpions,Scorpions - Sails Of Charon - Musikladen TV (16.01.1978),clean_high_confidence,0.76,seeded
+Slayer,Hell Awaits,clean_high_confidence,0.64,seeded
+Slayer,Slayer - Seasons In The Abyss,clean_high_confidence,0.76,seeded
+IamaVampiressQueen,Slayer ~ Angel of Death (Lyrics),clean_high_confidence,0.64,seeded
+suicidaltendencies,Suicidal Tendencies - You Can't Bring Me Down,clean_high_confidence,0.749,seeded
+UFO,Doctor Doctor,clean_high_confidence,0.64,seeded
+VanHalen765,Van Halen - Van Halen - Atomic Punk,clean_high_confidence,0.68,seeded
+Alice Cooper,Welcome to My Nightmare,clean_high_confidence,0.8,seeded
+Ozzy Osbourne,You Can't Kill Rock and Roll,clean_high_confidence,0.8,seeded
+2Pac,2Pac - Brenda's Got A Baby,clean_high_confidence,0.76,seeded
+2Pac,2Pac - Changes ft. Talent,clean_high_confidence,0.76,seeded
+2Pac,2Pac - Dear Mama,clean_high_confidence,0.76,seeded
+2Pac,2Pac - I Get Around,clean_high_confidence,0.76,seeded
+50 Cent,50 Cent - Many Men (Wish Death) (Dirty Version),clean_high_confidence,0.76,seeded
+50 Cent,"50 Cent - P.I.M.P. (Snoop Dogg Remix) ft. Snoop Dogg, G-Unit",clean_high_confidence,0.76,seeded
+Mathias Christiansen,60 seconds assassin Lyric on screen,clean_high_confidence,0.64,seeded
+musicvideospart12,8ball & MJG Just Like Candy,clean_high_confidence,0.64,seeded
+A Tribe Called Quest,A Tribe Called Quest - Bonita AppleBum,clean_high_confidence,0.76,seeded
+Twista,Adrenaline Rush,clean_high_confidence,0.8,seeded
+"2Pac, Big Syke",All Eyez On Me,clean_high_confidence,0.8,seeded
+2Pac,Ambitionz Az A Ridah,clean_high_confidence,0.8,seeded
+ArrestedDevelopmVEVO,Arrested Development - Tennessee,clean_high_confidence,0.7,seeded
+Arrested Development,Arrested Development ‎– Ease My Mind - Zingalamaduni,clean_high_confidence,0.76,seeded
+Arrested Development,"Arrested Development ‎– People Everyday - 3 Years, 5 Months And 2 Days In The Life Of",clean_high_confidence,0.76,seeded
+BeastieBoys,Beastie Boys - Make Some Noise,clean_high_confidence,0.743,seeded
+BeastieBoys,Beastie Boys - So What Cha Want,clean_high_confidence,0.743,seeded
+BeastieBoys,Beastie Boys - Sure Shot,clean_high_confidence,0.743,seeded
+Bell Biv Devoe,Bell Biv DeVoe - Poison (Remix),clean_high_confidence,0.76,seeded
+BigDaddyKaneVEVO,Big Daddy Kane - Smooth Operator,clean_high_confidence,0.68,seeded
+Big Pun,Big Pun - 100% (featuring Tony Sunshine) ft. Tony Sunshine,clean_high_confidence,0.76,seeded
+Big Pun,Big Pun - Twinz (Deep Cover 98) ft. Fat Joe,clean_high_confidence,0.76,seeded
+BlackSheepVEVO,Black Sheep - Flavor Of The Month,clean_high_confidence,0.68,seeded
+Bone Thugs-N-Harmony,Bone Thugs and Harmony - Change the World,clean_high_confidence,0.72,seeded
+Bone Thugs-N-Harmony,Bone Thugs N Harmony - 1st of tha Month,clean_high_confidence,0.739,seeded
+Bone Thugs-N-Harmony,Bone Thugs N Harmony - Foe Tha Love of Money,clean_high_confidence,0.739,seeded
+Bone Thugs-N-Harmony,Bone Thugs-n-Harmony - 1st of tha Month,clean_high_confidence,0.76,seeded
+OnlyRapMusic,Bone Thugs-N-Harmony ft 2pac thug luv lyrics,clean_high_confidence,0.64,seeded
+Cam'ron,Cam'Ron - Oh Boy (Clean Version) ft. Juelz Santana,clean_high_confidence,0.76,seeded
+CanibusVEVO,Canibus - Second Round K.O.,clean_high_confidence,0.72,seeded
+Sameer Mustafah Raza,CANIBUS MAN (BY CANIBUS),clean_high_confidence,0.64,seeded
+Common,Common - The Light,clean_high_confidence,0.76,seeded
+DreaminEyezEnt,D.R.S Gangsta Lean,clean_high_confidence,0.64,seeded
+D12,D12 - Fight Music (BET Version),clean_high_confidence,0.76,seeded
+DABRATTV,Da Brat - Sittin' On Top of the World,clean_high_confidence,0.68,seeded
+DABRATTV,Da Brat - That's What I'm Looking For,clean_high_confidence,0.68,seeded
+Jay-Z,Dead Presidents II,clean_high_confidence,0.8,seeded
+DEAD PREZ,dead prez - Hip Hop (Digital Video),clean_high_confidence,0.76,seeded
+DEAD PREZ,dead prez - Mind Sex,clean_high_confidence,0.76,seeded
+DMX,"DMX - Party Up (Up In Here) (Enhanced Video, Edited)",clean_high_confidence,0.76,seeded
+DMX,DMX - Ruff Ryders' Anthem,clean_high_confidence,0.76,seeded
+DMX,DMX - Slippin',clean_high_confidence,0.76,seeded
+DMX,DMX - What's My Name?,clean_high_confidence,0.76,seeded
+DMX,DMX - X Gon' Give It To Ya,clean_high_confidence,0.76,seeded
+"MF DOOM, Pebbles The Invisible Girl",Doomsday,clean_high_confidence,0.8,seeded
+Dr. Dre,"Dr. Dre - I Need A Doctor (Explicit) ft. Eminem, Skylar Grey",clean_high_confidence,0.76,seeded
+Bone Thugs-n-Harmony,Ecstasy,clean_high_confidence,0.8,seeded
+EminemMusic,Eminem - Stan (Long Version) ft. Dido,clean_high_confidence,0.72,seeded
+EminemMusic,Eminem - The Way I Am (Clean Version),clean_high_confidence,0.72,seeded
+Sunny Buchnick,Eminem / Nail in the coffin,clean_high_confidence,0.64,seeded
+Eric B. & Rakim,Eric B. & Rakim - Don't Sweat The Technique,clean_high_confidence,0.76,seeded
+Eric B. & Rakim,Eric B. & Rakim - I Ain't No Joke (Cut #1),clean_high_confidence,0.76,seeded
+Eric B. & Rakim,Eric B. & Rakim - Juice (Know The Ledge),clean_high_confidence,0.76,seeded
+Eric B. & Rakim,Eric B. & Rakim - Let The Rhythm Hit 'Em,clean_high_confidence,0.76,seeded
+Eric B. & Rakim,Eric B. & Rakim - Microphone Fiend,clean_high_confidence,0.76,seeded
+Eric B. & Rakim,Eric B. & Rakim - Paid In Full,clean_high_confidence,0.76,seeded
+The Real Eve,Eve - Love Is Blind (Live - Clean Version),clean_high_confidence,0.72,seeded
+Foxy Brown,Foxy Brown - I'll Be ft. JAŸ-Z,clean_high_confidence,0.76,seeded
+Jmusic110,Funky 4+1 Thats The Joint (Vinyl High Quality),clean_high_confidence,0.64,seeded
+GUnitVEVO,G-Unit - Poppin' Them Thangs (Explicit Version),clean_high_confidence,0.72,seeded
+GUnitVEVO,G-Unit - Stunt 101,clean_high_confidence,0.72,seeded
+Gang Starr,Gang Starr - Code Of The Street,clean_high_confidence,0.76,seeded
+Gang Starr,Gang Starr - DWYCK ft. Nice & Smooth,clean_high_confidence,0.76,seeded
+Gang Starr,Gang Starr - Full Clip,clean_high_confidence,0.76,seeded
+Gang Starr,Gang Starr - Mass Appeal,clean_high_confidence,0.76,seeded
+Gang Starr,Gang Starr - Take It Personal,clean_high_confidence,0.76,seeded
+N.W.A.,Gangsta Gangsta,clean_high_confidence,0.8,seeded
+Mo Thugs,Ghetto Cowboy,clean_high_confidence,0.8,seeded
+JoeHonea,Ghostface Killah: winter warz ( with lyrics),clean_high_confidence,0.64,seeded
+Maru,"Grandmaster Melle Mel ""Beat Street Breakdown""",clean_high_confidence,0.64,seeded
+GregStreetVEVO,Greg Street - Good Day (Original Performance Version) ft. Nappy Roots,clean_high_confidence,0.68,seeded
+rapcentral132,Heart Of The City (Ain't No Love),clean_high_confidence,0.64,seeded
+HeatherBVEVO,Heather B - Do You,clean_high_confidence,0.665,seeded
+LL COOL J,I Can't Live Without My Radio,clean_high_confidence,0.8,seeded
+Decay1994,Ice T Colors,clean_high_confidence,0.64,seeded
+Luther Maddy - Helping Humans Learn,Introduction to Business Chapter 1,clean_high_confidence,0.64,seeded
+IsisVEVO,Isis - Rebel Soul,clean_high_confidence,0.72,seeded
+Twista,It Feels so Good,clean_high_confidence,0.8,seeded
+J. Cole,J. Cole - Apparently,clean_high_confidence,0.76,seeded
+J. Cole,J. Cole - Crooked Smile (Video) ft. TLC,clean_high_confidence,0.76,seeded
+Ja Rule,"Ja Rule - Between Me & You (Letterbox Version, Edited) ft. Christina Milian",clean_high_confidence,0.76,seeded
+Jadakiss,Jadakiss - Why (Uncut Version) ft. Anthony Hamilton,clean_high_confidence,0.76,seeded
+Kanye West,Jay-Z & Kanye West - Ni**as In Paris (Explicit),clean_high_confidence,0.72,seeded
+JAY-Z,JAŸ-Z - Big Pimpin' ft. UGK,clean_high_confidence,0.66,seeded
+JAY-Z,JAŸ-Z - Dirt Off Your Shoulder,clean_high_confidence,0.66,seeded
+JAY-Z,JAŸ-Z - Song Cry,clean_high_confidence,0.66,seeded
+JEEZY,Jeezy - My Hood,clean_high_confidence,0.76,seeded
+JEEZY,Jeezy - Soul Survivor ft. Akon,clean_high_confidence,0.76,seeded
+Jurassic 5,Jurassic 5 - What's Golden (Final Revised Version),clean_high_confidence,0.76,seeded
+Juvenile,Juvenile - U Understand,clean_high_confidence,0.76,seeded
+Kanye West,Kanye West - All Falls Down ft. Syleena Johnson,clean_high_confidence,0.76,seeded
+Kanye West,Kanye West - Gold Digger ft. Jamie Foxx,clean_high_confidence,0.76,seeded
+Kanye West,Kanye West - Jesus Walks (Version 2),clean_high_confidence,0.76,seeded
+Kanye West,Kanye West - Touch The Sky (MTV Version) ft. Lupe Fiasco,clean_high_confidence,0.76,seeded
+Kendrick Lamar,"Kendrick Lamar - Bitch, Don't Kill My Vibe (Explicit)",clean_high_confidence,0.76,seeded
+Kendrick Lamar,Kendrick Lamar - King Kunta,clean_high_confidence,0.76,seeded
+Kendrick Lamar,Kendrick Lamar - Swimming Pools (Drank),clean_high_confidence,0.76,seeded
+Kool Moe Dee,Kool Moe Dee - Death Blow,clean_high_confidence,0.76,seeded
+Kool Moe Dee,Kool Moe Dee - I Go to Work,clean_high_confidence,0.76,seeded
+The Lox,L.O.X. - Wild Out,clean_high_confidence,0.72,seeded
+LL COOL J,LL COOL J - I Need Love,clean_high_confidence,0.76,seeded
+Lost Boyz,Lost Boyz - Lifestyles Of The Rich And Shameless,clean_high_confidence,0.76,seeded
+Camp Lo,Luchini AKA This Is It,clean_high_confidence,0.8,seeded
+Ludacris,Ludacris - What's Your Fantasy (Radio Edit) ft. Shawnna,clean_high_confidence,0.76,seeded
+Lupe Fiasco,Lupe Fiasco - The Show Goes On,clean_high_confidence,0.76,seeded
+MC HAMMER,M.C. Hammer - U Can't Touch This,clean_high_confidence,0.76,seeded
+masterp,Master P - Make 'Em Say Uhh,clean_high_confidence,0.733,seeded
+MCEihtVEVO,MC Eiht - Thuggin It Up,clean_high_confidence,0.642,seeded
+jerudoriginal91,MC Lyte 10% Diss,clean_high_confidence,0.64,seeded
+Method Man,Method Man - All I Need (Razor Sharp Remix) ft. Mary J. Blige,clean_high_confidence,0.76,seeded
+Method Man,Method Man - Bring The Pain,clean_high_confidence,0.76,seeded
+Method Man,"Method Man, Redman - Da Rockwilder",clean_high_confidence,0.72,seeded
+Method Man,"Method Man, Redman - Mrs. International ft. Erick Sermon",clean_high_confidence,0.72,seeded
+Bone Thugs-n-Harmony,Mo'murda,clean_high_confidence,0.8,seeded
+NWA,N.W.A. - 100 Miles And Runnin',clean_high_confidence,0.76,seeded
+NWA,N.W.A. - Appetite For Destruction,clean_high_confidence,0.76,seeded
+NWA,N.W.A. - Boys In the Hood,clean_high_confidence,0.76,seeded
+NWA,N.W.A. - Fuk Da Police,clean_high_confidence,0.76,seeded
+N2DeepVEVO,N2Deep - Back To The Hotel,clean_high_confidence,0.72,seeded
+DeathrowUploads,No Vaseline,clean_high_confidence,0.64,seeded
+Onyx,Onyx - Slam,clean_high_confidence,0.76,seeded
+Onyx,Onyx - Throw Ya Gunz,clean_high_confidence,0.76,seeded
+QueenLatifahVEVO,Queen Latifah - U.N.I.T.Y.,clean_high_confidence,0.691,seeded
+N.W.A.,Real Niggaz Don't Die,clean_high_confidence,0.8,seeded
+Digable Planets,Rebirth Of Slick (Cool Like Dat),clean_high_confidence,0.8,seeded
+"JAŸ-Z, Eminem",Renegade,clean_high_confidence,0.8,seeded
+classicrapbattles,"Roxanne Shante: ""Have a Nice Day""",clean_high_confidence,0.64,seeded
+Salt-N-Pepa,Salt-N-Pepa - Shoop,clean_high_confidence,0.76,seeded
+Scarface BrotherMob,Scarface - On My Block,clean_high_confidence,0.72,seeded
+rgtowns,Shut The F**k Up!(Hoe) ~ MC Lyte,clean_high_confidence,0.64,seeded
+Liss,Slob On My Knob Three 6 Mafia,clean_high_confidence,0.64,seeded
+SnoopDoggTV,Snoop Dogg - Beautiful ft. Pharrell Williams,clean_high_confidence,0.703,seeded
+SnoopDoggTV,Snoop Dogg - Gin And Juice,clean_high_confidence,0.703,seeded
+SnoopDoggTV,Snoop Dogg - Murder Was the Case,clean_high_confidence,0.703,seeded
+SnoopDoggTV,Snoop Dogg - Who Am I (What's My Name)?,clean_high_confidence,0.703,seeded
+Lupe Fiasco,Superstar (featuring Matthew Santos) (video),clean_high_confidence,0.64,seeded
+TipImSerious,T.I. - 99 Problemz (But Lil' Flip Ain't One),clean_high_confidence,0.72,seeded
+JAŸ-Z,Takeover,clean_high_confidence,0.8,seeded
+Talib Kweli,Talib Kweli - Get By,clean_high_confidence,0.76,seeded
+PyroBuzzy,tha Dogg Pound Gangstaz DPG   New York  New York uncensored Daz Dillinger  Kurupt  Snoop Doggy Dogg m2v,clean_high_confidence,0.64,seeded
+jemiedub,The Adventures Of Grandmaster Flash On The Wheels Of Steel (Long Version),clean_high_confidence,0.64,seeded
+The Beatnuts,The Beatnuts - Watch Out Now,clean_high_confidence,0.76,seeded
+Common,The Light,clean_high_confidence,0.8,seeded
+The Bicycle Music Company,"The Pharcyde ""Runnin"" Version 2 (with Timecode) from Labcabincalifornia",clean_high_confidence,0.64,seeded
+The Roots,The Roots - The Next Movement,clean_high_confidence,0.76,seeded
+The Roots,The Roots - You Got Me ft. Erykah Badu,clean_high_confidence,0.76,seeded
+"2Pac, Bone Thugs-n-Harmony",Thug Luv (feat. 2pac),clean_high_confidence,0.8,seeded
+UGKVideoVault,UGK (Underground Kingz) - Int'l Players Anthem (I Choose You) (Director's Cut) ft. Outkast,clean_high_confidence,0.72,seeded
+hakushino,Ultramagnetic MC's / EGO TRIPPING,clean_high_confidence,0.64,seeded
+Warren G,Warren G - Do You See,clean_high_confidence,0.76,seeded
+Warren G,Warren G - Smokin' Me Out ft. Ron Isley,clean_high_confidence,0.76,seeded
+Warren G,Warren G - This D.J.,clean_high_confidence,0.76,seeded
+"Dr. Dre, Eminem, Xzibit",What's The Difference,clean_high_confidence,0.8,seeded
+WhodiniVEVO,Whodini - Friends (Audio),clean_high_confidence,0.72,seeded
+WhodiniVEVO,Whodini - Haunted House of Rock (Audio),clean_high_confidence,0.72,seeded
+Xzibit,Xzibit - Get Your Walk On,clean_high_confidence,0.76,seeded
+Xzibit,Xzibit - X,clean_high_confidence,0.76,seeded
+ril3ymyx105,Young Jeezy ft Fabo Geeked Up,clean_high_confidence,0.64,seeded
+DVi (Delicious Vinyl + Delicious Vinyl Island),"Young MC ""Bust A Move""",clean_high_confidence,0.64,seeded
+smalin,"Bach, Air (""on the G string"", string orchestra)",clean_high_confidence,0.64,seeded
+civileso,"Gluck: Orfeo ed Euridice ""Che Faro Senza Euridice?"" M. Horne",clean_high_confidence,0.64,seeded
+Metropolitan Opera,"La Traviata: “Libiamo, ne’ lieti calici”",clean_high_confidence,0.64,seeded
+Warner Classics,"Maria Callas sings ""Casta Diva"" (Bellini: Norma, Act 1)",clean_high_confidence,0.64,seeded
+Berliner Philharmoniker,Puccini: “O mio babbino caro” / Fleming · Marin · Berliner Philharmoniker,clean_high_confidence,0.64,seeded
+France Musique concerts,"Rameau : Les sauvages, ""Forêts paisibles"", Les Indes galantes (Piau, Abadie)",clean_high_confidence,0.64,seeded
+earthatic,Rossini: William Tell Overture: Final,clean_high_confidence,0.64,seeded
+corellon01,The 3 Tenors O Sole Mio 1994,clean_high_confidence,0.64,seeded
+Ben Wuster,The man with his crazy voice~~~,clean_high_confidence,0.64,seeded
+Royal Ballet and Opera,Verdi’s 'Anvil Chorus' from Il trovatore (The Royal Opera),clean_high_confidence,0.64,seeded
+Vojtěch Dyk &  D.Y.K.,Vojtěch Dyk - E lucevan le stelle (árie z opery Tosca – Giacomo Puccini),clean_high_confidence,0.72,seeded
+Filmlover720,"""Three Little Maids From School Are We""",clean_high_confidence,0.64,seeded
+38 Special,38 Special - Wild-Eyed Southern Boys,clean_high_confidence,0.76,seeded
+beto90diego,BAD TO THE BONE,clean_high_confidence,0.64,seeded
+Black Stone Cherry,Black Stone Cherry - Can't You See (Audio),clean_high_confidence,0.76,seeded
+Bryan Adams,Bryan Adams - (Everything I Do) I Do It For You - Live 2009,clean_high_confidence,0.76,seeded
+Country,Country Music Channel,clean_high_confidence,0.64,seeded
+Creedence Clearwater Revival,Creedence Clearwater Revival - Lookin' Out My Back Door,clean_high_confidence,0.76,seeded
+Graham Spell,David Allan Coe texas lullaby,clean_high_confidence,0.64,seeded
+THOR1173,Forever Angel,clean_high_confidence,0.64,seeded
+graybeard1952,Green Grass and High Tides,clean_high_confidence,0.64,seeded
+MYCVO,GREG ALLMAN MIDNIGHT RIDER,clean_high_confidence,0.64,seeded
+Hank Williams,Hank Williams Jr - Games People Play,clean_high_confidence,0.72,seeded
+Hank Williams,Hank Williams Jr - Simple Man,clean_high_confidence,0.72,seeded
+waymoreblues,Heart of Texas ~ Billy Joe Shaver with Waylon Jennings,clean_high_confidence,0.64,seeded
+KingHarvestMusic,King Harvest - A Little Bit Like Magic,clean_high_confidence,0.674,seeded
+lynyrd1skynyrd6,Lynyrd Skynyrd-All i can do is write about it,clean_high_confidence,0.719,seeded
+waymoreblues,Midnight Rider ~ Willie Nelson,clean_high_confidence,0.64,seeded
+APlace In Time,Outlaws Ghost Riders In The Sky,clean_high_confidence,0.64,seeded
+Klopper,Ride on Sonny,clean_high_confidence,0.64,seeded
+Rock,Rock N' Roll Channel,clean_high_confidence,0.64,seeded
+Southern Rock,Southern Rock Channel,clean_high_confidence,0.64,seeded
+outlander,The  Band ...   the Weight  1969 @ woodstock live,clean_high_confidence,0.64,seeded
+TheByrdsVEVO,The Byrds - This Wheel's On Fire (Audio),clean_high_confidence,0.665,seeded
+TheDoobieBrothers,The Doobie Brothers Listen to the Music ~With Lyrics~,clean_high_confidence,0.64,seeded
+Ed Roy,The Outlaws This Old Road,clean_high_confidence,0.64,seeded
+Tom Petty & The Heartbreakers,Tom Petty - Free Fallin',clean_high_confidence,0.72,seeded
+coyotejack65,"Waylon Jennings ""The Devil's Right Hand""",clean_high_confidence,0.64,seeded
+northernsoultrain,Wilson Pickett   Born To Be Wild,clean_high_confidence,0.64,seeded
+halostar120,ZZ Top Sharp Dressed Man,clean_high_confidence,0.64,seeded
+DELAIN,The Quest And The Curse | Napalm Records,clean_high_confidence,0.64,seeded
+POWERWOLF,Beast Of Gévaudan | Napalm Records,clean_high_confidence,0.64,seeded
+WIND ROSE,To Be a Dwarf | Napalm Records,clean_high_confidence,0.64,seeded
+017,Ice Cube - it Was a Good Day,ready_normalized,0.504,seeded
+026,Bone Thugs N Harmony - Crossroads,ready_normalized,0.504,seeded
+030,Snoop Dogg - Gin and Juice,ready_normalized,0.504,seeded
+098,Queen Latifah - U.n.i.t.y.,ready_normalized,0.504,seeded
+175,2pac - I Get Around,ready_normalized,0.504,seeded
+236,Bone Thugs N Harmony - Thuggish Ruggish Bone,ready_normalized,0.504,seeded
+2pac,Ambitionz Az a Ridah,ready_normalized,0.504,seeded
+2Pac,2Pac - I Get Around,ready_normalized,0.684,seeded
+2pac,Keep Ya Head up (From Album - Strictly 4 My N.i.g.g.a.z,ready_normalized,0.504,seeded
+319,Beastie Boys - Intergalactic,ready_normalized,0.504,seeded
+390,Ice Cube - You Know How We Do It,ready_normalized,0.504,seeded
+440,The Roots - You Got Me ft. Erykah Badu,ready_normalized,0.504,seeded
+530,Black Star - Respiration ft. Common,ready_normalized,0.504,seeded
+Alan Jackson,Anywhere On Earth You Are,ready_normalized,0.504,seeded
+Alan Jackson,Knew All Along,ready_normalized,0.504,seeded
+Albert Collins,Ice Pick,ready_normalized,0.504,seeded
+2Pac,Ambitionz Az A Ridah,ready_normalized,0.72,seeded
+B. B. King,The Thrill is Gone | Stages,ready_normalized,0.504,seeded
+Bad Bunny,BAD BUNNY - ESTAMOS BIEN | X100PRE (Video Oficial),ready_normalized,0.684,seeded
+BeastieBoys,Beastie Boys - Intergalactic,ready_normalized,0.669,seeded
+Biggie Smalls,Biggie Smalls - Notorious Thugs,ready_normalized,0.684,seeded
+Black Sabbath,Children of the Grave/embryo,ready_normalized,0.504,seeded
+Black Sabbath,Sweet Leaf,ready_normalized,0.576,seeded
+Black Sabbath,~ War Pigs,ready_normalized,0.504,seeded
+BlackStarVEVO,Black Star - Respiration ft. Common,ready_normalized,0.606,seeded
+Bone Thugs-N-Harmony,Bone Thugs N Harmony - Crossroads,ready_normalized,0.665,seeded
+Bone Thugs-N-Harmony,Bone Thugs n Harmony - Thuggish Ruggish Bone,ready_normalized,0.665,seeded
+Charlie Daniels,Charlie Daniels Band - The South's Gonna Do It (Live),ready_normalized,0.648,seeded
+Delain,The Quest and the Curse Napalm Records (Alt 1),ready_normalized,0.576,seeded
+Dio,The Last in Line,ready_normalized,0.504,seeded
+Don Williams,~ No Use Running ~,ready_normalized,0.504,seeded
+Don Williams,~ Shes With Me ~,ready_normalized,0.504,seeded
+Don Williams,~~The First Fool In Line ~~,ready_normalized,0.504,seeded
+Edvard Grieg,"In the Hall of the Mountain King from ""Peer Gynt""",ready_normalized,0.504,seeded
+elvis presley,blue suede shoes color,ready_normalized,0.504,seeded
+Elīna Garanča,Saint-saëns - Mon Coeur Souvre À Ta Voix From Samson Et Dalila,ready_normalized,0.504,seeded
+Eric Church,Eric Church - Over When It's Over (Live Performance Video),ready_normalized,0.684,seeded
+Franz Liszt,~ Prelude to Transcendental Etudes,ready_normalized,0.504,seeded
+Gang Starr,Moment of Truth / in Memory Of,ready_normalized,0.504,seeded
+George Strait,Thats My Kind Of Woman,ready_normalized,0.504,seeded
+Handel,Xerxes: Ombra Mai Fu,ready_normalized,0.504,seeded
+Hank Williams,Hank Williams Jr - Simple Man,ready_normalized,0.648,seeded
+Heaven and Hell,Black Sabbath Lyrics,ready_normalized,0.504,seeded
+Ice Cube / Cubevision,Ice Cube - It Was A Good Day,ready_normalized,0.648,seeded
+Ice Cube / Cubevision,Ice Cube - You Know How We Do It,ready_normalized,0.648,seeded
+Bad Bunny,J BALVIN x BAD BUNNY - LA CANCIÓN | OASIS (Video Oficial),ready_normalized,0.648,seeded
+James Vickery,James Vickery - Pressure (with SG Lewis) | LIVE from London - Part 3 | The Old Vinyl Factory,ready_normalized,0.684,seeded
+Jesús Alonso,"Jesús Alonso, La Fe de Vivir, canción de superación, para fluir con la vida. #musicaconsciente #fe",ready_normalized,0.684,seeded
+Johnny Lugautti,W.i.w.y | From the Block Performance 🎙,ready_normalized,0.504,seeded
+Josh Turner,Silver Wings,ready_normalized,0.504,seeded
+Junior Wells,Hoodoman Blues,ready_normalized,0.504,seeded
+Kamelot,Under Grey Skies ft. Charlotte Wessels Napalm Records,ready_normalized,0.576,seeded
+Katy Perry,Last Friday Night Lyrics,ready_normalized,0.504,seeded
+Kelsie Kimberlin,Kelsie Kimberlin - Road Trip | #standwithukraine,ready_normalized,0.684,seeded
+Kenny Chesney,The Life,ready_normalized,0.504,seeded
+Kenny Chesney,Til Its Gone,ready_normalized,0.504,seeded
+Kenny Chesney,~ A Lot Of Things Different,ready_normalized,0.504,seeded
+Leoncavallo,Pagliacci: Vesti La Giubba,ready_normalized,0.504,seeded
+Mark Knopfler/emmylou Harris,If This is Goodbye,ready_normalized,0.504,seeded
+Mehndi,Shadaa | Diljit Dosanjh & Neeru Bajwa | Shipra Goyal | 21st June | Punjabi Romantic Song,ready_normalized,0.504,seeded
+Mile Ho Tum,Reprise Version | Neha Kakkar | Tony Kakkar | Fever | Gaurav Jang,ready_normalized,0.504,seeded
+Mos Def: Ms Fat Booty,Black on Both Sides,ready_normalized,0.504,seeded
+Mozart,"Ah! vous dirai je maman Twinkle Twinkle, Little Star KV 265",ready_normalized,0.504,seeded
+muddy waters,all aboard,ready_normalized,0.504,seeded
+Muddy Waters,~ My Home Is In The Delta,ready_normalized,0.504,seeded
+Ozuna,Ozuna - Se Preparó (Video Oficial) | Odisea,ready_normalized,0.684,seeded
+Powerwolf,Beast of Gévaudan Napalm Records (Alt 1),ready_normalized,0.576,seeded
+PTM,PTM - If It Was Easy | Lyrics Video,ready_normalized,0.684,seeded
+QueenLatifahVEVO,Queen Latifah - U.N.I.T.Y.,ready_normalized,0.622,seeded
+RAINBOW,Kill The King   Original Studio version,ready_normalized,0.504,seeded
+Savatage,Hall of the Mountain King,ready_normalized,0.576,seeded
+Scorpions,The Zoo /w Lyrics,ready_normalized,0.504,seeded
+Scotty Mccreery,Can I Trust You With My Heart W/lyrics,ready_normalized,0.504,seeded
+Slayer,Hell Awaits,ready_normalized,0.576,seeded
+Slayer,~ Angel of Death,ready_normalized,0.504,seeded
+SnoopDoggTV,Snoop Dogg - Gin And Juice,ready_normalized,0.633,seeded
+Tavares,heaven must be missing an angel,ready_normalized,0.504,seeded
+tha Dogg Pound,Gangstaz DPG New York New York uncensored Daz Dillinger Kurupt Snoop Doggy Dogg m2v,ready_normalized,0.504,seeded
+The Allman Brothers Band,Jessica Live at Capitol Theatre,ready_normalized,0.504,seeded
+The Allman Brothers Band,Jessica Live at University of Florida Bandshell,ready_normalized,0.504,seeded
+The D.o.c,Its Funky Enough | ＊best Quality＊,ready_normalized,0.504,seeded
+The Jacksons/jackson 5,Shake Your Body Down to the Ground,ready_normalized,0.504,seeded
+The Pharcyde,"""Runnin"" Version 2 from Labcabincalifornia",ready_normalized,0.504,seeded
+The Roots,The Roots - You Got Me ft. Erykah Badu,ready_normalized,0.684,seeded
+The Way I Feel,Live | the Digital Covid Show,ready_normalized,0.504,seeded
+Toby Keith,New Album: American Ride - You Cant Read My Mind,ready_normalized,0.504,seeded
+Toby Keith,Old toy trains,ready_normalized,0.504,seeded
+Toby Keith,You Aint Much Fun,ready_normalized,0.504,seeded
+Travesuras,Nicky Jam | Video Oficial,ready_normalized,0.504,seeded
+Ufo,Doctor Doctor,ready_normalized,0.576,seeded
+Van Halen,Eruption/you Really Got Me,ready_normalized,0.504,seeded
+Verdi,Rigoletto: La Donna E Mobile,ready_normalized,0.504,seeded
+Wind Rose,To Be a Dwarf Napalm Records (Alt 1),ready_normalized,0.576,seeded
+X,Nicky Jam X J. Balvin | Video Oficial,ready_normalized,0.504,seeded
+Zac Brown Band,Cold Hearted lyrics,ready_normalized,0.504,seeded
+Zac Brown Band,Zac Brown Band - Keep Me In Mind | You Get What You Give,ready_normalized,0.684,seeded
+Zac Brown Band,~ Free Extended Version,ready_normalized,0.504,seeded

@@ -36,6 +36,31 @@ float applyFxSample(FxSlot& slot, float input, bool rightChannel) noexcept
         wet = state;
         break;
     }
+    case FxType::DjFilter: {
+        // DJ filter: param0 0.0=full LPF, 0.5=neutral, 1.0=full HPF
+        const float pos = std::clamp(slot.param0, 0.0f, 1.0f);
+        float& state = rightChannel ? slot.filterStateR : slot.filterStateL;
+        constexpr float deadLo = 0.47f;
+        constexpr float deadHi = 0.53f;
+        if (pos < deadLo) {
+            // LPF: pos 0.0→0.47 maps alpha 0.01→0.50
+            const float t = pos / deadLo;
+            const float alpha = 0.01f + t * 0.49f;
+            state = state + alpha * (input - state);
+            wet = state;
+        } else if (pos > deadHi) {
+            // HPF: pos 0.53→1.0 maps alpha 0.50→0.01
+            const float t = (pos - deadHi) / (1.0f - deadHi);
+            const float alpha = 0.50f - t * 0.49f;
+            state = state + alpha * (input - state);
+            wet = input - state;
+        } else {
+            // Dead zone around center = neutral passthrough
+            state = input;
+            wet = input;
+        }
+        break;
+    }
     case FxType::None:
     default:
         wet = input;
@@ -71,6 +96,7 @@ bool FxChain::setSlotType(int slotIndex, uint32_t fxType) noexcept
     case FxType::Gain:
     case FxType::SoftClip:
     case FxType::SimpleFilter:
+    case FxType::DjFilter:
         slot.state.type = fxType;
         slot.filterStateL = 0.0f;
         slot.filterStateR = 0.0f;

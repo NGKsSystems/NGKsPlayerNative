@@ -1,0 +1,5 @@
+csv_name,row_count,description,operator_goal,urgency
+delete_safe_v1.csv,25,Hash-identical redundant duplicates safe for deletion,Delete source copies — READY copy is identical,high
+duplicate_resolution_v1.csv,290,Duplicate groups needing keep/archive/review decisions,Decide primary vs alternate for each group,medium
+fix_required_v1.csv,646,"Files needing human fixes: rename, verify, or hold","Fix names, resolve collisions, verify parses",medium
+junk_candidates_v1.csv,15,"Low-value files: compilations, mixes, utilities",Delete or ignore — not individual tracks,low

@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QSlider>
+#include <QHBoxLayout>
 #include <QString>
 #include <QPainter>
 #include <QLinearGradient>
@@ -11,6 +12,8 @@
 #include <cmath>
 
 #include "WaveformState.h"
+#include "RotaryKnob.h"
+#include "DjAnalysisPanelWidget.h"
 
 class EngineBridge;
 class EqPanel;
@@ -134,23 +137,44 @@ public:
     /// Load a track file into this deck.
     void loadTrack(const QString& filePath);
 
-    /// Set track metadata from library (title, artist, bpm, key).
+    /// Toggle stem energy overlay on the waveform.
+    void toggleStemOverlay();
+
+    /// Cycle debug band-solo mode (all → bass → mids → highs).
+    void cycleDebugBandSolo();
+
+    /// Set track metadata from library (title, artist, bpm, key, duration).
     void setTrackMetadata(const QString& title, const QString& artist,
-                          const QString& bpm, const QString& key);
+                          const QString& bpm, const QString& key,
+                          const QString& duration = QString());
+
+    /// Set album art for the primary jog wheel display.
+    void setAlbumArt(const QPixmap& art);
+
+    /// Update the embedded analysis dashboard from bridge data.
+    void updateAnalysisPanel(const QJsonObject& panel);
 
 public slots:
     /// Called on each DJ snapshot poll to refresh meters, playhead, labels.
     void refreshFromSnapshot();
 
+    /// Fast playhead tick (~60fps) — reads position from snapshot, pushes to waveform.
+    void tickPlayhead();
+
 signals:
     /// Emitted when Load button is clicked (so DJ page can open picker).
     void loadRequested(int deckIndex);
+    /// Emitted on each playhead tick with current position in seconds.
+    void playheadMoved(int deckIndex, double seconds);
 
 private:
     void buildUi();
     void wireSignals();
 
     static QString formatTime(double seconds);
+
+protected:
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
     int deckIndex_{0};
     QString accent_;
@@ -166,6 +190,7 @@ private:
     QLabel* infoBpmLabel_{nullptr};
     QLabel* infoKeyLabel_{nullptr};
     QLabel* infoDurationLabel_{nullptr};
+    DjAnalysisPanelWidget* analysisDash_{nullptr};
     QWidget* waveformOverview_{nullptr};
     QLabel* elapsedLabel_{nullptr};
     QLabel* remainLabel_{nullptr};
@@ -192,8 +217,90 @@ private:
     LevelMeter* meterL_{nullptr};
     LevelMeter* meterR_{nullptr};
     EqPanel* eqPanel_{nullptr};
-    QSlider* volumeFader_{nullptr};
+    RotaryKnob* filterKnob_{nullptr};
+    QLabel*  filterLabel_{nullptr};
+    QLabel*  filterValueLabel_{nullptr};
+    RotaryKnob* gainKnob_{nullptr};
     QLabel* volumeDbLabel_{nullptr};
+
+    // Player Control Strip (PITCH / REVERB / FLANGER / DECK FX)
+    RotaryKnob* pitchKnob_{nullptr};
+    QLabel* pitchValueLabel_{nullptr};
+    RotaryKnob* reverbKnob_{nullptr};
+    QLabel* reverbValueLabel_{nullptr};
+    RotaryKnob* flangerKnob_{nullptr};
+    QLabel* flangerValueLabel_{nullptr};
+    QPushButton* deckFxBtn_{nullptr};
+
+    // CUE fine tune buttons
+    QPushButton* cueAdjNeg5_{nullptr};
+    QPushButton* cueAdjNeg1_{nullptr};
+    QPushButton* cueAdjNegH_{nullptr};
+    QPushButton* cueAdjNegT_{nullptr};
+    QPushButton* cueAdjPosT_{nullptr};
+    QPushButton* cueAdjPosH_{nullptr};
+    QPushButton* cueAdjPos1_{nullptr};
+    QPushButton* cueAdjPos5_{nullptr};
+
+    // Transport Row B
+    QPushButton* syncToggleBtn_{nullptr};
+    QPushButton* masterToggleBtn_{nullptr};
+
+    // Jog system
+    QPushButton* jogToggleBtn_{nullptr};
+    QFrame* jogPanel_{nullptr};
+    QWidget* jogWheel_{nullptr};
+    QFrame* jogPanelSecondary_{nullptr};
+    QWidget* jogWheelSecondary_{nullptr};
+    QPushButton* jogScratchBtn_{nullptr};
+    QPushButton* jogSeekBtn_{nullptr};
+    QLabel* jogModeLabel_{nullptr};
+
+    // Pitch fader system
+    QSlider* pitchFader_{nullptr};
+    QLabel* pitchFaderReadout_{nullptr};
+    QPushButton* pitchRange6Btn_{nullptr};
+    QPushButton* pitchRange10Btn_{nullptr};
+    QPushButton* pitchRange16Btn_{nullptr};
+    QPushButton* keyLockBtn_{nullptr};
+
+    // Auto-loop
+    QPushButton* autoLoop1Btn_{nullptr};
+    QPushButton* autoLoop2Btn_{nullptr};
+    QPushButton* autoLoop4Btn_{nullptr};
+    QPushButton* autoLoop8Btn_{nullptr};
+    QPushButton* autoLoop16Btn_{nullptr};
+
+    // Beat jump
+    QPushButton* beatJumpNeg8Btn_{nullptr};
+    QPushButton* beatJumpNeg4Btn_{nullptr};
+    QPushButton* beatJumpNeg2Btn_{nullptr};
+    QPushButton* beatJumpPos2Btn_{nullptr};
+    QPushButton* beatJumpPos4Btn_{nullptr};
+    QPushButton* beatJumpPos8Btn_{nullptr};
+
+    // Mixer density
+    QPushButton* mixerDensityUpBtn_{nullptr};
+    QPushButton* mixerDensityDownBtn_{nullptr};
+    QFrame* mixerFrame_{nullptr};
+    QHBoxLayout* jogCenterRow_{nullptr};
+    QFrame* jogContainer_{nullptr};
+
+    // Collapsible panels
+    QPushButton* perfToggleBtn_{nullptr};
+    QFrame* perfPanel_{nullptr};
+    QPushButton* cueEditToggleBtn_{nullptr};
+    QFrame* cueEditPanel_{nullptr};
+
+    bool perfVisible_{false};
+    bool cueEditVisible_{false};
+    bool jogVisible_{false};
+    int jogMode_{0}; // 0=SEEK, 1=SCRATCH
+    double pitchRange_{6.0};
+    bool keyLocked_{false};
+    bool syncEnabled_{false};
+    bool masterEnabled_{false};
+    int mixerDensityMode_{1}; // 0=COMPACT, 1=NORMAL
 
     bool seekDragging_{false};
     bool trackLoaded_{false};
@@ -217,4 +324,6 @@ private:
     WaveformStateController waveformCtrl_;
     QPushButton* waveModeBtn_{nullptr};
     bool prevPlaying_{false};  // edge detection for play/pause/stop transitions
+
+    void applyMixerDensity();
 };

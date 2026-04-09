@@ -1,0 +1,27 @@
+METADATA AUDIT REPORT v1
+============================================================
+Date: 2026-04-06T06:43:37.900095
+Total files scanned: 3048
+
+─── Coverage ───
+Metadata present:     3048  (100.0%)
+Metadata missing:        0  (0.0%)
+
+─── Reliability ───
+TRUSTED:               654  (21.5%)
+PARTIAL:              1852  (60.8%)
+UNRELIABLE:            525  (17.2%)
+EMPTY:                  17  (0.6%)
+
+─── Quality ───
+Usable metadata:     82.2%
+Junk detected:       51.0%
+Mismatches:          41.8%
+
+─── Recommendations ───
+Metadata-first viable:    NO
+Hybrid approach required: YES
+
+RECOMMENDATION: Use a hybrid approach combining filename-derived
+artist/title with metadata validation. Metadata alone is not reliable
+enough to serve as primary signal for this library.

@@ -1,22 +1,33 @@
 #include "ui/DeckStrip.h"
 #include "ui/EngineBridge.h"
 #include "ui/EqPanel.h"
+#include "ui/WaveformOverview.h"
 
 #include <QFont>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLinearGradient>
+#include <QMouseEvent>
+#include <QWheelEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
+#include <QPixmap>
 #include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <vector>
 
 static const char* kDeckNames[] = { "A", "B", "C", "D" };
+
+// Master kill-switch for stem/energy overlay feature.
+// Set to true to re-enable. All overlay rendering, data fetch, and toggle
+// paths are gated on this flag.
+static constexpr bool kEnableStemOverlay = true;
 
 // ═══════════════════════════════════════════════════════════════════
 // FaderScale — painted dB tick marks alongside the volume fader
@@ -130,485 +141,295 @@ private:
     QColor accent_;
 };
 
+// WaveformOverview is now in ui/WaveformOverview.h
+
+
 // ═══════════════════════════════════════════════════════════════════
-// WaveformOverview — polished state-aware waveform display
+// JogWheel — circular jog surface for seek/scratch interaction
 // ═══════════════════════════════════════════════════════════════════
-class WaveformOverview : public QWidget {
+class JogWheel : public QWidget {
 public:
-    explicit WaveformOverview(const QColor& accent, QWidget* parent = nullptr)
-        : QWidget(parent), accent_(accent)
+    enum Role { Primary = 0, Secondary = 1 };
+
+    explicit JogWheel(const QColor& accent, int diameter = 300,
+                      Role role = Primary, QWidget* parent = nullptr)
+        : QWidget(parent), accent_(accent), role_(role)
     {
-        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        setMinimumHeight(48);
+        setFixedSize(diameter, diameter);
+        setCursor(Qt::OpenHandCursor);
     }
 
-    void setWaveformData(const std::vector<ngks::WaveMinMax>& data)
-    {
-        bins_ = data;
-        hasData_ = !bins_.empty();
-        if (hasData_) {
-            // Track-wide peak reference — anchored to the entire track,
-            // never to a visible window. This is the ONLY normalization.
-            float absMax = 0.0f;
-            for (const auto& b : bins_) {
-                absMax = std::max(absMax, std::max(std::abs(b.lo), std::abs(b.hi)));
-            }
-            peakRef_ = (absMax > 0.0001f) ? absMax : 1.0f;
-
-            // Track-wide RMS reference for logging/diagnostics
-            double rmsSum = 0.0;
-            for (const auto& b : bins_) {
-                rmsSum += static_cast<double>(b.rms);
-            }
-            float trackRmsAvg = static_cast<float>(rmsSum / bins_.size());
-
-            auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-            std::fprintf(stderr,
-                "WAVE_SCALE_MODE deck=%d mode=RMS_BODY_PEAK_TIP "
-                "trackPeak=%.4f trackRmsAvg=%.4f bins=%zu tid=%zu\n",
-                deckIndex_, peakRef_, trackRmsAvg,
-                bins_.size(), static_cast<size_t>(tid));
-            std::fprintf(stderr,
-                "WAVE_SCALE_REFERENCE deck=%d scaleSource=TRACK_WIDE_PEAK "
-                "peakRef=%.4f tid=%zu\n",
-                deckIndex_, peakRef_, static_cast<size_t>(tid));
-            std::fflush(stderr);
-        } else {
-            peakRef_ = 1.0f;
-        }
+    /// Set album art for the primary jog. Ignored on secondary.
+    void setAlbumArt(const QPixmap& art) {
+        if (role_ != Primary) return;
+        coverArt_ = art;
+        coverScaled_ = QPixmap();  // invalidate cache
         update();
     }
 
-    void setPlayheadFraction(float frac)
-    {
-        frac = std::clamp(frac, 0.0f, 1.0f);
-        if (std::abs(frac - playhead_) > 0.0005f) {
-            playhead_ = frac;
-            update();
-        }
-    }
-
-    void setViewState(WaveViewState state) {
-        if (state != viewState_) {
-            viewState_ = state;
-            smoothAnchor_ = targetAnchor_;
-            update();
-        }
-    }
-
-    void setViewportAnchor(float anchor) {
-        targetAnchor_ = std::clamp(anchor, 0.0f, 1.0f);
-        if (viewState_ == WaveViewState::LIVE_SCROLL) {
-            constexpr float alpha = 0.18f;
-            smoothAnchor_ += (targetAnchor_ - smoothAnchor_) * alpha;
-        } else {
-            smoothAnchor_ = targetAnchor_;
-        }
-        if (viewState_ == WaveViewState::LIVE_SCROLL ||
-            viewState_ == WaveViewState::CUE_FOCUS)
-            update();
-    }
-
-    void setCueFocusTarget(float target) {
-        cueFocusTarget_ = std::clamp(target, 0.0f, 1.0f);
-    }
-
-    void setDeckIndex(int idx) { deckIndex_ = idx; }
-
-    void clearWaveform()
-    {
-        bins_.clear();
-        hasData_ = false;
-        playhead_ = 0.0f;
-        viewState_ = WaveViewState::EMPTY;
-        targetAnchor_ = 0.0f;
-        smoothAnchor_ = 0.0f;
-        cueFocusTarget_ = 0.0f;
+    /// Clear album art (e.g. on track unload).
+    void clearAlbumArt() {
+        coverArt_ = QPixmap();
+        coverScaled_ = QPixmap();
         update();
     }
+
+    std::function<void(double, Qt::KeyboardModifiers)> onJogTurn;
 
 protected:
-    void paintEvent(QPaintEvent*) override
-    {
+    void paintEvent(QPaintEvent*) override {
         QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing, false);
+        p.setRenderHint(QPainter::Antialiasing, true);
+        p.setRenderHint(QPainter::SmoothPixmapTransform, true);
         const int w = width();
         const int h = height();
+        const int sz = std::min(w, h) - 4;
+        const int cx = w / 2, cy = h / 2;
+        const bool isPrimary = (role_ == Primary);
 
-        // ── Layout: seamless overview strip at bottom when zoomed ──
-        const bool isZoomed = (viewState_ == WaveViewState::CUE_FOCUS ||
-                               viewState_ == WaveViewState::LIVE_SCROLL);
-        const int overviewH = isZoomed ? 6 : 0;
-        const int mainH = h - overviewH;
-        const int cy = mainH / 2;
-
-        // Background — very dark with subtle warmth
-        p.fillRect(0, 0, w, h, QColor(0x08, 0x0a, 0x0e));
-
-        // Subtle border — LIVE uses muted teal tint, others use accent
-        if (viewState_ == WaveViewState::LIVE_SCROLL) {
-            p.setPen(QPen(QColor(0x20, 0x60, 0x48, 50), 1));
-        } else {
-            p.setPen(QPen(QColor(accent_.red(), accent_.green(), accent_.blue(), 30), 1));
-        }
-        p.drawRect(0, 0, w - 1, h - 1);
-
-        if (!hasData_ || bins_.empty()) {
-            QFont f = font();
-            f.setPointSizeF(6.5);
-            f.setBold(true);
-            f.setLetterSpacing(QFont::AbsoluteSpacing, 2.0);
-            p.setFont(f);
-            QColor tc = accent_; tc.setAlpha(30);
-            p.setPen(tc);
-            p.drawText(QRect(0, 0, w, mainH), Qt::AlignCenter, QStringLiteral("NO WAVEFORM"));
-            return;
+        // ── Outer shadow/glow halo ──
+        for (int i = 3; i >= 1; --i) {
+            QColor halo = accent_;
+            halo.setAlpha(isPrimary ? (10 * i) : (5 * i));
+            p.setPen(QPen(halo, 1.5));
+            p.setBrush(Qt::NoBrush);
+            p.drawEllipse(cx - sz / 2 - i, cy - sz / 2 - i, sz + 2 * i, sz + 2 * i);
         }
 
-        // ═══ Viewport window ═══
-        float viewStart = 0.0f;
-        float viewEnd   = 1.0f;
-
-        switch (viewState_) {
-        case WaveViewState::OVERVIEW:
-        case WaveViewState::STATIC_PLAY:
-        case WaveViewState::EMPTY:
-            viewStart = 0.0f;
-            viewEnd   = 1.0f;
-            break;
-        case WaveViewState::CUE_FOCUS: {
-            constexpr float zoomSpan = 0.12f;
-            const float center = cueFocusTarget_;
-            viewStart = center - zoomSpan * 0.5f;
-            viewEnd   = center + zoomSpan * 0.5f;
-            if (viewStart < 0.0f) { viewEnd -= viewStart; viewStart = 0.0f; }
-            if (viewEnd > 1.0f)   { viewStart -= (viewEnd - 1.0f); viewEnd = 1.0f; }
-            viewStart = std::max(0.0f, viewStart);
-            viewEnd   = std::min(1.0f, viewEnd);
-            break;
-        }
-        case WaveViewState::LIVE_SCROLL: {
-            constexpr float zoomSpan = 0.25f;
-            constexpr float phScreenFrac = 0.30f;
-            const float center = smoothAnchor_ + zoomSpan * (0.5f - phScreenFrac);
-            viewStart = center - zoomSpan * 0.5f;
-            viewEnd   = center + zoomSpan * 0.5f;
-            if (viewStart < 0.0f) { viewEnd -= viewStart; viewStart = 0.0f; }
-            if (viewEnd > 1.0f)   { viewStart -= (viewEnd - 1.0f); viewEnd = 1.0f; }
-            viewStart = std::max(0.0f, viewStart);
-            viewEnd   = std::min(1.0f, viewEnd);
-            break;
-        }
-        }
-
-        const float viewSpan = viewEnd - viewStart;
-        if (viewSpan < 0.001f) return;
-
-        // ═══ Grid — subtle, fewer lines ═══
+        // ── Outer ring ──
+        const int outerRingW = isPrimary ? 3 : 1;
         {
-            const int gridCount = isZoomed ? 8 : 12;
-            p.setPen(QPen(QColor(0x14, 0x18, 0x20), 1));
-            for (int i = 1; i < gridCount; ++i) {
-                const int gx = (w * i) / gridCount;
-                p.drawLine(gx, 1, gx, mainH - 1);
+            QRadialGradient rg(cx, cy, sz / 2);
+            rg.setColorAt(0.0, QColor(0x14, 0x18, 0x22));
+            rg.setColorAt(1.0, QColor(0x08, 0x0a, 0x10));
+            p.setBrush(rg);
+        }
+        QColor ringColor = accent_;
+        ringColor.setAlpha(isPrimary ? 140 : 50);
+        p.setPen(QPen(ringColor, outerRingW));
+        p.drawEllipse(cx - sz / 2, cy - sz / 2, sz, sz);
+
+        // ── Tick marks ──
+        {
+            const int tickCount = isPrimary ? 40 : 24;
+            const int tickOuterR = sz / 2 - 2;
+            const int tickInnerR = tickOuterR - (isPrimary ? 8 : 5);
+            for (int i = 0; i < tickCount; ++i) {
+                const double a = (2.0 * 3.14159265358979 * i) / tickCount;
+                const bool major = (i % (isPrimary ? 5 : 4)) == 0;
+                QColor tc = major ? QColor(0x66, 0x6a, 0x70) : QColor(0x33, 0x36, 0x3a);
+                p.setPen(QPen(tc, major ? 1.5 : 0.8));
+                const double sa = std::sin(a), ca = std::cos(a);
+                p.drawLine(
+                    cx + static_cast<int>(sa * tickInnerR),
+                    cy - static_cast<int>(ca * tickInnerR),
+                    cx + static_cast<int>(sa * tickOuterR),
+                    cy - static_cast<int>(ca * tickOuterR));
             }
         }
 
-        // Center line — very faint
-        {
-            QColor cl = accent_; cl.setAlpha(20);
-            p.setPen(QPen(cl, 1));
-            p.drawLine(1, cy, w - 2, cy);
-        }
+        // ── Inner platter ──
+        const int innerSz = sz - 24;
 
-        // ═══ Waveform bars ═══
-        const int numBins = static_cast<int>(bins_.size());
-        const float invRef = 1.0f / peakRef_;
-        const int usableW = w - 2;
-        const int maxBarH = cy - 1;
+        if (isPrimary && !coverArt_.isNull()) {
+            // ═══ PRIMARY WITH ALBUM ART ═══
+            // Clip to inner circle and paint album art
+            const int artSz = innerSz - 2;
+            p.save();
+            QPainterPath clipPath;
+            clipPath.addEllipse(cx - artSz / 2, cy - artSz / 2, artSz, artSz);
+            p.setClipPath(clipPath);
 
-        // Color palette — LIVE uses desaturated teal, not neon green
-        QColor playedColor, aheadColor;
-        switch (viewState_) {
-        case WaveViewState::LIVE_SCROLL:
-            // Muted teal: distinct but not aggressive
-            playedColor = QColor(0x18, 0x55, 0x40, 70);
-            aheadColor  = QColor(0x30, 0x99, 0x78, 180);
-            break;
-        case WaveViewState::CUE_FOCUS:
-            playedColor = QColor(accent_.red(), accent_.green(), accent_.blue(), 140);
-            aheadColor  = QColor(accent_.red(), accent_.green(), accent_.blue(), 230);
-            break;
-        default:
-            playedColor = QColor(accent_.red(), accent_.green(), accent_.blue(), 90);
-            aheadColor  = QColor(accent_.red(), accent_.green(), accent_.blue(), 185);
-            break;
-        }
-
-        const float playheadInView = (playhead_ - viewStart) / viewSpan;
-        const int playheadX = 1 + static_cast<int>(std::clamp(playheadInView, 0.0f, 1.0f) * usableW);
-        const bool playheadVisible = (playhead_ >= viewStart && playhead_ <= viewEnd);
-
-        p.setPen(Qt::NoPen);
-
-        const int binStart = std::max(0, static_cast<int>(viewStart * numBins));
-        const int binEnd   = std::min(numBins, static_cast<int>(std::ceil(viewEnd * numBins)));
-        const int visBins  = binEnd - binStart;
-        if (visBins <= 0) return;
-
-        // ═══ BAR DRAWING LOOP — RMS body + peak tips for honest dynamics ═══
-        // RMS envelope shows actual energy per bucket (loudness truth).
-        // Peak tips show transient reach. This is how pro DJ waveforms work:
-        // at overview zoom (~4K samples/bin), raw min/max always hits ±peak
-        // because every slice contains transients. RMS preserves dynamics.
-        for (int i = 0; i < visBins; ++i) {
-            const int b = binStart + i;
-            const float binFrac = static_cast<float>(b) / numBins;
-            const float relPos = (binFrac - viewStart) / viewSpan;
-            const int x  = 1 + static_cast<int>(relPos * usableW);
-            const float relPosNext = (static_cast<float>(b + 1) / numBins - viewStart) / viewSpan;
-            const int x2 = 1 + static_cast<int>(relPosNext * usableW);
-            const int barW = std::max(1, x2 - x - (visBins > usableW ? 0 : 1));
-
-            const auto& bin = bins_[static_cast<size_t>(b)];
-
-            // RMS-based bar height — honest energy envelope
-            const float rmsNorm = std::min(1.0f, bin.rms * invRef);
-            const int rmsH = std::max(1, static_cast<int>(rmsNorm * maxBarH));
-
-            // Draw RMS body (symmetric around center — energy envelope)
-            p.setBrush(x < playheadX ? playedColor : aheadColor);
-            p.drawRect(x, cy - rmsH, barW, rmsH * 2);
-
-            // Peak tips — thin 1px lines at true min/max extent
-            // Only draw if peak extends meaningfully beyond RMS
-            const float peakHi = std::min(1.0f, std::abs(bin.hi) * invRef);
-            const float peakLo = std::min(1.0f, std::abs(bin.lo) * invRef);
-            const float peakMax = std::max(peakHi, peakLo);
-            if (peakMax > rmsNorm + 0.03f) {
-                const int peakH = static_cast<int>(peakMax * maxBarH);
-                QColor tipColor = (x < playheadX ? playedColor : aheadColor);
-                tipColor.setAlpha(tipColor.alpha() / 3);
-                p.setBrush(tipColor);
-                // Top tip
-                p.drawRect(x, cy - peakH, barW, peakH - rmsH);
-                // Bottom tip
-                p.drawRect(x, cy + rmsH, barW, peakH - rmsH);
+            // Cache scaled pixmap
+            if (coverScaled_.isNull() || coverScaled_.width() != artSz) {
+                coverScaled_ = coverArt_.scaled(artSz, artSz,
+                    Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+                // Center-crop if not square
+                if (coverScaled_.width() > artSz || coverScaled_.height() > artSz) {
+                    int sx = (coverScaled_.width() - artSz) / 2;
+                    int sy = (coverScaled_.height() - artSz) / 2;
+                    coverScaled_ = coverScaled_.copy(sx, sy, artSz, artSz);
+                }
             }
-        }
+            p.drawPixmap(cx - artSz / 2, cy - artSz / 2, coverScaled_);
 
-        // ═══ Playhead — clean single line, subtle glow ═══
-        if (playheadVisible) {
-            QColor phLine = (viewState_ == WaveViewState::LIVE_SCROLL)
-                ? QColor(0x55, 0xdd, 0xaa, 220)   // soft teal
-                : QColor(0xff, 0xff, 0xff, 210);
-            p.setPen(QPen(phLine, 2));
-            p.drawLine(playheadX, 1, playheadX, mainH - 1);
-
-            // Narrow glow — not a wide slab
-            QColor glow = (viewState_ == WaveViewState::LIVE_SCROLL)
-                ? QColor(0x55, 0xdd, 0xaa, 30)
-                : QColor(accent_.red(), accent_.green(), accent_.blue(), 35);
+            // Darken overlay for contrast
+            p.setClipPath(clipPath);
             p.setPen(Qt::NoPen);
-            p.setBrush(glow);
-            p.drawRect(playheadX - 2, 1, 5, mainH - 2);
+            p.setBrush(QColor(0, 0, 0, 80));
+            p.drawEllipse(cx - artSz / 2, cy - artSz / 2, artSz, artSz);
 
-            // Small top notch
-            p.setBrush((viewState_ == WaveViewState::LIVE_SCROLL)
-                ? QColor(0x55, 0xdd, 0xaa) : QColor(0xee, 0xee, 0xee));
-            QPoint tri[3] = {
-                QPoint(playheadX, 1),
-                QPoint(playheadX - 3, -2),
-                QPoint(playheadX + 3, -2)
-            };
-            p.drawPolygon(tri, 3);
-        }
+            p.restore();
 
-        // ═══ State label — small, translucent, top-right ═══
-        {
-            QFont f = font();
-            f.setPointSizeF(5.5);
-            f.setBold(true);
-            f.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
-            p.setFont(f);
+            // Inner ring around the art
+            QColor artRing = accent_;
+            artRing.setAlpha(100);
+            p.setPen(QPen(artRing, 1.5));
+            p.setBrush(Qt::NoBrush);
+            p.drawEllipse(cx - artSz / 2, cy - artSz / 2, artSz, artSz);
 
-            const char* label = nullptr;
-            QColor labelColor;
-            switch (viewState_) {
-            case WaveViewState::CUE_FOCUS:
-                label = "CUE";
-                labelColor = QColor(accent_.red(), accent_.green(), accent_.blue(), 120);
-                break;
-            case WaveViewState::LIVE_SCROLL:
-                label = "LIVE";
-                labelColor = QColor(0x50, 0xaa, 0x80, 120);
-                break;
-            case WaveViewState::STATIC_PLAY:
-                label = "STATIC";
-                labelColor = QColor(0x88, 0x88, 0x88, 70);
-                break;
-            default:
-                break;
-            }
-            if (label) {
-                p.setPen(labelColor);
-                const int tw = p.fontMetrics().horizontalAdvance(QLatin1String(label));
-                p.drawText(w - tw - 4, 9, QLatin1String(label));
-            }
-        }
+            // (no center label — album art fills the platter)
 
-        // ═══ Overview strip — flush at bottom, no gap, blended ═══
-        if (isZoomed && overviewH > 0) {
-            const int oy = mainH;
-            const int miniW = w - 2;
-
-            // Gradient fade from main area into strip — no hard edge
+        } else if (isPrimary) {
+            // ═══ PRIMARY, NO ALBUM ART — rich fallback ═══
             {
-                QLinearGradient fade(0, oy - 2, 0, oy);
-                fade.setColorAt(0.0, QColor(0x08, 0x0a, 0x0e, 0));
-                fade.setColorAt(1.0, QColor(0x04, 0x06, 0x09));
-                p.setPen(Qt::NoPen);
-                p.setBrush(fade);
-                p.drawRect(1, oy - 2, w - 2, 2);
+                QRadialGradient pg(cx, cy, innerSz / 2);
+                pg.setColorAt(0.0, QColor(0x18, 0x1c, 0x28));
+                pg.setColorAt(0.5, QColor(0x12, 0x15, 0x1e));
+                pg.setColorAt(1.0, QColor(0x0a, 0x0d, 0x14));
+                p.setBrush(pg);
+            }
+            p.setPen(QPen(QColor(0x2a, 0x2e, 0x38), 1));
+            p.drawEllipse(cx - innerSz / 2, cy - innerSz / 2, innerSz, innerSz);
+
+            // Vinyl grooves
+            p.setBrush(Qt::NoBrush);
+            for (int i = 1; i <= 6; ++i) {
+                const int gr = innerSz / 2 - i * (innerSz / 14);
+                p.setPen(QPen(QColor(0x1e, 0x22, 0x2c, 70), 0.5));
+                p.drawEllipse(cx - gr, cy - gr, gr * 2, gr * 2);
             }
 
-            // Strip background
-            p.setPen(Qt::NoPen);
-            p.setBrush(QColor(0x04, 0x06, 0x09));
-            p.drawRect(1, oy, w - 2, overviewH);
+        } else {
+            // ═══ SECONDARY — fine-tune precision wheel ═══
+            // Darker, tighter platter with concentric precision rings
+            {
+                QRadialGradient pg(cx, cy, innerSz / 2);
+                pg.setColorAt(0.0, QColor(0x10, 0x13, 0x1a));
+                pg.setColorAt(0.6, QColor(0x0c, 0x0e, 0x15));
+                pg.setColorAt(1.0, QColor(0x08, 0x0a, 0x10));
+                p.setBrush(pg);
+            }
+            p.setPen(QPen(QColor(0x1e, 0x22, 0x2c), 1));
+            p.drawEllipse(cx - innerSz / 2, cy - innerSz / 2, innerSz, innerSz);
 
-            // Miniature waveform — RMS energy envelope for honest dynamics
-            const int miniMax = std::max(1, (overviewH / 2));
-            const int miniCy = oy + overviewH / 2;
-            QColor miniC = accent_; miniC.setAlpha(50);
-            p.setBrush(miniC);
-            for (int x = 0; x < miniW; ++x) {
-                const int b = static_cast<int>(static_cast<float>(x) / miniW * numBins);
-                if (b < 0 || b >= numBins) continue;
-                const auto& mb = bins_[static_cast<size_t>(b)];
-                const float rmsN = std::min(1.0f, mb.rms * invRef);
-                const int bh = std::max(1, static_cast<int>(rmsN * miniMax));
-                p.drawRect(1 + x, miniCy - bh, 1, bh * 2);
+            // Fine graduated rings — precision encoder look
+            p.setBrush(Qt::NoBrush);
+            const int ringCount = 8;
+            for (int i = 1; i <= ringCount; ++i) {
+                const int gr = innerSz / 2 - i * (innerSz / (ringCount * 2 + 2));
+                const int alpha = (i <= 2 || i >= ringCount - 1) ? 30 : 18;
+                p.setPen(QPen(QColor(0x20, 0x24, 0x30, alpha), 0.5));
+                p.drawEllipse(cx - gr, cy - gr, gr * 2, gr * 2);
             }
 
-            // Viewport window — soft highlight, no hard border
-            const int vpX1 = 1 + static_cast<int>(viewStart * miniW);
-            const int vpX2 = 1 + static_cast<int>(viewEnd * miniW);
-            QColor vpFill = (viewState_ == WaveViewState::LIVE_SCROLL)
-                ? QColor(0x40, 0x90, 0x70, 20)
-                : QColor(accent_.red(), accent_.green(), accent_.blue(), 18);
-            p.setPen(Qt::NoPen);
-            p.setBrush(vpFill);
-            p.drawRect(vpX1, oy, vpX2 - vpX1, overviewH);
+            // Fine-tune crosshair — thin etched lines through center
+            {
+                const int chLen = innerSz / 5;
+                p.setPen(QPen(QColor(0x2a, 0x2e, 0x3a, 50), 0.5));
+                p.drawLine(cx - chLen, cy, cx + chLen, cy);
+                p.drawLine(cx, cy - chLen, cx, cy + chLen);
+            }
 
-            // Thin edge lines instead of box border
-            QColor edge = (viewState_ == WaveViewState::LIVE_SCROLL)
-                ? QColor(0x50, 0xaa, 0x80, 80)
-                : QColor(accent_.red(), accent_.green(), accent_.blue(), 70);
-            p.setPen(QPen(edge, 1));
-            p.drawLine(vpX1, oy, vpX1, oy + overviewH - 1);
-            p.drawLine(vpX2, oy, vpX2, oy + overviewH - 1);
-
-            // Playhead dot on strip
-            const int miniPhX = 1 + static_cast<int>(playhead_ * miniW);
-            QColor miniPh = (viewState_ == WaveViewState::LIVE_SCROLL)
-                ? QColor(0x55, 0xdd, 0xaa, 160) : QColor(0xff, 0xff, 0xff, 140);
-            p.setPen(QPen(miniPh, 1));
-            p.drawLine(miniPhX, oy + 1, miniPhX, oy + overviewH - 2);
+            // "FINE" label — small text near bottom of platter
+            {
+                QFont f = font();
+                f.setPointSize(6);
+                f.setBold(true);
+                f.setLetterSpacing(QFont::AbsoluteSpacing, 3.0);
+                p.setFont(f);
+                p.setPen(QColor(0x3a, 0x3e, 0x50));
+                p.drawText(QRect(cx - innerSz / 3, cy + innerSz / 5,
+                                  innerSz * 2 / 3, innerSz / 6),
+                            Qt::AlignHCenter | Qt::AlignTop,
+                            QStringLiteral("FINE"));
+            }
         }
 
-        // ═══ Logging ═══
-        if (++renderLogTick_ >= 120) {
-            renderLogTick_ = 0;
-            auto tid = static_cast<size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
-            const char* scaleMode = "rms_body_peak_tip";
-
-            // Compute visible-region stats for diagnostics
-            float visRmsMax = 0.0f, visPeakMax = 0.0f;
-            for (int i = 0; i < visBins; ++i) {
-                const int b = binStart + i;
-                const auto& bin = bins_[static_cast<size_t>(b)];
-                visRmsMax = std::max(visRmsMax, bin.rms);
-                visPeakMax = std::max(visPeakMax, std::max(std::abs(bin.lo), std::abs(bin.hi)));
-            }
-
-            std::fprintf(stderr,
-                "WAVE_SCALE_TRACK_PEAK deck=%d peakRef=%.4f tid=%zu\n",
-                deckIndex_, peakRef_, tid);
-            std::fprintf(stderr,
-                "WAVE_SCALE_VISIBLE_PEAK deck=%d visRmsMax=%.4f visPeakMax=%.4f "
-                "invRef=%.4f viewRange=[%.3f,%.3f] tid=%zu\n",
-                deckIndex_, visRmsMax, visPeakMax, invRef, viewStart, viewEnd, tid);
-            std::fprintf(stderr,
-                "WAVE_SCALE_RENDER_HEIGHT deck=%d maxBarH=%d cy=%d mainH=%d "
-                "renderHeight=%d tid=%zu\n",
-                deckIndex_, maxBarH, cy, mainH, h, tid);
-            std::fprintf(stderr,
-                "WAVE_RENDER_RESOLUTION deck=%d visBins=%d usableW=%d "
-                "barWidth=%s bucketCount=%d scale=%s tid=%zu\n",
-                deckIndex_, visBins, usableW,
-                visBins > usableW ? "1px" : "multi",
-                numBins, scaleMode, tid);
-
-            switch (viewState_) {
-            case WaveViewState::CUE_FOCUS:
-                std::fprintf(stderr,
-                    "WAVE_VIEW_CUE_FOCUS deck=%d state=%s range=[%.3f,%.3f] "
-                    "anchor=%.4f cueTarget=%.4f scale=%s tid=%zu\n",
-                    deckIndex_, waveViewStateName(viewState_), viewStart, viewEnd,
-                    smoothAnchor_, cueFocusTarget_, scaleMode, tid);
-                break;
-            case WaveViewState::LIVE_SCROLL:
-                std::fprintf(stderr,
-                    "WAVE_VIEW_LIVE deck=%d state=%s range=[%.3f,%.3f] "
-                    "anchor=%.4f smoothAnchor=%.4f scale=%s tid=%zu\n",
-                    deckIndex_, waveViewStateName(viewState_), viewStart, viewEnd,
-                    targetAnchor_, smoothAnchor_, scaleMode, tid);
-                std::fprintf(stderr,
-                    "WAVE_SCROLL_UPDATE deck=%d playhead=%.4f phX=%d smooth=%.4f "
-                    "target=%.4f delta=%.6f tid=%zu\n",
-                    deckIndex_, playhead_, playheadX, smoothAnchor_,
-                    targetAnchor_, targetAnchor_ - smoothAnchor_, tid);
-                std::fprintf(stderr,
-                    "WAVE_PLAYHEAD_ANCHOR deck=%d phFrac=%.4f anchorFrac=%.4f "
-                    "phScreenX=%d viewW=%d state=%s tid=%zu\n",
-                    deckIndex_, playhead_, smoothAnchor_, playheadX, w,
-                    waveViewStateName(viewState_), tid);
-                break;
-            case WaveViewState::STATIC_PLAY:
-                std::fprintf(stderr,
-                    "WAVE_VIEW_STATIC deck=%d state=%s range=[%.3f,%.3f] "
-                    "playhead=%.4f phX=%d scale=%s tid=%zu\n",
-                    deckIndex_, waveViewStateName(viewState_), viewStart, viewEnd,
-                    playhead_, playheadX, scaleMode, tid);
-                break;
-            case WaveViewState::OVERVIEW:
-                std::fprintf(stderr,
-                    "WAVE_VIEW_OVERVIEW deck=%d state=%s range=[%.3f,%.3f] "
-                    "playhead=%.4f scale=%s tid=%zu\n",
-                    deckIndex_, waveViewStateName(viewState_), viewStart, viewEnd,
-                    playhead_, scaleMode, tid);
-                break;
-            default:
-                break;
-            }
-            std::fflush(stderr);
+        // ── Center dot ──
+        p.setPen(Qt::NoPen);
+        if (isPrimary) {
+            // Primary — accent hub dot
+            QRadialGradient dg(cx, cy, 7);
+            QColor bright = accent_; bright.setAlpha(255);
+            QColor dim = accent_; dim.setAlpha(120);
+            dg.setColorAt(0.0, bright);
+            dg.setColorAt(1.0, dim);
+            p.setBrush(dg);
+            p.drawEllipse(cx - 6, cy - 6, 12, 12);
+        } else {
+            // Secondary — small precision crosshair dot (no glow)
+            p.setBrush(QColor(accent_.red(), accent_.green(), accent_.blue(), 180));
+            p.drawEllipse(cx - 3, cy - 3, 6, 6);
+            // Thin ring around center
+            p.setBrush(Qt::NoBrush);
+            p.setPen(QPen(QColor(accent_.red(), accent_.green(), accent_.blue(), 60), 0.75));
+            p.drawEllipse(cx - 7, cy - 7, 14, 14);
         }
+
+        // ── Position indicator line ──
+        const double rad = angle_ * 3.14159265358979 / 180.0;
+        const int lineStart = isPrimary ? 0 : innerSz / 6;
+        const int lineLen = innerSz / 2 - (isPrimary ? 10 : 14);
+        const int lsx = cx + static_cast<int>(std::sin(rad) * lineStart);
+        const int lsy = cy - static_cast<int>(std::cos(rad) * lineStart);
+        const int lx = cx + static_cast<int>(std::sin(rad) * lineLen);
+        const int ly = cy - static_cast<int>(std::cos(rad) * lineLen);
+        {
+            QColor lglow = accent_;
+            lglow.setAlpha(isPrimary ? 50 : 20);
+            p.setPen(QPen(lglow, isPrimary ? 6 : 3));
+            p.drawLine(lsx, lsy, lx, ly);
+        }
+        QColor lineColor = accent_;
+        lineColor.setAlpha(isPrimary ? 255 : 180);
+        p.setPen(QPen(lineColor, isPrimary ? 2.5 : 1.2));
+        p.drawLine(lsx, lsy, lx, ly);
+
+        // ── Accent ring glow ──
+        QColor glowColor = accent_;
+        glowColor.setAlpha(isPrimary ? 70 : 30);
+        p.setPen(QPen(glowColor, isPrimary ? 4 : 2));
+        p.setBrush(Qt::NoBrush);
+        p.drawEllipse(cx - sz / 2 + 3, cy - sz / 2 + 3, sz - 6, sz - 6);
+    }
+
+    void mousePressEvent(QMouseEvent* e) override {
+        dragging_ = true;
+        lastPos_ = e->position().toPoint();
+        setCursor(Qt::ClosedHandCursor);
+    }
+
+    void mouseMoveEvent(QMouseEvent* e) override {
+        if (!dragging_) return;
+        const int cx = width() / 2;
+        const int cy = height() / 2;
+        const QPoint pos = e->position().toPoint();
+
+        const double prevAngle = std::atan2(
+            static_cast<double>(lastPos_.x() - cx),
+            -static_cast<double>(lastPos_.y() - cy));
+        const double currAngle = std::atan2(
+            static_cast<double>(pos.x() - cx),
+            -static_cast<double>(pos.y() - cy));
+        double delta = (currAngle - prevAngle) * 180.0 / 3.14159265358979;
+
+        if (delta > 180.0) delta -= 360.0;
+        if (delta < -180.0) delta += 360.0;
+
+        angle_ += delta;
+        while (angle_ > 360.0) angle_ -= 360.0;
+        while (angle_ < 0.0) angle_ += 360.0;
+
+        lastPos_ = pos;
+        update();
+
+        if (onJogTurn) onJogTurn(delta, e->modifiers());
+    }
+
+    void mouseReleaseEvent(QMouseEvent*) override {
+        dragging_ = false;
+        setCursor(Qt::OpenHandCursor);
     }
 
 private:
     QColor accent_;
-    std::vector<ngks::WaveMinMax> bins_;
-    float peakRef_{1.0f};
-    float playhead_{0.0f};
-    bool hasData_{false};
-
-    WaveViewState viewState_{WaveViewState::EMPTY};
-    float targetAnchor_{0.0f};
-    float smoothAnchor_{0.0f};
-    float cueFocusTarget_{0.0f};
-    int deckIndex_{0};
-    int renderLogTick_{0};
+    Role role_{Primary};
+    double angle_{0.0};
+    QPoint lastPos_;
+    bool dragging_{false};
+    QPixmap coverArt_;
+    QPixmap coverScaled_;
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -693,15 +514,15 @@ void DeckStrip::buildUi()
     outerFrame->setStyleSheet(QStringLiteral(
         "QFrame#deckFrame%1 {"
         "  background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,"
-        "    stop:0 #0c0f14, stop:0.46 #0c0f14,"
-        "    stop:0.5 %2, stop:0.54 #0c0f14, stop:1 #0c0f14);"
-        "  border: 1px solid %3; border-radius: 5px; }")
+        "    stop:0 #0e1118, stop:0.46 #0e1118,"
+        "    stop:0.5 %2, stop:0.54 #0e1118, stop:1 #0e1118);"
+        "  border: 1px solid %3; border-radius: 6px; }")
         .arg(deckIndex_).arg(guideHex, borderColor));
     outerVBox->addWidget(outerFrame);
 
     auto* mainLayout = new QVBoxLayout(outerFrame);
-    mainLayout->setContentsMargins(5, 2, 5, 3);
-    mainLayout->setSpacing(1);
+    mainLayout->setContentsMargins(2, 1, 2, 2);
+    mainLayout->setSpacing(0);
 
     auto addFlowSep = [&]() {
         auto* sep = new QFrame(outerFrame);
@@ -759,6 +580,12 @@ void DeckStrip::buildUi()
         mainLayout->addWidget(displayPanel_);
     }
 
+    // ═══ LOAD BUTTON (hidden — loading via library double-click) ═══
+    {
+        loadBtn_ = new QPushButton(QStringLiteral("LOAD"), outerFrame);
+        loadBtn_->hide();
+    }
+
     // ═══ SECTION 2: TRACK DETAIL BLOCK ═══
     {
         auto* trackBlock = new QFrame(outerFrame);
@@ -768,81 +595,66 @@ void DeckStrip::buildUi()
 
         auto* trackLayout = new QVBoxLayout(trackBlock);
         trackLayout->setContentsMargins(6, 2, 6, 2);
-        trackLayout->setSpacing(0);
+        trackLayout->setSpacing(1);
 
-        // Track title
-        trackTitleLabel_ = new QLabel(QStringLiteral("\u2014 NO TRACK \u2014"), outerFrame);
+        // ── Track info row: Title (left) | Artist (center) | Duration (right) ──
         {
-            QFont f = trackTitleLabel_->font();
-            f.setPointSizeF(9.5);
-            f.setBold(true);
-            trackTitleLabel_->setFont(f);
-        }
-        trackTitleLabel_->setStyleSheet(QStringLiteral(
-            "color: #444; background: transparent; border: none;"));
-        trackTitleLabel_->setAlignment(Qt::AlignCenter);
-        trackTitleLabel_->setWordWrap(false);
-        trackTitleLabel_->setFixedHeight(20);
-        trackLayout->addWidget(trackTitleLabel_);
+            auto* infoRow = new QHBoxLayout();
+            infoRow->setSpacing(6);
+            infoRow->setContentsMargins(0, 0, 0, 0);
 
-        // Artist
-        trackArtistLabel_ = new QLabel(QString(), outerFrame);
-        {
-            QFont f = trackArtistLabel_->font();
-            f.setPointSizeF(7.5);
-            trackArtistLabel_->setFont(f);
-        }
-        trackArtistLabel_->setStyleSheet(QStringLiteral(
-            "color: #666; background: transparent; border: none;"));
-        trackArtistLabel_->setAlignment(Qt::AlignCenter);
-        trackArtistLabel_->setFixedHeight(14);
-        trackLayout->addWidget(trackArtistLabel_);
-
-        // BPM | Key | Duration row
-        auto* infoRow = new QHBoxLayout();
-        infoRow->setSpacing(6);
-        infoRow->setContentsMargins(0, 1, 0, 0);
-
-        auto makeInfoLabel = [&](const QString& text) {
-            auto* lbl = new QLabel(text, outerFrame);
-            QFont f = lbl->font();
-            f.setPointSizeF(7.0);
-            f.setBold(true);
-            lbl->setFont(f);
-            lbl->setStyleSheet(QStringLiteral(
+            trackTitleLabel_ = new QLabel(QStringLiteral("\u2014 NO TRACK \u2014"), trackBlock);
+            {
+                QFont f = trackTitleLabel_->font();
+                f.setPointSizeF(9.0);
+                f.setBold(true);
+                trackTitleLabel_->setFont(f);
+            }
+            trackTitleLabel_->setStyleSheet(QStringLiteral(
                 "color: #555; background: transparent; border: none;"));
-            lbl->setAlignment(Qt::AlignCenter);
-            return lbl;
-        };
+            trackTitleLabel_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            trackTitleLabel_->setMinimumWidth(60);
+            infoRow->addWidget(trackTitleLabel_, 1);
 
-        infoRow->addStretch();
-        auto* bpmTag = makeInfoLabel(QStringLiteral("BPM"));
-        bpmTag->setStyleSheet(QStringLiteral(
-            "color: #444; background: transparent; border: none; font-size: 5pt;"));
-        infoRow->addWidget(bpmTag);
-        infoBpmLabel_ = makeInfoLabel(QStringLiteral("---"));
-        infoRow->addWidget(infoBpmLabel_);
+            trackArtistLabel_ = new QLabel(QString(), trackBlock);
+            {
+                QFont f = trackArtistLabel_->font();
+                f.setPointSizeF(8.0);
+                trackArtistLabel_->setFont(f);
+            }
+            trackArtistLabel_->setStyleSheet(QStringLiteral(
+                "color: #666; background: transparent; border: none;"));
+            trackArtistLabel_->setAlignment(Qt::AlignCenter);
+            infoRow->addWidget(trackArtistLabel_, 1);
 
-        auto* sep1 = makeInfoLabel(QStringLiteral("\u2502"));
-        sep1->setStyleSheet(QStringLiteral("color: #333; background: transparent; border: none;"));
-        infoRow->addWidget(sep1);
+            infoDurationLabel_ = new QLabel(QStringLiteral("--:--"), trackBlock);
+            {
+                QFont f = infoDurationLabel_->font();
+                f.setPointSizeF(8.5);
+                f.setBold(true);
+                infoDurationLabel_->setFont(f);
+            }
+            infoDurationLabel_->setStyleSheet(QStringLiteral(
+                "color: #555; background: transparent; border: none;"));
+            infoDurationLabel_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            infoRow->addWidget(infoDurationLabel_);
 
-        auto* keyTag = makeInfoLabel(QStringLiteral("KEY"));
-        keyTag->setStyleSheet(QStringLiteral(
-            "color: #444; background: transparent; border: none; font-size: 5pt;"));
-        infoRow->addWidget(keyTag);
-        infoKeyLabel_ = makeInfoLabel(QStringLiteral("---"));
-        infoRow->addWidget(infoKeyLabel_);
+            trackLayout->addLayout(infoRow);
+        }
 
-        auto* sep2 = makeInfoLabel(QStringLiteral("\u2502"));
-        sep2->setStyleSheet(QStringLiteral("color: #333; background: transparent; border: none;"));
-        infoRow->addWidget(sep2);
+        // BPM/Key (hidden — shown inside analysis dashboard)
+        infoBpmLabel_ = new QLabel(QStringLiteral("---"), outerFrame);
+        infoBpmLabel_->hide();
+        infoKeyLabel_ = new QLabel(QStringLiteral("---"), outerFrame);
+        infoKeyLabel_->hide();
 
-        infoDurationLabel_ = makeInfoLabel(QStringLiteral("--:--"));
-        infoRow->addWidget(infoDurationLabel_);
-        infoRow->addStretch();
+        // ── DJ Analysis Panel (custom-painted cards, NOT text labels) ──
+        analysisDash_ = new DjAnalysisPanelWidget(QColor(accent_), trackBlock);
+        analysisDash_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        trackLayout->addWidget(analysisDash_);
+        qInfo().noquote() << QStringLiteral("DJ_ANALYSIS_WIDGET class=DjAnalysisPanelWidget deck=%1")
+            .arg(deckIndex_);
 
-        trackLayout->addLayout(infoRow);
         mainLayout->addWidget(trackBlock);
 
         // Keep legacy trackLabel_ for compatibility (hidden)
@@ -930,36 +742,114 @@ void DeckStrip::buildUi()
         mainLayout->addLayout(timeRow);
     }
 
-    // ═══ SECTION 3c: WAVEFORM MODE TOGGLE (LIVE / STATIC) ═══
-    {
-        waveModeBtn_ = new QPushButton(QStringLiteral("STATIC"), outerFrame);
-        waveModeBtn_->setCheckable(true);
-        waveModeBtn_->setChecked(false);  // unchecked = STATIC, checked = LIVE
-        waveModeBtn_->setFixedHeight(20);
-        waveModeBtn_->setCursor(Qt::PointingHandCursor);
-        waveModeBtn_->setToolTip(QStringLiteral("Waveform mode: STATIC (playhead moves) / LIVE (waveform scrolls)"));
-        {
-            QFont f = waveModeBtn_->font();
-            f.setPointSizeF(7.0);
-            f.setBold(true);
-            waveModeBtn_->setFont(f);
-        }
-        waveModeBtn_->setStyleSheet(QStringLiteral(
-            "QPushButton {"
-            "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,50);"
-            "  border-radius: 2px; color: #888; padding: 1px 8px; }"
-            "QPushButton:checked {"
-            "  background: rgba(%1,%2,%3,40); border: 1px solid rgba(%1,%2,%3,140);"
-            "  color: #ddd; }"
-            "QPushButton:hover {"
-            "  border: 1px solid rgba(%1,%2,%3,100); color: #bbb; }")
-            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
-        mainLayout->addWidget(waveModeBtn_);
-    }
+    // (LIVE button removed — waveform is always live)
+    waveModeBtn_ = nullptr;
 
     addFlowSep();
 
-    // ═══ SECTION 4: TRANSPORT — Grouped layout ═══
+    // ═══ ZONE 3: JOG TOGGLE / COLLAPSIBLE JOG PANEL ═══
+    {
+        auto* jogRow = new QHBoxLayout();
+        jogRow->setSpacing(3);
+        jogRow->setContentsMargins(3, 1, 3, 1);
+
+        jogToggleBtn_ = new QPushButton(QStringLiteral("JOG"), outerFrame);
+        jogToggleBtn_->setCheckable(true);
+        jogToggleBtn_->setChecked(false);
+        jogToggleBtn_->setCursor(Qt::PointingHandCursor);
+        jogToggleBtn_->setToolTip(QStringLiteral("Toggle jog wheel panel"));
+        jogToggleBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,50);"
+            "  border-radius: 3px; color: #888; padding: 1px 8px;"
+            "  min-height: 22px; }"
+            "QPushButton:hover {"
+            "  background: rgba(%1,%2,%3,25); color: #ccc;"
+            "  border: 1px solid rgba(%1,%2,%3,120); }"
+            "QPushButton:checked {"
+            "  background: rgba(%1,%2,%3,40);"
+            "  border: 2px solid rgba(%1,%2,%3,180); color: #fff; }")
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
+        { QFont f = jogToggleBtn_->font(); f.setPointSizeF(7.0); f.setBold(true); jogToggleBtn_->setFont(f); }
+        jogRow->addWidget(jogToggleBtn_);
+        jogRow->addStretch();
+        jogToggleBtn_->setVisible(false);
+
+        // Jog panel (always visible — added to jogCenterRow_ later)
+        jogPanel_ = new QFrame(outerFrame);
+        jogPanel_->setObjectName(QStringLiteral("jogPanel%1").arg(deckIndex_));
+        jogPanel_->setStyleSheet(QStringLiteral(
+            "QFrame#jogPanel%1 {"
+            "  background: transparent; border: none; }")
+            .arg(deckIndex_));
+
+        auto* jogLayout = new QVBoxLayout(jogPanel_);
+        jogLayout->setSpacing(1);
+        jogLayout->setContentsMargins(0, 1, 0, 1);
+
+        // Primary jog wheel
+        jogWheel_ = new JogWheel(accentColor, 230, JogWheel::Primary, jogPanel_);
+        jogLayout->addWidget(jogWheel_, 0, Qt::AlignHCenter);
+
+        // Mode toggles + label
+        auto* jogModeRow = new QHBoxLayout();
+        jogModeRow->setSpacing(3);
+        jogModeRow->setContentsMargins(0, 0, 0, 0);
+
+        jogSeekBtn_ = new QPushButton(QStringLiteral("SEEK"), jogPanel_);
+        jogSeekBtn_->setCheckable(true);
+        jogSeekBtn_->setChecked(true);
+        jogSeekBtn_->setCursor(Qt::PointingHandCursor);
+        jogSeekBtn_->setStyleSheet(btnSmall);
+        { QFont f = jogSeekBtn_->font(); f.setPointSizeF(6.5); f.setBold(true); jogSeekBtn_->setFont(f); }
+        jogModeRow->addWidget(jogSeekBtn_, 1);
+
+        jogScratchBtn_ = new QPushButton(QStringLiteral("SCRATCH"), jogPanel_);
+        jogScratchBtn_->setCheckable(true);
+        jogScratchBtn_->setChecked(false);
+        jogScratchBtn_->setCursor(Qt::PointingHandCursor);
+        jogScratchBtn_->setStyleSheet(btnSmall);
+        { QFont f = jogScratchBtn_->font(); f.setPointSizeF(6.5); f.setBold(true); jogScratchBtn_->setFont(f); }
+        jogModeRow->addWidget(jogScratchBtn_, 1);
+
+        jogModeLabel_ = new QLabel(QStringLiteral("MODE: SEEK"), jogPanel_);
+        jogModeLabel_->setAlignment(Qt::AlignCenter);
+        { QFont f = jogModeLabel_->font(); f.setPointSizeF(5.5); jogModeLabel_->setFont(f); }
+        jogModeLabel_->setStyleSheet(QStringLiteral(
+            "color: #666; background: transparent; border: none;"));
+        jogModeRow->addWidget(jogModeLabel_);
+
+        jogLayout->addLayout(jogModeRow);
+
+        jogPanel_->setVisible(true);
+        jogVisible_ = true;
+
+        // ── Secondary jog panel (equal size) ──
+        jogPanelSecondary_ = new QFrame(outerFrame);
+        jogPanelSecondary_->setObjectName(QStringLiteral("jogPanelSec%1").arg(deckIndex_));
+        jogPanelSecondary_->setStyleSheet(QStringLiteral(
+            "QFrame#jogPanelSec%1 {"
+            "  background: transparent; border: none; }")
+            .arg(deckIndex_));
+
+        auto* jogSecLayout = new QVBoxLayout(jogPanelSecondary_);
+        jogSecLayout->setSpacing(1);
+        jogSecLayout->setContentsMargins(0, 1, 0, 1);
+
+        jogWheelSecondary_ = new JogWheel(accentColor, 230, JogWheel::Secondary, jogPanelSecondary_);
+        jogSecLayout->addWidget(jogWheelSecondary_, 0, Qt::AlignHCenter);
+
+        auto* secLabel = new QLabel(QStringLiteral("FINE"), jogPanelSecondary_);
+        secLabel->setAlignment(Qt::AlignHCenter);
+        { QFont f = secLabel->font(); f.setPointSizeF(6.0); f.setBold(true); secLabel->setFont(f); }
+        secLabel->setStyleSheet(QStringLiteral(
+            "color: #888; background: transparent; border: none;"));
+        jogSecLayout->addWidget(secLabel);
+
+        jogPanelSecondary_->setVisible(true);
+    }
+
+    // ═══ ZONE 3: COMPACT TRANSPORT ═══
     {
         auto* transportPanel = new QFrame(outerFrame);
         transportPanel->setObjectName(QStringLiteral("deckTransport%1").arg(deckIndex_));
@@ -969,34 +859,21 @@ void DeckStrip::buildUi()
             "  border-radius: 2px; }")
             .arg(deckIndex_));
 
-        auto* transportRow = new QHBoxLayout(transportPanel);
-        transportRow->setSpacing(2);
-        transportRow->setContentsMargins(3, 2, 3, 2);
+        auto* transportOuter = new QVBoxLayout(transportPanel);
+        transportOuter->setSpacing(1);
+        transportOuter->setContentsMargins(2, 1, 2, 1);
 
-        // LEFT: LOAD | SKIP BACK
-        loadBtn_ = new QPushButton(QStringLiteral("LOAD"), outerFrame);
-        loadBtn_->setStyleSheet(btnSecondary);
-        loadBtn_->setCursor(Qt::PointingHandCursor);
-        loadBtn_->setToolTip(QStringLiteral("Load track into deck"));
-        { QFont f = loadBtn_->font(); f.setPointSizeF(7.5); f.setBold(true); loadBtn_->setFont(f); }
-        transportRow->addWidget(loadBtn_);
+        // ── Row A: [ PLAY ] [ CUE ] ──
+        auto* rowA = new QHBoxLayout();
+        rowA->setSpacing(3);
+        rowA->setContentsMargins(0, 0, 0, 0);
 
-        syncBtn_ = new QPushButton(QStringLiteral("\u23EA"), outerFrame);
-        syncBtn_->setStyleSheet(btnSecondary);
-        syncBtn_->setCursor(Qt::PointingHandCursor);
-        syncBtn_->setToolTip(QStringLiteral("Skip back 30 seconds"));
-        { QFont f = syncBtn_->font(); f.setPointSizeF(9.0); syncBtn_->setFont(f); }
-        transportRow->addWidget(syncBtn_);
-
-        transportRow->addSpacing(4);
-
-        // CENTER: PLAY | CUE
         playBtn_ = new QPushButton(QStringLiteral("PLAY"), outerFrame);
         playBtn_->setStyleSheet(btnPrimary);
         playBtn_->setCursor(Qt::PointingHandCursor);
         playBtn_->setToolTip(QStringLiteral("Play / Pause"));
         { QFont f = playBtn_->font(); f.setPointSizeF(10.0); f.setBold(true); playBtn_->setFont(f); }
-        transportRow->addWidget(playBtn_, 1);
+        rowA->addWidget(playBtn_, 1);
 
         cueBtn_ = new QPushButton(QStringLiteral("CUE"), outerFrame);
         cueBtn_->setCheckable(true);
@@ -1006,29 +883,82 @@ void DeckStrip::buildUi()
             "  background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #1c2030, stop:1 #0e1018);"
             "  border: 1px solid rgba(%1,%2,%3,100); border-radius: 4px;"
             "  color: #e0e0e0; padding: 2px 6px;"
-            "  min-height: 30px; font-weight: bold; }"
+            "  min-height: 32px; font-weight: bold; }"
             "QPushButton:hover {"
             "  background: rgba(%1,%2,%3,50); color: #fff;"
             "  border: 1px solid rgba(%1,%2,%3,200); }"
             "QPushButton:checked {"
-            "  background: rgba(%1,%2,%3,35); border: 1px solid %4;"
-            "  color: %4; }")
-            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue())
-            .arg(accent_));
+            "  background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #0c4020, stop:1 #083018);"
+            "  border: 2px solid #00ff44; color: #00ff55;"
+            "  font-size: 10pt; }")
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
         cueBtn_->setCursor(Qt::PointingHandCursor);
         cueBtn_->setToolTip(QStringLiteral("CUE \u2014 monitor deck in headphones"));
         { QFont f = cueBtn_->font(); f.setPointSizeF(9.0); f.setBold(true); cueBtn_->setFont(f); }
-        transportRow->addWidget(cueBtn_, 1);
+        rowA->addWidget(cueBtn_, 1);
 
-        transportRow->addSpacing(4);
+        transportOuter->addLayout(rowA);
 
-        // RIGHT: SKIP FWD
-        hotCueBtn_ = new QPushButton(QStringLiteral("\u23E9"), outerFrame);
+        // ── Row B: [ << ] [ >> ] [ SYNC ] [ MASTER ] ──
+        auto* rowB = new QHBoxLayout();
+        rowB->setSpacing(2);
+        rowB->setContentsMargins(0, 0, 0, 0);
+
+        syncBtn_ = new QPushButton(QStringLiteral("\u00AB"), outerFrame);
+        syncBtn_->setStyleSheet(btnSecondary);
+        syncBtn_->setCursor(Qt::PointingHandCursor);
+        syncBtn_->setToolTip(QStringLiteral("Seek back 30 seconds"));
+        { QFont f = syncBtn_->font(); f.setPointSizeF(9.0); f.setBold(true); syncBtn_->setFont(f); }
+        rowB->addWidget(syncBtn_, 1);
+
+        hotCueBtn_ = new QPushButton(QStringLiteral("\u00BB"), outerFrame);
         hotCueBtn_->setStyleSheet(btnSecondary);
         hotCueBtn_->setCursor(Qt::PointingHandCursor);
-        hotCueBtn_->setToolTip(QStringLiteral("Skip forward 30 seconds"));
-        { QFont f = hotCueBtn_->font(); f.setPointSizeF(9.0); hotCueBtn_->setFont(f); }
-        transportRow->addWidget(hotCueBtn_);
+        hotCueBtn_->setToolTip(QStringLiteral("Seek forward 30 seconds"));
+        { QFont f = hotCueBtn_->font(); f.setPointSizeF(9.0); f.setBold(true); hotCueBtn_->setFont(f); }
+        rowB->addWidget(hotCueBtn_, 1);
+
+        syncToggleBtn_ = new QPushButton(QStringLiteral("SYNC"), outerFrame);
+        syncToggleBtn_->setCheckable(true);
+        syncToggleBtn_->setChecked(false);
+        syncToggleBtn_->setCursor(Qt::PointingHandCursor);
+        syncToggleBtn_->setToolTip(QStringLiteral("Sync deck tempo"));
+        syncToggleBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,50);"
+            "  border-radius: 3px; color: #888; padding: 1px 2px;"
+            "  min-height: 24px; }"
+            "QPushButton:hover {"
+            "  background: rgba(%1,%2,%3,25); color: #ccc;"
+            "  border: 1px solid rgba(%1,%2,%3,120); }"
+            "QPushButton:checked {"
+            "  background: rgba(%1,%2,%3,40);"
+            "  border: 2px solid rgba(%1,%2,%3,180); color: #fff; }")
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
+        { QFont f = syncToggleBtn_->font(); f.setPointSizeF(7.0); f.setBold(true); syncToggleBtn_->setFont(f); }
+        rowB->addWidget(syncToggleBtn_, 1);
+
+        masterToggleBtn_ = new QPushButton(QStringLiteral("MASTER"), outerFrame);
+        masterToggleBtn_->setCheckable(true);
+        masterToggleBtn_->setChecked(false);
+        masterToggleBtn_->setCursor(Qt::PointingHandCursor);
+        masterToggleBtn_->setToolTip(QStringLiteral("Set as tempo master"));
+        masterToggleBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,50);"
+            "  border-radius: 3px; color: #888; padding: 1px 2px;"
+            "  min-height: 24px; }"
+            "QPushButton:hover {"
+            "  background: rgba(%1,%2,%3,25); color: #ccc;"
+            "  border: 1px solid rgba(%1,%2,%3,120); }"
+            "QPushButton:checked {"
+            "  background: rgba(255,180,0,40);"
+            "  border: 2px solid #ffb400; color: #ffcc00; }")
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
+        { QFont f = masterToggleBtn_->font(); f.setPointSizeF(7.0); f.setBold(true); masterToggleBtn_->setFont(f); }
+        rowB->addWidget(masterToggleBtn_, 1);
+
+        transportOuter->addLayout(rowB);
 
         // Hidden: pause + stop + loop kept for API compatibility
         pauseBtn_ = new QPushButton(outerFrame); pauseBtn_->hide();
@@ -1038,232 +968,580 @@ void DeckStrip::buildUi()
         mainLayout->addWidget(transportPanel);
     }
 
-    addFlowSep();
+    // ═══ ZONE 4: DUAL-JOG CONTROL SURFACE (mirrored per deck) ═══
+    // Shared container — both jogs sit in one unified panel
+    jogContainer_ = new QFrame(outerFrame);
+    jogContainer_->setObjectName(QStringLiteral("jogContainer%1").arg(deckIndex_));
+    jogContainer_->setStyleSheet(QStringLiteral(
+        "QFrame#jogContainer%1 {"
+        "  background: transparent;"
+        "  border: none; }")
+        .arg(deckIndex_));
 
-    // ═══ SECTION 5: HOT CUE ROW ═══
-    {
-        auto* hotCueRow = new QHBoxLayout();
-        hotCueRow->setSpacing(2);
-        hotCueRow->setContentsMargins(3, 1, 3, 1);
-
-        auto* hotCueLbl = new QLabel(QStringLiteral("HOT CUE"), outerFrame);
-        hotCueLbl->setStyleSheet(sectionLabelStyle);
-        hotCueLbl->setFixedWidth(40);
-        hotCueLbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-        hotCueRow->addWidget(hotCueLbl);
-
-        hotCueRow->addSpacing(2);
-
-        auto makeHotCue = [&](const QString& text) -> QPushButton* {
-            auto* btn = new QPushButton(text, outerFrame);
-            btn->setStyleSheet(btnSmall);
-            btn->setCursor(Qt::PointingHandCursor);
-            QFont f = btn->font(); f.setPointSizeF(7.0); f.setBold(true); btn->setFont(f);
-            return btn;
-        };
-
-        hotCue1Btn_ = makeHotCue(QStringLiteral("1"));
-        hotCue2Btn_ = makeHotCue(QStringLiteral("2"));
-        hotCue3Btn_ = makeHotCue(QStringLiteral("3"));
-        hotCue4Btn_ = makeHotCue(QStringLiteral("4"));
-
-        hotCueRow->addWidget(hotCue1Btn_, 1);
-        hotCueRow->addWidget(hotCue2Btn_, 1);
-        hotCueRow->addWidget(hotCue3Btn_, 1);
-        hotCueRow->addWidget(hotCue4Btn_, 1);
-
-        mainLayout->addLayout(hotCueRow);
+    jogCenterRow_ = new QHBoxLayout(jogContainer_);
+    jogCenterRow_->setSpacing(2);
+    // Center both jogs horizontally with equal stretch on each side.
+    jogCenterRow_->setContentsMargins(2, 3, 2, 3);
+    jogCenterRow_->addStretch(1);
+    if (deckIndex_ == 0) {
+        jogCenterRow_->addWidget(jogPanel_, 0, Qt::AlignTop);
+        jogCenterRow_->addWidget(jogPanelSecondary_, 0, Qt::AlignTop);
+    } else {
+        jogCenterRow_->addWidget(jogPanel_, 0, Qt::AlignTop);
+        jogCenterRow_->addWidget(jogPanelSecondary_, 0, Qt::AlignTop);
     }
+    jogCenterRow_->addStretch(1);
+    mainLayout->addWidget(jogContainer_);
 
-    // ═══ SECTION 6: LOOP ROW ═══
+    // ═══ ZONE 5+6: COLLAPSIBLE PERFORMANCE + CUE EDIT ═══
     {
-        auto* loopRow = new QHBoxLayout();
-        loopRow->setSpacing(2);
-        loopRow->setContentsMargins(3, 1, 3, 1);
+        // ── Toggle button row: [PERFORMANCE] [CUE EDIT] ──
+        auto* panelToggleRow = new QHBoxLayout();
+        panelToggleRow->setSpacing(2);
+        panelToggleRow->setContentsMargins(1, 0, 1, 0);
 
-        auto* loopLbl = new QLabel(QStringLiteral("LOOP"), outerFrame);
-        loopLbl->setStyleSheet(sectionLabelStyle);
-        loopLbl->setFixedWidth(40);
-        loopLbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-        loopRow->addWidget(loopLbl);
-
-        loopRow->addSpacing(2);
-
-        auto makeLoopBtn = [&](const QString& text) -> QPushButton* {
-            auto* btn = new QPushButton(text, outerFrame);
-            btn->setStyleSheet(btnSmall);
-            btn->setCursor(Qt::PointingHandCursor);
-            QFont f = btn->font(); f.setPointSizeF(6.5); f.setBold(true); btn->setFont(f);
-            return btn;
-        };
-
-        loopInBtn_ = makeLoopBtn(QStringLiteral("IN"));
-        loopOutBtn_ = makeLoopBtn(QStringLiteral("OUT"));
-        reloopBtn_ = makeLoopBtn(QStringLiteral("RELOOP"));
-
-        loopRow->addWidget(loopInBtn_, 1);
-        loopRow->addWidget(loopOutBtn_, 1);
-        loopRow->addWidget(reloopBtn_, 1);
-
-        loopSizeLabel_ = new QLabel(QStringLiteral("4 BEAT"), outerFrame);
-        {
-            QFont f = loopSizeLabel_->font(); f.setPointSizeF(6.0); f.setBold(true);
-            loopSizeLabel_->setFont(f);
-        }
-        loopSizeLabel_->setStyleSheet(QStringLiteral(
-            "color: #555; background: #0a0c12; border: 1px solid rgba(%1,%2,%3,30);"
-            " border-radius: 2px; padding: 1px 4px;")
-            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
-        loopSizeLabel_->setAlignment(Qt::AlignCenter);
-        loopSizeLabel_->setFixedWidth(42);
-        loopRow->addWidget(loopSizeLabel_);
-
-        mainLayout->addLayout(loopRow);
-    }
-
-    addFlowSep();
-
-    // ═══ SECTION 7: MUTE — utility toggle ═══
-    {
-        auto* utilRow = new QHBoxLayout();
-        utilRow->setSpacing(3);
-        utilRow->setContentsMargins(2, 0, 2, 0);
-
-        cueMonBtn_ = nullptr;
-
-        muteBtn_ = new QPushButton(QStringLiteral("MUTE"), outerFrame);
-        muteBtn_->setCheckable(true);
-        muteBtn_->setChecked(false);
-        muteBtn_->setCursor(Qt::PointingHandCursor);
-        muteBtn_->setToolTip(QStringLiteral("Mute deck output to master"));
-        { QFont f = muteBtn_->font(); f.setPointSizeF(7.0); f.setBold(true); muteBtn_->setFont(f); }
-        muteBtn_->setStyleSheet(QStringLiteral(
+        const QString btnToggleStyle = QStringLiteral(
             "QPushButton {"
-            "  background: #0e1018; border: 1px solid #333; border-radius: 3px;"
-            "  color: #888; padding: 1px 6px; min-height: 22px; }"
-            "QPushButton:hover { border: 1px solid #555; color: #bbb; }"
+            "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,50);"
+            "  border-radius: 3px; color: #888; padding: 1px 8px;"
+            "  min-height: 22px; }"
+            "QPushButton:hover {"
+            "  background: rgba(%1,%2,%3,25); color: #ccc;"
+            "  border: 1px solid rgba(%1,%2,%3,120); }"
             "QPushButton:checked {"
-            "  background: rgba(255,40,40,30); border: 1px solid #cc3333;"
-            "  color: #ff4444; }"));
-        utilRow->addWidget(muteBtn_, 1);
+            "  background: rgba(%1,%2,%3,40);"
+            "  border: 2px solid rgba(%1,%2,%3,180); color: #fff; }")
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue());
 
-        mainLayout->addLayout(utilRow);
+        perfToggleBtn_ = new QPushButton(QStringLiteral("PERFORMANCE"), outerFrame);
+        perfToggleBtn_->setCheckable(true);
+        perfToggleBtn_->setChecked(false);
+        perfToggleBtn_->setCursor(Qt::PointingHandCursor);
+        perfToggleBtn_->setToolTip(QStringLiteral("Toggle hot cues, loop, auto-loop, beat jump"));
+        perfToggleBtn_->setStyleSheet(btnToggleStyle);
+        { QFont f = perfToggleBtn_->font(); f.setPointSizeF(7.0); f.setBold(true); perfToggleBtn_->setFont(f); }
+        panelToggleRow->addWidget(perfToggleBtn_, 1);
+
+        cueEditToggleBtn_ = new QPushButton(QStringLiteral("CUE EDIT"), outerFrame);
+        cueEditToggleBtn_->setCheckable(true);
+        cueEditToggleBtn_->setChecked(false);
+        cueEditToggleBtn_->setCursor(Qt::PointingHandCursor);
+        cueEditToggleBtn_->setToolTip(QStringLiteral("Toggle cue fine adjustment controls"));
+        cueEditToggleBtn_->setStyleSheet(btnToggleStyle);
+        { QFont f = cueEditToggleBtn_->font(); f.setPointSizeF(7.0); f.setBold(true); cueEditToggleBtn_->setFont(f); }
+        panelToggleRow->addWidget(cueEditToggleBtn_, 1);
+
+        mainLayout->addLayout(panelToggleRow);
     }
 
-    addFlowSep();
-
-    // ═══ SECTION 8: LEVEL METERS (L/R) ═══
+    // ── PERFORMANCE panel (collapsed by default) ──
     {
-        auto* meterCluster = new QHBoxLayout();
-        meterCluster->setSpacing(4);
-        meterCluster->setContentsMargins(0, 0, 0, 0);
+        perfPanel_ = new QFrame(outerFrame);
+        perfPanel_->setObjectName(QStringLiteral("perfPanel%1").arg(deckIndex_));
+        perfPanel_->setStyleSheet(QStringLiteral(
+            "QFrame#perfPanel%1 {"
+            "  background: #080b10; border: 1px solid rgba(%2,%3,%4,30);"
+            "  border-radius: 4px; }")
+            .arg(deckIndex_)
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
 
-        auto* lblL = new QLabel(QStringLiteral("L"), outerFrame);
-        lblL->setStyleSheet(QStringLiteral(
-            "color: %1; background: transparent; font-size: 6pt; font-weight: bold;").arg(accent_));
-        lblL->setAlignment(Qt::AlignBottom | Qt::AlignHCenter);
-        lblL->setFixedWidth(10);
-        meterCluster->addWidget(lblL);
+        auto* perfLayout = new QVBoxLayout(perfPanel_);
+        perfLayout->setSpacing(2);
+        perfLayout->setContentsMargins(4, 3, 4, 3);
 
+        // Hot Cue row
+        {
+            auto* hotCueRow = new QHBoxLayout();
+            hotCueRow->setSpacing(2);
+            hotCueRow->setContentsMargins(0, 0, 0, 0);
+
+            auto* hotCueLbl = new QLabel(QStringLiteral("HOT CUE"), perfPanel_);
+            hotCueLbl->setStyleSheet(sectionLabelStyle);
+            hotCueLbl->setFixedWidth(40);
+            hotCueLbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            hotCueRow->addWidget(hotCueLbl);
+            hotCueRow->addSpacing(2);
+
+            auto makeHotCue = [&](const QString& text) -> QPushButton* {
+                auto* btn = new QPushButton(text, perfPanel_);
+                btn->setStyleSheet(btnSmall);
+                btn->setCursor(Qt::PointingHandCursor);
+                QFont f = btn->font(); f.setPointSizeF(7.0); f.setBold(true); btn->setFont(f);
+                return btn;
+            };
+
+            hotCue1Btn_ = makeHotCue(QStringLiteral("1"));
+            hotCue2Btn_ = makeHotCue(QStringLiteral("2"));
+            hotCue3Btn_ = makeHotCue(QStringLiteral("3"));
+            hotCue4Btn_ = makeHotCue(QStringLiteral("4"));
+
+            hotCueRow->addWidget(hotCue1Btn_, 1);
+            hotCueRow->addWidget(hotCue2Btn_, 1);
+            hotCueRow->addWidget(hotCue3Btn_, 1);
+            hotCueRow->addWidget(hotCue4Btn_, 1);
+
+            perfLayout->addLayout(hotCueRow);
+        }
+
+        // Loop row
+        {
+            auto* loopRow = new QHBoxLayout();
+            loopRow->setSpacing(2);
+            loopRow->setContentsMargins(0, 0, 0, 0);
+
+            auto* loopLbl = new QLabel(QStringLiteral("LOOP"), perfPanel_);
+            loopLbl->setStyleSheet(sectionLabelStyle);
+            loopLbl->setFixedWidth(40);
+            loopLbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            loopRow->addWidget(loopLbl);
+            loopRow->addSpacing(2);
+
+            auto makeLoopBtn = [&](const QString& text) -> QPushButton* {
+                auto* btn = new QPushButton(text, perfPanel_);
+                btn->setStyleSheet(btnSmall);
+                btn->setCursor(Qt::PointingHandCursor);
+                QFont f = btn->font(); f.setPointSizeF(6.5); f.setBold(true); btn->setFont(f);
+                return btn;
+            };
+
+            loopInBtn_ = makeLoopBtn(QStringLiteral("IN"));
+            loopOutBtn_ = makeLoopBtn(QStringLiteral("OUT"));
+            reloopBtn_ = makeLoopBtn(QStringLiteral("RELOOP"));
+
+            loopRow->addWidget(loopInBtn_, 1);
+            loopRow->addWidget(loopOutBtn_, 1);
+            loopRow->addWidget(reloopBtn_, 1);
+
+            loopSizeLabel_ = new QLabel(QStringLiteral("4 BEAT"), perfPanel_);
+            {
+                QFont f = loopSizeLabel_->font(); f.setPointSizeF(6.0); f.setBold(true);
+                loopSizeLabel_->setFont(f);
+            }
+            loopSizeLabel_->setStyleSheet(QStringLiteral(
+                "color: #555; background: #0a0c12; border: 1px solid rgba(%1,%2,%3,30);"
+                " border-radius: 2px; padding: 1px 4px;")
+                .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
+            loopSizeLabel_->setAlignment(Qt::AlignCenter);
+            loopSizeLabel_->setFixedWidth(42);
+            loopRow->addWidget(loopSizeLabel_);
+
+            perfLayout->addLayout(loopRow);
+        }
+
+        // Auto-loop row
+        {
+            auto* autoLoopRow = new QHBoxLayout();
+            autoLoopRow->setSpacing(2);
+            autoLoopRow->setContentsMargins(0, 0, 0, 0);
+
+            auto* autoLbl = new QLabel(QStringLiteral("AUTO"), perfPanel_);
+            autoLbl->setStyleSheet(sectionLabelStyle);
+            autoLbl->setFixedWidth(40);
+            autoLbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            autoLoopRow->addWidget(autoLbl);
+            autoLoopRow->addSpacing(2);
+
+            auto makeSmall = [&](const QString& text) -> QPushButton* {
+                auto* btn = new QPushButton(text, perfPanel_);
+                btn->setStyleSheet(btnSmall);
+                btn->setCursor(Qt::PointingHandCursor);
+                QFont f = btn->font(); f.setPointSizeF(6.5); f.setBold(true); btn->setFont(f);
+                return btn;
+            };
+
+            autoLoop1Btn_ = makeSmall(QStringLiteral("1"));
+            autoLoop2Btn_ = makeSmall(QStringLiteral("2"));
+            autoLoop4Btn_ = makeSmall(QStringLiteral("4"));
+            autoLoop8Btn_ = makeSmall(QStringLiteral("8"));
+            autoLoop16Btn_ = makeSmall(QStringLiteral("16"));
+
+            autoLoopRow->addWidget(autoLoop1Btn_, 1);
+            autoLoopRow->addWidget(autoLoop2Btn_, 1);
+            autoLoopRow->addWidget(autoLoop4Btn_, 1);
+            autoLoopRow->addWidget(autoLoop8Btn_, 1);
+            autoLoopRow->addWidget(autoLoop16Btn_, 1);
+
+            perfLayout->addLayout(autoLoopRow);
+        }
+
+        // Beat jump row
+        {
+            auto* jumpRow = new QHBoxLayout();
+            jumpRow->setSpacing(2);
+            jumpRow->setContentsMargins(0, 0, 0, 0);
+
+            auto* jumpLbl = new QLabel(QStringLiteral("JUMP"), perfPanel_);
+            jumpLbl->setStyleSheet(sectionLabelStyle);
+            jumpLbl->setFixedWidth(40);
+            jumpLbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            jumpRow->addWidget(jumpLbl);
+            jumpRow->addSpacing(2);
+
+            auto makeJump = [&](const QString& text) -> QPushButton* {
+                auto* btn = new QPushButton(text, perfPanel_);
+                btn->setStyleSheet(btnSmall);
+                btn->setCursor(Qt::PointingHandCursor);
+                QFont f = btn->font(); f.setPointSizeF(6.5); f.setBold(true); btn->setFont(f);
+                return btn;
+            };
+
+            beatJumpNeg8Btn_ = makeJump(QStringLiteral("-8"));
+            beatJumpNeg4Btn_ = makeJump(QStringLiteral("-4"));
+            beatJumpNeg2Btn_ = makeJump(QStringLiteral("-2"));
+            beatJumpPos2Btn_ = makeJump(QStringLiteral("+2"));
+            beatJumpPos4Btn_ = makeJump(QStringLiteral("+4"));
+            beatJumpPos8Btn_ = makeJump(QStringLiteral("+8"));
+
+            jumpRow->addWidget(beatJumpNeg8Btn_, 1);
+            jumpRow->addWidget(beatJumpNeg4Btn_, 1);
+            jumpRow->addWidget(beatJumpNeg2Btn_, 1);
+            jumpRow->addSpacing(4);
+            jumpRow->addWidget(beatJumpPos2Btn_, 1);
+            jumpRow->addWidget(beatJumpPos4Btn_, 1);
+            jumpRow->addWidget(beatJumpPos8Btn_, 1);
+
+            perfLayout->addLayout(jumpRow);
+        }
+
+        perfPanel_->setVisible(false);  // collapsed by default
+        perfVisible_ = false;
+        mainLayout->addWidget(perfPanel_);
+    }
+
+    // ── CUE EDIT panel (collapsed by default) ──
+    {
+        cueEditPanel_ = new QFrame(outerFrame);
+        cueEditPanel_->setObjectName(QStringLiteral("cueEditPanel%1").arg(deckIndex_));
+        cueEditPanel_->setStyleSheet(QStringLiteral(
+            "QFrame#cueEditPanel%1 {"
+            "  background: #080b10; border: 1px solid rgba(%2,%3,%4,30);"
+            "  border-radius: 4px; }")
+            .arg(deckIndex_)
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
+
+        auto* cueEditLayout = new QHBoxLayout(cueEditPanel_);
+        cueEditLayout->setSpacing(1);
+        cueEditLayout->setContentsMargins(4, 3, 4, 3);
+
+        auto* cueAdjLbl = new QLabel(QStringLiteral("CUE \u00B1"), cueEditPanel_);
+        cueAdjLbl->setStyleSheet(sectionLabelStyle);
+        cueAdjLbl->setFixedWidth(30);
+        cueAdjLbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        cueEditLayout->addWidget(cueAdjLbl);
+
+        const QString btnCueAdj = QStringLiteral(
+            "QPushButton {"
+            "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,40);"
+            "  border-radius: 2px; color: #888; padding: 0px 2px;"
+            "  min-height: 18px; min-width: 22px; }"
+            "QPushButton:hover {"
+            "  background: rgba(%1,%2,%3,25); color: #ccc;"
+            "  border: 1px solid rgba(%1,%2,%3,110); }"
+            "QPushButton:pressed { background: #060810; color: #ddd; }")
+            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue());
+
+        auto makeCueAdj = [&](const QString& text) -> QPushButton* {
+            auto* btn = new QPushButton(text, cueEditPanel_);
+            btn->setStyleSheet(btnCueAdj);
+            btn->setCursor(Qt::PointingHandCursor);
+            QFont f = btn->font(); f.setPointSizeF(6.0); f.setBold(true); btn->setFont(f);
+            return btn;
+        };
+
+        cueAdjNeg5_ = makeCueAdj(QStringLiteral("-5"));
+        cueAdjNeg1_ = makeCueAdj(QStringLiteral("-1"));
+        cueAdjNegH_ = makeCueAdj(QStringLiteral("-0.5"));
+        cueAdjNegT_ = makeCueAdj(QStringLiteral("-0.1"));
+        cueAdjPosT_ = makeCueAdj(QStringLiteral("+0.1"));
+        cueAdjPosH_ = makeCueAdj(QStringLiteral("+0.5"));
+        cueAdjPos1_ = makeCueAdj(QStringLiteral("+1"));
+        cueAdjPos5_ = makeCueAdj(QStringLiteral("+5"));
+
+        cueEditLayout->addWidget(cueAdjNeg5_, 1);
+        cueEditLayout->addWidget(cueAdjNeg1_, 1);
+        cueEditLayout->addWidget(cueAdjNegH_, 1);
+        cueEditLayout->addWidget(cueAdjNegT_, 1);
+        cueEditLayout->addSpacing(4);
+        cueEditLayout->addWidget(cueAdjPosT_, 1);
+        cueEditLayout->addWidget(cueAdjPosH_, 1);
+        cueEditLayout->addWidget(cueAdjPos1_, 1);
+        cueEditLayout->addWidget(cueAdjPos5_, 1);
+
+        cueEditPanel_->setVisible(false);  // collapsed by default
+        cueEditVisible_ = false;
+        mainLayout->addWidget(cueEditPanel_);
+    }
+
+    // ═══ ZONE 7: MIXER CONTROLS (horizontal strip below jog) ═══
+    {
+        const int knobSz = 32;
+        const int hitPad = 3;
+        const int widgetSz = knobSz + hitPad * 2;
+
+        auto makeKnobCell = [&](const QString& label, RotaryKnob*& knob,
+                                QLabel*& valLabel, QWidget* parent,
+                                double initVal, double defaultVal) -> QVBoxLayout* {
+            auto* cell = new QVBoxLayout();
+            cell->setSpacing(0);
+            cell->setContentsMargins(0, 0, 0, 0);
+
+            knob = new RotaryKnob(parent);
+            knob->setFixedSize(widgetSz, widgetSz);
+            knob->setMinimumSize(widgetSz, widgetSz);
+            knob->setMaximumSize(widgetSz, widgetSz);
+            knob->setHitPadding(static_cast<double>(hitPad));
+            knob->setValue(initVal);
+            knob->setDefaultValue(defaultVal);
+            cell->addWidget(knob, 0, Qt::AlignHCenter);
+
+            auto* lbl = new QLabel(label, parent);
+            lbl->setAlignment(Qt::AlignHCenter);
+            { QFont f = lbl->font(); f.setPointSizeF(5.0); f.setBold(true); lbl->setFont(f); }
+            lbl->setStyleSheet(QStringLiteral(
+                "color: #999; background: transparent; border: none;"));
+            cell->addWidget(lbl);
+
+            valLabel = new QLabel(QStringLiteral("0"), parent);
+            valLabel->setAlignment(Qt::AlignHCenter);
+            { QFont f = valLabel->font(); f.setPointSizeF(4.5); valLabel->setFont(f); }
+            valLabel->setStyleSheet(QStringLiteral(
+                "color: #666; background: transparent; border: none;"));
+            valLabel->setFixedHeight(10);
+            cell->addWidget(valLabel);
+
+            return cell;
+        };
+
+        // ── PITCH fader + range → under jog wheel (inside jogPanel_) ──
+        {
+            auto* jogLayout = qobject_cast<QVBoxLayout*>(jogPanel_->layout());
+
+            pitchFader_ = new QSlider(Qt::Horizontal, jogPanel_);
+            pitchFader_->setRange(-1000, 1000);
+            pitchFader_->setValue(0);
+            pitchFader_->setFixedHeight(20);
+            pitchFader_->setCursor(Qt::PointingHandCursor);
+            pitchFader_->setStyleSheet(QStringLiteral(
+                "QSlider::groove:horizontal {"
+                "  background: #060810; height: 6px; border-radius: 3px;"
+                "  border: 1px solid rgba(%1,%2,%3,30); }"
+                "QSlider::handle:horizontal {"
+                "  background: #cccccc; width: 10px; height: 16px;"
+                "  margin: -5px 0; border-radius: 3px; }"
+                "QSlider::sub-page:horizontal {"
+                "  background: rgba(%1,%2,%3,50); border-radius: 3px; }"
+                "QSlider::add-page:horizontal { background: transparent; }")
+                .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
+            pitchFader_->installEventFilter(this);
+            jogLayout->addWidget(pitchFader_);
+
+            pitchFaderReadout_ = new QLabel(QStringLiteral("+0.0%"), jogPanel_);
+            pitchFaderReadout_->setAlignment(Qt::AlignHCenter);
+            { QFont f = pitchFaderReadout_->font(); f.setPointSizeF(5.5); pitchFaderReadout_->setFont(f); }
+            pitchFaderReadout_->setStyleSheet(QStringLiteral(
+                "color: #666; background: transparent; border: none;"));
+            pitchFaderReadout_->setFixedHeight(14);
+            jogLayout->addWidget(pitchFaderReadout_);
+
+            auto* pitchRangeRow = new QHBoxLayout();
+            pitchRangeRow->setSpacing(2);
+            pitchRangeRow->setContentsMargins(0, 0, 0, 0);
+
+            const QString btnMicro = QStringLiteral(
+                "QPushButton {"
+                "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,35);"
+                "  border-radius: 2px; color: #777; padding: 0px 2px;"
+                "  min-height: 16px; min-width: 24px; }"
+                "QPushButton:hover {"
+                "  background: rgba(%1,%2,%3,20); color: #bbb;"
+                "  border: 1px solid rgba(%1,%2,%3,100); }"
+                "QPushButton:checked {"
+                "  background: rgba(%1,%2,%3,30);"
+                "  border: 1px solid rgba(%1,%2,%3,160); color: #eee; }"
+                "QPushButton:pressed { background: #060810; color: #ddd; }")
+                .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue());
+
+            pitchRange6Btn_ = new QPushButton(QStringLiteral("\u00B16"), jogPanel_);
+            pitchRange6Btn_->setCheckable(true); pitchRange6Btn_->setChecked(true);
+            pitchRange6Btn_->setStyleSheet(btnMicro); pitchRange6Btn_->setCursor(Qt::PointingHandCursor);
+            { QFont f = pitchRange6Btn_->font(); f.setPointSizeF(5.5); f.setBold(true); pitchRange6Btn_->setFont(f); }
+            pitchRangeRow->addWidget(pitchRange6Btn_);
+
+            pitchRange10Btn_ = new QPushButton(QStringLiteral("\u00B110"), jogPanel_);
+            pitchRange10Btn_->setCheckable(true); pitchRange10Btn_->setChecked(false);
+            pitchRange10Btn_->setStyleSheet(btnMicro); pitchRange10Btn_->setCursor(Qt::PointingHandCursor);
+            { QFont f = pitchRange10Btn_->font(); f.setPointSizeF(5.5); f.setBold(true); pitchRange10Btn_->setFont(f); }
+            pitchRangeRow->addWidget(pitchRange10Btn_);
+
+            pitchRange16Btn_ = new QPushButton(QStringLiteral("\u00B116"), jogPanel_);
+            pitchRange16Btn_->setCheckable(true); pitchRange16Btn_->setChecked(false);
+            pitchRange16Btn_->setStyleSheet(btnMicro); pitchRange16Btn_->setCursor(Qt::PointingHandCursor);
+            { QFont f = pitchRange16Btn_->font(); f.setPointSizeF(5.5); f.setBold(true); pitchRange16Btn_->setFont(f); }
+            pitchRangeRow->addWidget(pitchRange16Btn_);
+
+            keyLockBtn_ = new QPushButton(QStringLiteral("KEY"), jogPanel_);
+            keyLockBtn_->setCheckable(true); keyLockBtn_->setChecked(false);
+            keyLockBtn_->setCursor(Qt::PointingHandCursor);
+            keyLockBtn_->setToolTip(QStringLiteral("Lock musical key"));
+            keyLockBtn_->setStyleSheet(QStringLiteral(
+                "QPushButton {"
+                "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,35);"
+                "  border-radius: 2px; color: #777; padding: 0px 2px; min-height: 16px; }"
+                "QPushButton:hover { background: rgba(%1,%2,%3,20); color: #bbb; }"
+                "QPushButton:checked { background: rgba(0,200,100,25); border: 1px solid #00cc66; color: #00ee77; }")
+                .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
+            { QFont f = keyLockBtn_->font(); f.setPointSizeF(5.5); f.setBold(true); keyLockBtn_->setFont(f); }
+            pitchRangeRow->addWidget(keyLockBtn_);
+
+            pitchRangeRow->addStretch();
+            jogLayout->addLayout(pitchRangeRow);
+
+            // Hidden for API compat
+            pitchKnob_ = new RotaryKnob(outerFrame);
+            pitchKnob_->setVisible(false);
+            pitchValueLabel_ = new QLabel(QString(), outerFrame);
+            pitchValueLabel_->setVisible(false);
+        }
+
+        // ── Horizontal knob strip: GAIN | REV | FILTER | FLG | FX | MUTE | meters ──
+        auto* knobStrip = new QHBoxLayout();
+        knobStrip->setSpacing(4);
+        knobStrip->setContentsMargins(4, 2, 4, 2);
+
+        auto* gainCell = makeKnobCell(QStringLiteral("GAIN"), gainKnob_,
+                                      volumeDbLabel_, outerFrame, 0.5, 0.5);
+        volumeDbLabel_->setText(QStringLiteral("0 dB"));
+        gainKnob_->setDetentThreshold(0.03);
+        knobStrip->addLayout(gainCell);
+
+        auto* reverbCell = makeKnobCell(QStringLiteral("REV"), reverbKnob_,
+                                        reverbValueLabel_, outerFrame, 0.0, 0.0);
+        reverbValueLabel_->setText(QStringLiteral("0%"));
+        reverbKnob_->setDefaultValue(0.0);
+        knobStrip->addLayout(reverbCell);
+
+        {
+            filterLabel_ = new QLabel(QStringLiteral("FILTER"), outerFrame);
+            filterLabel_->setVisible(false);
+
+            auto* filterCell = makeKnobCell(QStringLiteral("FILTER"), filterKnob_,
+                                            filterValueLabel_, outerFrame, 0.5, 0.5);
+            filterValueLabel_->setText(QStringLiteral("0.00"));
+            knobStrip->addLayout(filterCell);
+
+            if (filterCell->count() > 1) {
+                if (auto* w = filterCell->itemAt(1) ? filterCell->itemAt(1)->widget() : nullptr) {
+                    if (auto* lbl = qobject_cast<QLabel*>(w)) filterLabel_ = lbl;
+                }
+            }
+        }
+
+        auto* flangerCell = makeKnobCell(QStringLiteral("FLG"), flangerKnob_,
+                                         flangerValueLabel_, outerFrame, 0.0, 0.0);
+        flangerValueLabel_->setText(QStringLiteral("0%"));
+        flangerKnob_->setDefaultValue(0.0);
+        knobStrip->addLayout(flangerCell);
+
+        // FX button
+        {
+            auto* fxCell = new QVBoxLayout();
+            fxCell->setSpacing(0);
+            fxCell->setContentsMargins(0, 0, 0, 0);
+
+            deckFxBtn_ = new QPushButton(QStringLiteral("FX"), outerFrame);
+            deckFxBtn_->setCheckable(true); deckFxBtn_->setChecked(false);
+            deckFxBtn_->setCursor(Qt::PointingHandCursor);
+            deckFxBtn_->setFixedSize(widgetSz, widgetSz);
+            { QFont f = deckFxBtn_->font(); f.setPointSizeF(6.0); f.setBold(true); deckFxBtn_->setFont(f); }
+            deckFxBtn_->setStyleSheet(QStringLiteral(
+                "QPushButton {"
+                "  background: #0e1018; border: 1px solid rgba(%1,%2,%3,40);"
+                "  border-radius: %4px; color: #666; }"
+                "QPushButton:hover { border: 1px solid rgba(%1,%2,%3,120); color: #bbb; }"
+                "QPushButton:checked {"
+                "  background: rgba(%1,%2,%3,50);"
+                "  border: 2px solid rgba(%1,%2,%3,200); color: #fff; }")
+                .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue())
+                .arg(widgetSz / 2));
+            fxCell->addWidget(deckFxBtn_, 0, Qt::AlignHCenter);
+
+            auto* fxLbl = new QLabel(QStringLiteral("FX"), outerFrame);
+            fxLbl->setAlignment(Qt::AlignHCenter);
+            { QFont f = fxLbl->font(); f.setPointSizeF(5.0); f.setBold(true); fxLbl->setFont(f); }
+            fxLbl->setStyleSheet(QStringLiteral(
+                "color: #999; background: transparent; border: none;"));
+            fxCell->addWidget(fxLbl);
+
+            auto* fxSpacer = new QLabel(QString(), outerFrame);
+            fxSpacer->setFixedHeight(10);
+            fxSpacer->setStyleSheet(QStringLiteral("background: transparent; border: none;"));
+            fxCell->addWidget(fxSpacer);
+
+            knobStrip->addLayout(fxCell);
+        }
+
+        // Separator
+        knobStrip->addSpacing(4);
+
+        // MUTE button
+        {
+            auto* muteCell = new QVBoxLayout();
+            muteCell->setSpacing(0);
+            muteCell->setContentsMargins(0, 0, 0, 0);
+
+            muteBtn_ = new QPushButton(QStringLiteral("MUTE"), outerFrame);
+            muteBtn_->setCheckable(true); muteBtn_->setChecked(false);
+            muteBtn_->setCursor(Qt::PointingHandCursor);
+            muteBtn_->setToolTip(QStringLiteral("Mute deck output"));
+            muteBtn_->setFixedSize(widgetSz, 20);
+            { QFont f = muteBtn_->font(); f.setPointSizeF(5.0); f.setBold(true); muteBtn_->setFont(f); }
+            muteBtn_->setStyleSheet(QStringLiteral(
+                "QPushButton {"
+                "  background: #0e1018; border: 1px solid #333; border-radius: 2px; color: #888; }"
+                "QPushButton:hover { border: 1px solid #555; color: #bbb; }"
+                "QPushButton:checked {"
+                "  background: #4a0808; border: 1px solid #ff1111; color: #ff2222; }"));
+            muteCell->addWidget(muteBtn_, 0, Qt::AlignHCenter);
+            muteCell->addStretch();
+            knobStrip->addLayout(muteCell);
+        }
+
+        // Level meters
         meterL_ = new LevelMeter(accentColor, outerFrame);
-        meterCluster->addWidget(meterL_);
-
-        meterCluster->addSpacing(2);
+        meterL_->setFixedSize(10, 50);
+        knobStrip->addWidget(meterL_);
 
         meterR_ = new LevelMeter(accentColor, outerFrame);
-        meterCluster->addWidget(meterR_);
+        meterR_->setFixedSize(10, 50);
+        knobStrip->addWidget(meterR_);
 
-        auto* lblR = new QLabel(QStringLiteral("R"), outerFrame);
-        lblR->setStyleSheet(QStringLiteral(
-            "color: %1; background: transparent; font-size: 6pt; font-weight: bold;").arg(accent_));
-        lblR->setAlignment(Qt::AlignBottom | Qt::AlignHCenter);
-        lblR->setFixedWidth(10);
-        meterCluster->addWidget(lblR);
+        mainLayout->addLayout(knobStrip);
 
-        auto* meterOuter = new QHBoxLayout();
-        meterOuter->addStretch(1);
-        meterOuter->addLayout(meterCluster);
-        meterOuter->addStretch(1);
+        // Keep mixerFrame_ for API compat (hidden)
+        mixerFrame_ = new QFrame(outerFrame);
+        mixerFrame_->setVisible(false);
 
-        auto* meterBox = new QWidget(outerFrame);
-        meterBox->setMinimumHeight(100);
-        meterBox->setMaximumHeight(180);
-        meterBox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
-        meterBox->setLayout(meterOuter);
-        meterBox->setStyleSheet(QStringLiteral("background: transparent;"));
-        mainLayout->addWidget(meterBox, 2);
+        // Density buttons (hidden, kept for API)
+        mixerDensityUpBtn_ = new QPushButton(outerFrame); mixerDensityUpBtn_->hide();
+        mixerDensityDownBtn_ = new QPushButton(outerFrame); mixerDensityDownBtn_->hide();
     }
 
-    addFlowSep();
-
-    // ═══ SECTION 9: EQ (INTEGRATED — tight) ═══
+    // ═══ ZONE 8: EQ / ADVANCED (compact footer) ═══
     {
+        cueMonBtn_ = nullptr;
+
+        auto* eqRow = new QHBoxLayout();
+        eqRow->setSpacing(3);
+        eqRow->setContentsMargins(2, 1, 2, 1);
+
         eqPanel_ = new EqPanel(bridge_, outerFrame);
         eqPanel_->setDeckIndex(deckIndex_);
         eqPanel_->setAccentColor(accent_);
         eqPanel_->setCollapsed(true);
         eqPanel_->setContentsMargins(0, 0, 0, 0);
-        mainLayout->addWidget(eqPanel_);
-    }
+        eqRow->addWidget(eqPanel_, 1);
 
-    addFlowSep();
-
-    // ═══ SECTION 10: VOLUME FADER (anchored with rail + scale) ═══
-    {
-        auto* faderSection = new QHBoxLayout();
-        faderSection->setSpacing(0);
-        faderSection->setContentsMargins(0, 0, 0, 0);
-
-        auto* scale = new FaderScale(accentColor, 0, 200, outerFrame);
-
-        auto* faderStack = new QVBoxLayout();
-        faderStack->setSpacing(0);
-        faderStack->setContentsMargins(0, 0, 0, 0);
-
-        volumeFader_ = new QSlider(Qt::Vertical, outerFrame);
-        volumeFader_->setRange(0, 200);
-        volumeFader_->setValue(100);
-        volumeFader_->setMinimumHeight(60);
-        volumeFader_->setMaximumHeight(110);
-        volumeFader_->setFixedWidth(24);
-        volumeFader_->setStyleSheet(QStringLiteral(
-            "QSlider::groove:vertical {"
-            "  background: qlineargradient(x1:0,x2:1, stop:0 #080808, stop:0.4 #141414,"
-            "    stop:0.5 #1a1a1a, stop:0.6 #141414, stop:1 #080808);"
-            "  width: 6px; border-radius: 3px;"
-            "  border: 1px solid #222; }"
-            "QSlider::handle:vertical {"
-            "  background: qlineargradient(x1:0,x2:1, stop:0 #e8e8e8, stop:0.5 #ffffff, stop:1 #e8e8e8);"
-            "  border: 1px solid %1; width: 20px; height: 10px;"
-            "  margin: 0 -7px; border-radius: 2px; }"
-            "QSlider::sub-page:vertical { background: #0a0a0a; border-radius: 3px; }"
-            "QSlider::add-page:vertical {"
-            "  background: qlineargradient(x1:0,x2:0, y1:1,y2:0, stop:0 %1, stop:1 rgba(%2,%3,%4,80));"
-            "  border-radius: 3px; }")
-            .arg(accent_)
-            .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
-
-        faderStack->addWidget(volumeFader_, 1, Qt::AlignHCenter);
-
-        volumeDbLabel_ = new QLabel(QStringLiteral("0.0 dB"), outerFrame);
-        volumeDbLabel_->setAlignment(Qt::AlignCenter);
-        volumeDbLabel_->setFixedWidth(42);
-        volumeDbLabel_->setFixedHeight(12);
-        {
-            QFont f = volumeDbLabel_->font();
-            f.setPointSizeF(6.0);
-            f.setBold(true);
-            volumeDbLabel_->setFont(f);
-        }
-        volumeDbLabel_->setStyleSheet(QStringLiteral("color: #bbb; background: transparent;"));
-        faderStack->addWidget(volumeDbLabel_, 0, Qt::AlignHCenter);
-
-        faderSection->addStretch(1);
-        faderSection->addWidget(scale);
-        faderSection->addLayout(faderStack);
-        faderSection->addStretch(1);
-
-        mainLayout->addLayout(faderSection, 1);
+        mainLayout->addLayout(eqRow);
     }
 }
 
@@ -1288,16 +1566,25 @@ void DeckStrip::wireSignals()
     connect(cueBtn_, &QPushButton::clicked, this, [this](bool checked) {
         bridge_->setDeckCueMonitor(deckIndex_, checked);
         waveformCtrl_.onCuePressed();   // snap waveform to cue focus
+        std::fprintf(stderr, "MIX_CUE_ASSIGN deck=%d enabled=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
     });
-    // Skip back / forward 30 seconds
+    // Skip back / forward 30 seconds (with logging)
     connect(syncBtn_, &QPushButton::clicked, this, [this]() {
         const double pos = bridge_->deckPlayhead(deckIndex_);
         bridge_->seekDeck(deckIndex_, std::max(0.0, pos - 30.0));
+        std::fprintf(stderr, "TRANSPORT_SEEK_BACK deck=%d from=%.2f to=%.2f\n",
+                     deckIndex_, pos, std::max(0.0, pos - 30.0));
+        std::fflush(stderr);
     });
     connect(hotCueBtn_, &QPushButton::clicked, this, [this]() {
         const double pos = bridge_->deckPlayhead(deckIndex_);
         const double dur = bridge_->deckDuration(deckIndex_);
         bridge_->seekDeck(deckIndex_, std::min(dur, pos + 30.0));
+        std::fprintf(stderr, "TRANSPORT_SEEK_FORWARD deck=%d from=%.2f to=%.2f\n",
+                     deckIndex_, pos, std::min(dur, pos + 30.0));
+        std::fflush(stderr);
     });
     // LOOP — placeholder (no-op for now)
     connect(loopBtn_, &QPushButton::clicked, this, []() {});
@@ -1313,22 +1600,155 @@ void DeckStrip::wireSignals()
     connect(loopOutBtn_, &QPushButton::clicked, this, []() {});
     connect(reloopBtn_, &QPushButton::clicked, this, []() {});
 
+    // CUE fine tune — adjust playhead position by ±N seconds
+    auto wireCueAdj = [this](QPushButton* btn, double delta) {
+        connect(btn, &QPushButton::clicked, this, [this, delta]() {
+            const double pos = bridge_->deckPlayhead(deckIndex_);
+            const double dur = bridge_->deckDuration(deckIndex_);
+            const double target = std::clamp(pos + delta, 0.0, dur);
+            bridge_->seekDeck(deckIndex_, target);
+            std::fprintf(stderr, "CUE_ADJUST deck=%d delta=%.1f from=%.2f to=%.2f\n",
+                         deckIndex_, delta, pos, target);
+            std::fflush(stderr);
+        });
+    };
+    wireCueAdj(cueAdjNeg5_, -5.0);
+    wireCueAdj(cueAdjNeg1_, -1.0);
+    wireCueAdj(cueAdjNegH_, -0.5);
+    wireCueAdj(cueAdjNegT_, -0.1);
+    wireCueAdj(cueAdjPosT_,  0.1);
+    wireCueAdj(cueAdjPosH_,  0.5);
+    wireCueAdj(cueAdjPos1_,  1.0);
+    wireCueAdj(cueAdjPos5_,  5.0);
+
+    // Player Control Strip — PITCH / REVERB / FLANGER knobs (structure, logging only)
+    pitchKnob_->onValueChanged = [this](double value) {
+        const int pct = static_cast<int>(value * 100.0);
+        if (pitchValueLabel_) pitchValueLabel_->setText(QStringLiteral("%1%").arg(pct));
+        std::fprintf(stderr, "FX_PARAM_CHANGE deck=%d param=PITCH value=%.3f\n",
+                     deckIndex_, value);
+        std::fflush(stderr);
+    };
+    reverbKnob_->onValueChanged = [this](double value) {
+        const int pct = static_cast<int>(value * 100.0);
+        if (reverbValueLabel_) reverbValueLabel_->setText(QStringLiteral("%1%").arg(pct));
+        std::fprintf(stderr, "FX_PARAM_CHANGE deck=%d param=REVERB value=%.3f\n",
+                     deckIndex_, value);
+        std::fflush(stderr);
+    };
+    reverbKnob_->onControlReset = [this]() {
+        std::fprintf(stderr, "CONTROL_RESET deck=%d param=REVERB\n", deckIndex_);
+        std::fflush(stderr);
+    };
+    reverbKnob_->onFineAdjust = [this](double value, const char* mode) {
+        std::fprintf(stderr, "CONTROL_FINE_ADJUST deck=%d param=REVERB value=%.3f mode=%s\n",
+                     deckIndex_, value, mode);
+        std::fflush(stderr);
+    };
+    flangerKnob_->onValueChanged = [this](double value) {
+        const int pct = static_cast<int>(value * 100.0);
+        if (flangerValueLabel_) flangerValueLabel_->setText(QStringLiteral("%1%").arg(pct));
+        std::fprintf(stderr, "FX_PARAM_CHANGE deck=%d param=FLANGER value=%.3f\n",
+                     deckIndex_, value);
+        std::fflush(stderr);
+    };
+    flangerKnob_->onControlReset = [this]() {
+        std::fprintf(stderr, "CONTROL_RESET deck=%d param=FLANGER\n", deckIndex_);
+        std::fflush(stderr);
+    };
+    flangerKnob_->onFineAdjust = [this](double value, const char* mode) {
+        std::fprintf(stderr, "CONTROL_FINE_ADJUST deck=%d param=FLANGER value=%.3f mode=%s\n",
+                     deckIndex_, value, mode);
+        std::fflush(stderr);
+    };
+
+    // DECK FX toggle (structure only — future-proof)
+    connect(deckFxBtn_, &QPushButton::clicked, this, [this](bool checked) {
+        deckFxBtn_->setText(checked ? QStringLiteral("ON") : QStringLiteral("OFF"));
+        std::fprintf(stderr, "DECK_FX_TOGGLE deck=%d enabled=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
+    });
+
     // MUTE toggle
     connect(muteBtn_, &QPushButton::clicked, this, [this](bool checked) {
         bridge_->setDeckMute(deckIndex_, checked);
+        std::fprintf(stderr, "MIX_SIGNAL_PATH_STATE deck=%d muted=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
     });
 
-    connect(volumeFader_, &QSlider::valueChanged, this, [this](int value) {
-        const double linear = static_cast<double>(value) / 100.0;
+    // DJ FILTER knob (rotary, center=neutral, left=LPF, right=HPF)
+    filterKnob_->onValueChanged = [this](double value) {
+        bridge_->setDeckFilter(deckIndex_, value);
+        // Value readout: -1.00 (full LPF) through 0.00 (center) to +1.00 (full HPF)
+        const double display = (value - 0.5) * 2.0;
+        if (filterValueLabel_)
+            filterValueLabel_->setText(QStringLiteral("%1%2")
+                .arg(display >= 0.005 ? QStringLiteral("+") : QString())
+                .arg(display, 0, 'f', 2));
+        // Logging
+        const char* dir = (value < 0.47) ? "LPF" : (value > 0.53) ? "HPF" : "CENTER";
+        std::fprintf(stderr, "MIX_FILTER_SET deck=%d pos=%.3f direction=%s\n",
+                     deckIndex_, value, dir);
+        std::fflush(stderr);
+        // Update label with filter state
+        if (value < 0.47) {
+            filterLabel_->setText(QStringLiteral("FILTER LPF"));
+            filterLabel_->setStyleSheet(QStringLiteral(
+                "color: #ff9030; background: transparent; border: none; padding: 0; font-size: 6pt; font-weight: bold;"));
+        } else if (value > 0.53) {
+            filterLabel_->setText(QStringLiteral("FILTER HPF"));
+            filterLabel_->setStyleSheet(QStringLiteral(
+                "color: #50a0f0; background: transparent; border: none; padding: 0; font-size: 6pt; font-weight: bold;"));
+        } else {
+            filterLabel_->setText(QStringLiteral("FILTER"));
+            filterLabel_->setStyleSheet(QStringLiteral(
+                "color: #ccc; background: transparent; border: none; padding: 0; font-size: 6pt; font-weight: bold;"));
+        }
+    };
+    filterKnob_->onCenterSnapped = [this]() {
+        std::fprintf(stderr, "FILTER_CENTER_SNAP deck=%d\n", deckIndex_);
+        std::fflush(stderr);
+    };
+    filterKnob_->onControlReset = [this]() {
+        std::fprintf(stderr, "CONTROL_RESET deck=%d param=FILTER\n", deckIndex_);
+        std::fflush(stderr);
+    };
+    filterKnob_->onFineAdjust = [this](double value, const char* mode) {
+        std::fprintf(stderr, "CONTROL_FINE_ADJUST deck=%d param=FILTER value=%.3f mode=%s\n",
+                     deckIndex_, value, mode);
+        std::fflush(stderr);
+    };
+
+    gainKnob_->onValueChanged = [this](double value) {
+        // Map 0.0–1.0 knob → 0.0–2.0 linear gain (0.5 = unity = 0 dB)
+        const double linear = value * 2.0;
         bridge_->setDeckGain(deckIndex_, linear);
-        if (value == 0) {
+        if (linear < 1e-4) {
             volumeDbLabel_->setText(QStringLiteral("-\u221E dB"));
         } else {
             const double db = 20.0 * std::log10(linear);
             const QString sign = (db >= 0.05) ? QStringLiteral("+") : QString();
             volumeDbLabel_->setText(QStringLiteral("%1%2 dB").arg(sign).arg(db, 0, 'f', 1));
         }
-    });
+        std::fprintf(stderr, "MIX_GAIN_SET deck=%d linear=%.3f\n",
+                     deckIndex_, linear);
+        std::fflush(stderr);
+    };
+    gainKnob_->onCenterSnapped = [this]() {
+        std::fprintf(stderr, "GAIN_CENTER_SNAP deck=%d (0dB)\n", deckIndex_);
+        std::fflush(stderr);
+    };
+    gainKnob_->onControlReset = [this]() {
+        std::fprintf(stderr, "CONTROL_RESET deck=%d param=GAIN\n", deckIndex_);
+        std::fflush(stderr);
+    };
+    gainKnob_->onFineAdjust = [this](double value, const char* mode) {
+        std::fprintf(stderr, "CONTROL_FINE_ADJUST deck=%d param=GAIN value=%.3f mode=%s\n",
+                     deckIndex_, value, mode);
+        std::fflush(stderr);
+    };
 
     connect(seekSlider_, &QSlider::sliderPressed, this, [this]() {
         seekDragging_ = true;
@@ -1342,21 +1762,297 @@ void DeckStrip::wireSignals()
         }
     });
 
-    // Waveform mode toggle: STATIC ↔ LIVE
-    connect(waveModeBtn_, &QPushButton::toggled, this, [this](bool checked) {
-        if (checked) {
+    // Waveform mode: locked to LIVE (button removed, guard retained)
+    if (waveModeBtn_) {
+        connect(waveModeBtn_, &QPushButton::toggled, this, [this](bool) {
             waveformCtrl_.setUserMode(WaveUserMode::LIVE);
             waveModeBtn_->setText(QStringLiteral("LIVE"));
+        });
+    }
+
+    // ═══ NEW: Jog system ═══
+    connect(jogToggleBtn_, &QPushButton::clicked, this, [this](bool checked) {
+        jogVisible_ = checked;
+        jogPanel_->setVisible(checked);
+        std::fprintf(stderr, "JOG_PANEL_TOGGLE deck=%d visible=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
+    });
+
+    // ═══ NEW: PERFORMANCE + CUE EDIT panel toggles ═══
+    connect(perfToggleBtn_, &QPushButton::clicked, this, [this](bool checked) {
+        perfVisible_ = checked;
+        perfPanel_->setVisible(checked);
+        std::fprintf(stderr, "PERF_PANEL_TOGGLE deck=%d visible=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
+    });
+
+    connect(cueEditToggleBtn_, &QPushButton::clicked, this, [this](bool checked) {
+        cueEditVisible_ = checked;
+        cueEditPanel_->setVisible(checked);
+        std::fprintf(stderr, "CUE_EDIT_PANEL_TOGGLE deck=%d visible=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
+    });
+
+    connect(jogSeekBtn_, &QPushButton::clicked, this, [this]() {
+        jogMode_ = 0;
+        jogSeekBtn_->setChecked(true);
+        jogScratchBtn_->setChecked(false);
+        jogModeLabel_->setText(QStringLiteral("MODE: SEEK"));
+        std::fprintf(stderr, "JOG_MODE_SET deck=%d mode=SEEK\n", deckIndex_);
+        std::fflush(stderr);
+    });
+
+    connect(jogScratchBtn_, &QPushButton::clicked, this, [this]() {
+        jogMode_ = 1;
+        jogSeekBtn_->setChecked(false);
+        jogScratchBtn_->setChecked(true);
+        jogModeLabel_->setText(QStringLiteral("MODE: SCRATCH"));
+        std::fprintf(stderr, "JOG_MODE_SET deck=%d mode=SCRATCH\n", deckIndex_);
+        std::fflush(stderr);
+    });
+
+    static_cast<JogWheel*>(jogWheel_)->onJogTurn = [this](double deltaDeg, Qt::KeyboardModifiers mods) {
+        // CTRL held: reduce sensitivity 3× for semi-precision
+        const double sensitivity = (mods & Qt::ControlModifier) ? (1.0 / 3.0) : 1.0;
+        const char* modLabel = (mods & Qt::ControlModifier) ? " [CTRL]" : "";
+
+        if (jogMode_ == 0) {
+            // SEEK mode: 1 full rotation = 5 seconds (1.67s with CTRL)
+            const double seekDelta = (deltaDeg / 360.0) * 5.0 * sensitivity;
+            const double pos = bridge_->deckPlayhead(deckIndex_);
+            const double dur = bridge_->deckDuration(deckIndex_);
+            const double target = std::clamp(pos + seekDelta, 0.0, dur);
+            bridge_->seekDeck(deckIndex_, target);
+            std::fprintf(stderr, "PRIMARY_JOG_SEEK deck=%d delta=%.3f from=%.2f to=%.2f%s\n",
+                         deckIndex_, seekDelta, pos, target, modLabel);
+            std::fflush(stderr);
         } else {
-            waveformCtrl_.setUserMode(WaveUserMode::STATIC);
-            waveModeBtn_->setText(QStringLiteral("STATIC"));
+            // SCRATCH mode: log only (full scratch engine not yet wired)
+            const double scratchDelta = deltaDeg * sensitivity;
+            std::fprintf(stderr, "PRIMARY_JOG_SCRATCH deck=%d delta_deg=%.2f%s\n",
+                         deckIndex_, scratchDelta, modLabel);
+            std::fflush(stderr);
+        }
+    };
+
+    // ═══ SECONDARY JOG: context-driven precision control ═══
+    static_cast<JogWheel*>(jogWheelSecondary_)->onJogTurn = [this](double deltaDeg, Qt::KeyboardModifiers mods) {
+        // SHIFT held: ultra-fine 4× reduction
+        const double shiftMul = (mods & Qt::ShiftModifier) ? 0.25 : 1.0;
+        const char* shiftTag = (mods & Qt::ShiftModifier) ? " [SHIFT]" : "";
+
+        const double pos = bridge_->deckPlayhead(deckIndex_);
+        const double dur = bridge_->deckDuration(deckIndex_);
+
+        if (cueEditVisible_) {
+            // FINE TRIM: tightest resolution — 1 rotation = 20ms
+            const double seekDelta = (deltaDeg / 360.0) * 0.02 * shiftMul;
+            const double target = std::clamp(pos + seekDelta, 0.0, dur);
+            bridge_->seekDeck(deckIndex_, target);
+            std::fprintf(stderr, "SECONDARY_JOG_FINE_TRIM deck=%d delta=%.5f to=%.4f%s\n",
+                         deckIndex_, seekDelta, target, shiftTag);
+            std::fflush(stderr);
+        } else if (!bridge_->deckIsPlaying(deckIndex_) && trackLoaded_) {
+            // CUE ADJUST: paused/stopped with track — 1 rotation = 50ms
+            const double seekDelta = (deltaDeg / 360.0) * 0.05 * shiftMul;
+            const double target = std::clamp(pos + seekDelta, 0.0, dur);
+            bridge_->seekDeck(deckIndex_, target);
+            std::fprintf(stderr, "SECONDARY_JOG_CUE_ADJUST deck=%d delta=%.5f to=%.4f%s\n",
+                         deckIndex_, seekDelta, target, shiftTag);
+            std::fflush(stderr);
+        } else if (bridge_->deckIsPlaying(deckIndex_)) {
+            // NUDGE: tempo nudge while playing — 1 rotation = 150ms
+            const double seekDelta = (deltaDeg / 360.0) * 0.15 * shiftMul;
+            const double target = std::clamp(pos + seekDelta, 0.0, dur);
+            bridge_->seekDeck(deckIndex_, target);
+            std::fprintf(stderr, "SECONDARY_JOG_NUDGE deck=%d delta=%.5f to=%.4f%s\n",
+                         deckIndex_, seekDelta, target, shiftTag);
+            std::fflush(stderr);
+        } else {
+            // Fallback: no track loaded — fine seek
+            const double seekDelta = (deltaDeg / 360.0) * 0.1 * shiftMul;
+            const double target = std::clamp(pos + seekDelta, 0.0, dur);
+            bridge_->seekDeck(deckIndex_, target);
+            std::fprintf(stderr, "SECONDARY_JOG_IDLE deck=%d delta=%.5f%s\n",
+                         deckIndex_, seekDelta, shiftTag);
+            std::fflush(stderr);
+        }
+    };
+
+    // ═══ NEW: SYNC / MASTER toggles ═══
+    connect(syncToggleBtn_, &QPushButton::clicked, this, [this](bool checked) {
+        syncEnabled_ = checked;
+        std::fprintf(stderr, "DECK_SYNC_TOGGLE deck=%d enabled=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
+    });
+
+    connect(masterToggleBtn_, &QPushButton::clicked, this, [this](bool checked) {
+        masterEnabled_ = checked;
+        std::fprintf(stderr, "DECK_MASTER_TOGGLE deck=%d enabled=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
+    });
+
+    // ═══ NEW: Pitch fader ═══
+    connect(pitchFader_, &QSlider::valueChanged, this, [this](int value) {
+        // Map slider value to percentage based on current pitch range
+        const double pct = (static_cast<double>(value) / 1000.0) * pitchRange_;
+        const QString sign = (pct >= 0.05) ? QStringLiteral("+") : QString();
+        pitchFaderReadout_->setText(QStringLiteral("%1%2%")
+            .arg(sign).arg(pct, 0, 'f', 1));
+        std::fprintf(stderr, "MIX_PITCH_SET deck=%d pct=%.2f range=%.0f\n",
+                     deckIndex_, pct, pitchRange_);
+        std::fflush(stderr);
+    });
+    // Double-click reset for pitch fader
+    pitchFader_->installEventFilter(this);
+
+    // ═══ NEW: Pitch range toggles ═══
+    auto wirePitchRange = [this](QPushButton* btn, double range) {
+        connect(btn, &QPushButton::clicked, this, [this, range, btn]() {
+            pitchRange_ = range;
+            pitchRange6Btn_->setChecked(range == 6.0);
+            pitchRange10Btn_->setChecked(range == 10.0);
+            pitchRange16Btn_->setChecked(range == 16.0);
+            // Re-emit current fader value with new range mapping
+            const double pct = (static_cast<double>(pitchFader_->value()) / 1000.0) * pitchRange_;
+            const QString sign = (pct >= 0.05) ? QStringLiteral("+") : QString();
+            pitchFaderReadout_->setText(QStringLiteral("%1%2%")
+                .arg(sign).arg(pct, 0, 'f', 1));
+            std::fprintf(stderr, "PITCH_RANGE_SET deck=%d range=%.0f\n",
+                         deckIndex_, range);
+            std::fflush(stderr);
+        });
+    };
+    wirePitchRange(pitchRange6Btn_, 6.0);
+    wirePitchRange(pitchRange10Btn_, 10.0);
+    wirePitchRange(pitchRange16Btn_, 16.0);
+
+    // ═══ NEW: KEY LOCK ═══
+    connect(keyLockBtn_, &QPushButton::clicked, this, [this](bool checked) {
+        keyLocked_ = checked;
+        std::fprintf(stderr, "KEY_LOCK_TOGGLE deck=%d enabled=%d\n",
+                     deckIndex_, checked ? 1 : 0);
+        std::fflush(stderr);
+    });
+
+    // ═══ NEW: Auto-loop ═══
+    auto wireAutoLoop = [this](QPushButton* btn, int beats) {
+        connect(btn, &QPushButton::clicked, this, [this, beats]() {
+            std::fprintf(stderr, "AUTO_LOOP_SET deck=%d beats=%d\n",
+                         deckIndex_, beats);
+            std::fflush(stderr);
+        });
+    };
+    wireAutoLoop(autoLoop1Btn_, 1);
+    wireAutoLoop(autoLoop2Btn_, 2);
+    wireAutoLoop(autoLoop4Btn_, 4);
+    wireAutoLoop(autoLoop8Btn_, 8);
+    wireAutoLoop(autoLoop16Btn_, 16);
+
+    // ═══ NEW: Beat jump ═══
+    auto wireBeatJump = [this](QPushButton* btn, int beats) {
+        connect(btn, &QPushButton::clicked, this, [this, beats]() {
+            // Estimate beat duration from BPM (fallback 2s if no BPM)
+            const double bpm = bridge_->deckBpmFixed(deckIndex_);
+            const double beatSec = (bpm > 0.0) ? (60.0 / bpm) : 2.0;
+            const double jumpSec = beatSec * static_cast<double>(beats);
+            const double pos = bridge_->deckPlayhead(deckIndex_);
+            const double dur = bridge_->deckDuration(deckIndex_);
+            const double target = std::clamp(pos + jumpSec, 0.0, dur);
+            bridge_->seekDeck(deckIndex_, target);
+            std::fprintf(stderr, "BEAT_JUMP deck=%d beats=%d sec=%.3f from=%.2f to=%.2f\n",
+                         deckIndex_, beats, jumpSec, pos, target);
+            std::fflush(stderr);
+        });
+    };
+    wireBeatJump(beatJumpNeg8Btn_, -8);
+    wireBeatJump(beatJumpNeg4Btn_, -4);
+    wireBeatJump(beatJumpNeg2Btn_, -2);
+    wireBeatJump(beatJumpPos2Btn_, 2);
+    wireBeatJump(beatJumpPos4Btn_, 4);
+    wireBeatJump(beatJumpPos8Btn_, 8);
+
+    // ═══ NEW: Mixer density ═══
+    connect(mixerDensityUpBtn_, &QPushButton::clicked, this, [this]() {
+        if (mixerDensityMode_ < 1) {
+            mixerDensityMode_ = 1;
+            applyMixerDensity();
+            std::fprintf(stderr, "MIXER_DENSITY_CHANGED deck=%d mode=NORMAL\n", deckIndex_);
+            std::fflush(stderr);
         }
     });
+    connect(mixerDensityDownBtn_, &QPushButton::clicked, this, [this]() {
+        if (mixerDensityMode_ > 0) {
+            mixerDensityMode_ = 0;
+            applyMixerDensity();
+            std::fprintf(stderr, "MIXER_DENSITY_CHANGED deck=%d mode=COMPACT\n", deckIndex_);
+            std::fflush(stderr);
+        }
+    });
+}
+
+bool DeckStrip::eventFilter(QObject* obj, QEvent* event)
+{
+    // Pitch fader: double-click resets to 0 (center)
+    if (obj == pitchFader_ && event->type() == QEvent::MouseButtonDblClick) {
+        pitchFader_->setValue(0);
+        std::fprintf(stderr, "CONTROL_RESET deck=%d param=PITCH\n", deckIndex_);
+        std::fflush(stderr);
+        return true;
+    }
+    return QWidget::eventFilter(obj, event);
+}
+
+void DeckStrip::applyMixerDensity()
+{
+    // Horizontal knob strip — density modes adjust knob size
+    const int knobSz = (mixerDensityMode_ == 0) ? 30 : 34;
+    const int hitPad = 3;
+    const int widgetSz = knobSz + hitPad * 2;
+
+    for (auto* knob : { gainKnob_, reverbKnob_, flangerKnob_, filterKnob_ }) {
+        if (knob) {
+            knob->setFixedSize(widgetSz, widgetSz);
+            knob->setMinimumSize(widgetSz, widgetSz);
+            knob->setMaximumSize(widgetSz, widgetSz);
+            knob->setHitPadding(static_cast<double>(hitPad));
+        }
+    }
+    if (deckFxBtn_) deckFxBtn_->setFixedSize(widgetSz, widgetSz);
 }
 
 void DeckStrip::loadTrack(const QString& filePath)
 {
     bridge_->loadTrackToDeck(deckIndex_, filePath);
+}
+
+void DeckStrip::updateAnalysisPanel(const QJsonObject& panel)
+{
+    if (analysisDash_)
+        analysisDash_->updatePanel(panel);
+}
+
+void DeckStrip::toggleStemOverlay()
+{
+    if (!kEnableStemOverlay) return;   // feature disabled at compile time
+    auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+    const bool next = !wf->stemOverlayEnabled();
+    wf->setStemOverlayEnabled(next);
+    std::fprintf(stderr, "STEM_OVERLAY_TOGGLE deck=%d enabled=%d\n",
+                 deckIndex_, next ? 1 : 0);
+    std::fflush(stderr);
+}
+
+void DeckStrip::cycleDebugBandSolo()
+{
+    if (!kEnableStemOverlay) return;
+    auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+    wf->cycleDebugBandSolo();
 }
 
 void DeckStrip::refreshFromSnapshot()
@@ -1441,6 +2137,22 @@ void DeckStrip::refreshFromSnapshot()
                     .arg(deckIndex_).arg(wfData.size()).arg(waveformTrackPath_);
                 qInfo().noquote() << QStringLiteral("WAVEFORM_DECK_MATCH deck=%1 path=%2")
                     .arg(deckIndex_).arg(waveformTrackPath_);
+
+                // ── Stem overlay: band-energy analysis ──
+                if (kEnableStemOverlay) {
+                    auto bt0 = std::chrono::steady_clock::now();
+                    auto bandData = bridge_->getBandEnergyOverview(deckIndex_, 2048);
+                    auto bt1 = std::chrono::steady_clock::now();
+                    const double bandMs = std::chrono::duration<double, std::milli>(bt1 - bt0).count();
+                    if (!bandData.empty()) {
+                        wf->setBandEnergyData(bandData);
+                        std::fprintf(stderr,
+                            "STEM_OVERLAY_ANALYSIS_END deck=%d bands=%zu genMs=%.1f path=%s\n",
+                            deckIndex_, bandData.size(), bandMs,
+                            waveformTrackPath_.toUtf8().constData());
+                        std::fflush(stderr);
+                    }
+                }
             }
         } else if (++waveformFetchPolls_ > 600) {
             // Give up after ~10 seconds (600 polls × 16ms)
@@ -1519,6 +2231,7 @@ void DeckStrip::refreshFromSnapshot()
         if (dur > 0.0) {
             auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
             wf->setPlayheadFraction(static_cast<float>(ph / dur));
+            wf->setTrackDuration(static_cast<float>(dur));
             waveformCtrl_.updatePlayhead(ph, dur);
 
             // Push controller state into renderer
@@ -1529,14 +2242,28 @@ void DeckStrip::refreshFromSnapshot()
 
         // ── Waveform state: transport edge detection ──
         if (playing && !prevPlaying_) {
-            waveformCtrl_.onPlay();   // → LIVE_SCROLL or STATIC_PLAY
+            const char* oldState = waveViewStateName(waveformCtrl_.state());
+            waveformCtrl_.onPlay();   // → LIVE_SCROLL (always)
+            auto tid = static_cast<size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+            std::fprintf(stderr,
+                "WAVE_STYLE_PLAY_TRANSITION deck=%d old=%s new=%s "
+                "styleChange=NONE tid=%zu\n",
+                deckIndex_, oldState, waveViewStateName(waveformCtrl_.state()), tid);
+            std::fflush(stderr);
         } else if (!playing && prevPlaying_) {
+            const char* oldState = waveViewStateName(waveformCtrl_.state());
             // Distinguish stop (playhead ≈ 0) from pause
             if (ph < 0.05) {
                 waveformCtrl_.onStop();   // → OVERVIEW
             } else {
                 waveformCtrl_.onPause();  // hold current view
             }
+            auto tid = static_cast<size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+            std::fprintf(stderr,
+                "WAVE_STYLE_PLAY_TRANSITION deck=%d old=%s new=%s "
+                "styleChange=NONE tid=%zu\n",
+                deckIndex_, oldState, waveViewStateName(waveformCtrl_.state()), tid);
+            std::fflush(stderr);
         }
         prevPlaying_ = playing;
     } else {
@@ -1631,8 +2358,31 @@ void DeckStrip::refreshFromSnapshot()
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Fast playhead tick (~60fps) — lightweight position-only update.
+// Heavy state (meters, labels, waveform fetch) stays in the 250ms poll.
+// ═══════════════════════════════════════════════════════════════════
+void DeckStrip::tickPlayhead()
+{
+    const double ph  = bridge_->deckPlayhead(deckIndex_);
+    const double dur = bridge_->deckDuration(deckIndex_);
+    if (dur <= 0.0 || !trackLoaded_) return;
+
+    emit playheadMoved(deckIndex_, ph);
+
+    auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+    wf->setPlayheadFraction(static_cast<float>(ph / dur));
+    wf->setTrackDuration(static_cast<float>(dur));
+    waveformCtrl_.updatePlayhead(ph, dur);
+
+    wf->setViewState(waveformCtrl_.state());
+    wf->setViewportAnchor(static_cast<float>(waveformCtrl_.viewportAnchor()));
+    wf->setCueFocusTarget(static_cast<float>(waveformCtrl_.cueFocusTarget()));
+}
+
 void DeckStrip::setTrackMetadata(const QString& title, const QString& artist,
-                                 const QString& bpm, const QString& key)
+                                 const QString& bpm, const QString& key,
+                                 const QString& duration)
 {
     metaTitle_ = title;
     metaArtist_ = artist;
@@ -1645,8 +2395,16 @@ void DeckStrip::setTrackMetadata(const QString& title, const QString& artist,
         trackTitleLabel_->setStyleSheet(QStringLiteral(
             "color: #e8e8e8; background: transparent; border: none;"));
     }
-    if (!artist.isEmpty())
+    if (!artist.isEmpty()) {
         trackArtistLabel_->setText(artist);
+        trackArtistLabel_->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; border: none;"));
+    }
+    if (!duration.isEmpty()) {
+        infoDurationLabel_->setText(duration);
+        infoDurationLabel_->setStyleSheet(QStringLiteral(
+            "color: #999; background: transparent; border: none;"));
+    }
 
     // ── BPM: always update (show "---" when unknown) ──
     if (!bpm.isEmpty()) {
@@ -1680,6 +2438,17 @@ void DeckStrip::setTrackMetadata(const QString& title, const QString& artist,
         .arg(deckIndex_)
         .arg(bpm.isEmpty() ? QStringLiteral("unknown") : bpm)
         .arg(bpmTrackPath_);
+
+    // Immediately populate the analysis dashboard with available metadata
+    if (analysisDash_)
+        analysisDash_->showTrackLoading(title, artist, bpm, key);
+}
+
+void DeckStrip::setAlbumArt(const QPixmap& art)
+{
+    if (jogWheel_) {
+        static_cast<JogWheel*>(jogWheel_)->setAlbumArt(art);
+    }
 }
 
 QString DeckStrip::formatTime(double seconds)

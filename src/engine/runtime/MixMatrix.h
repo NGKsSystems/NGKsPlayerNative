@@ -1,6 +1,5 @@
 #pragma once
-
-constexpr int MAX_DECKS = 4;
+#include "engine/domain/DeckId.h"
 
 struct DeckMixWeights {
     float masterWeight;
@@ -8,5 +7,5 @@ struct DeckMixWeights {
 };
 
 struct MixMatrix {
-    DeckMixWeights decks[4];
+    DeckMixWeights decks[ngks::MAX_DECKS];
 };

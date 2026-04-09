@@ -130,6 +130,7 @@ public:
     Q_INVOKABLE bool loadTrackToDeck(int deckIndex, const QString& filePath);
     Q_INVOKABLE void playDeck(int deckIndex);
     Q_INVOKABLE void stopDeck(int deckIndex);
+    Q_INVOKABLE void unloadDeck(int deckIndex);
     Q_INVOKABLE void pauseDeck(int deckIndex);
     Q_INVOKABLE void seekDeck(int deckIndex, double seconds);
     Q_INVOKABLE void setDeckGain(int deckIndex, double linearGain);
@@ -138,12 +139,14 @@ public:
     Q_INVOKABLE void setDeckEqBypass(int deckIndex, bool bypassed);
     Q_INVOKABLE void setDeckMute(int deckIndex, bool muted);
     Q_INVOKABLE void setDeckCueMonitor(int deckIndex, bool enabled);
+    Q_INVOKABLE void setDeckFilter(int deckIndex, double position);
     Q_INVOKABLE void setCueMix(double ratio);
     Q_INVOKABLE void setCueVolume(double linear);
     Q_INVOKABLE void setOutputMode(int mode);
     Q_INVOKABLE int outputMode() const;
     Q_INVOKABLE QStringList listAudioDeviceNames() const;
     Q_INVOKABLE bool switchAudioDevice(const QString& deviceName);
+    Q_INVOKABLE QStringList listMidiDeviceNames() const;
     Q_INVOKABLE QString activeAudioDeviceName() const;
 
     // ── DJ device-loss ──
@@ -167,6 +170,9 @@ public:
 
     /// Get downsampled waveform overview for a deck (true min/max buckets).
     std::vector<ngks::WaveMinMax> getWaveformOverview(int deckIndex, int numBins);
+
+    /// Get broad frequency-band energy overview for a deck.
+    std::vector<ngks::BandEnergy> getBandEnergyOverview(int deckIndex, int numBins);
 
     /// Returns true when the full file decode (not just preload) is complete.
     bool isDeckFullyDecoded(int deckIndex) const;

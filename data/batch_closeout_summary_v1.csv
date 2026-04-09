@@ -1,0 +1,10 @@
+category,count,notes
+READY_NORMALIZED,401,"On disk. 129 promoted in Waves 3-5, rest pre-existing."
+TOTAL_PROMOTED_WAVES_3_5,129,"Wave 3: 50, Wave 4: 75, Wave 5: 4"
+READY_CANDIDATE_REMAINING,0,Fully drained in Wave 5
+REVIEW_REQUIRED,308,Human judgment needed
+HELD_PROBLEMS_TOTAL,881,"Includes TRUE_DUP, no-parse, low-conf, etc."
+TRUE_DUPLICATE_HOLD,25,Hash-identical duplicates
+NEEDS_REVIEW_CONFLICT,63,From Phase 11 conflict resolution
+DESTINATION_COLLISION_BLOCKED,5,Alt name already in READY
+TOTAL_FILES_SCANNED,3055,From batch_normalization_plan

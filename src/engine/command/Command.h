@@ -28,7 +28,8 @@ enum class CommandType {
     SetEqBandGain,
     SetEqBypass,
     SetDeckMute,
-    SetDeckCueMonitor
+    SetDeckCueMonitor,
+    SetDeckFilter
 };
 
 struct Command {

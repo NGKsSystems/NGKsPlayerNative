@@ -126,6 +126,7 @@ public:
     void setOutputMode(int mode) noexcept { outputMode_.store(mode, std::memory_order_relaxed); }
     int outputMode() const noexcept { return outputMode_.load(std::memory_order_relaxed); }
     void setCueVolume(float linear) noexcept { cueVolume_.store(std::clamp(linear, 0.0f, 1.0f), std::memory_order_relaxed); }
+    void setCueMixRatio(float ratio) noexcept { cueMixRatio_.store(std::clamp(ratio, 0.0f, 1.0f), std::memory_order_relaxed); }
     bool renderOfflineBlock(float* outInterleavedLR, uint32_t frames);
     EngineTelemetrySnapshot getTelemetrySnapshot() const noexcept;
     bool startRtAudioProbe(float toneHz, float toneDb) noexcept;
@@ -184,6 +185,9 @@ public:
 
     /// Get downsampled waveform overview for a deck (thread-safe, true min/max).
     std::vector<ngks::WaveMinMax> getWaveformOverview(ngks::DeckId deckId, int numBins);
+
+    /// Get broad frequency-band energy overview for a deck (time-domain).
+    std::vector<ngks::BandEnergy> getBandEnergyOverview(ngks::DeckId deckId, int numBins);
 
     /// Returns true once the full file (not just preload) has been decoded.
     bool isDeckFullyDecoded(ngks::DeckId deckId) const;
@@ -308,6 +312,7 @@ private:
     float crossfaderPosition_ = 0.5f;
     std::atomic<int> outputMode_ { 0 };  // 0=Stereo, 1=FullMono (master→L, cue→R)
     std::atomic<float> cueVolume_ { 1.0f };
+    std::atomic<float> cueMixRatio_ { 0.5f };  // 0=cue only, 0.5=balanced, 1=master only
     ngks::MasterBus masterBus_ {};
     ngks::AudioGraph audioGraph;
     ngks::JobSystem jobSystem;

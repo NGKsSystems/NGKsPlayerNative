@@ -8,7 +8,8 @@ enum class FxType : uint32_t {
     None = 0,
     Gain = 1,
     SoftClip = 2,
-    SimpleFilter = 3
+    SimpleFilter = 3,
+    DjFilter = 4
 };
 
 }

@@ -1,0 +1,5 @@
+state,count,change,notes
+READY_NORMALIZED,401,+4,"Was 397, now 401"
+READY_CANDIDATE_REMAINING,5,-4,"Pool was 9, 4 promoted"
+TOTAL_PROMOTED_ALL_WAVES,129,+4,Waves 3-5: 50 + 75 + 4
+PERMANENTLY_BLOCKED,,,25 TRUE_DUP + 63 NEEDS_REVIEW + 5 dest_collision = 93

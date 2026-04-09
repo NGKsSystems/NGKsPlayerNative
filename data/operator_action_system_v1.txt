@@ -1,0 +1,95 @@
+NGKsPlayerNative — Operator Action System
+==========================================
+Generated: 2026-04-05 18:03:50
+
+1. WHICH CSV TO OPEN FIRST
+----------------------------
+Start with: delete_safe_v1.csv
+  → Fastest wins. All rows are hash-identical dups with confidence=1.0.
+  → Delete the source files listed. The READY copy is identical.
+
+Then: duplicate_resolution_v1.csv
+  → Group-by-group decisions. Keep primary, archive alternates.
+  → Sort by priority_score DESC to handle high-confidence groups first.
+
+Then: fix_required_v1.csv
+  → Human fixes needed. Sort by priority_score DESC.
+  → Handle DESTINATION_CONFLICT rows first (score=5) — they block promotions.
+
+Last: junk_candidates_v1.csv
+  → Low urgency. Delete or ignore at your discretion.
+
+2. WHAT EACH RECOMMENDED_ACTION MEANS
+----------------------------------------
+  DELETE_SAFE     — File is a hash-identical copy of an existing READY file.
+                    Safe to delete. Primary copy preserved.
+
+  KEEP_PRIMARY    — This file is the selected best version in its dup group.
+                    Keep it. Do not delete.
+
+  ARCHIVE_DUPLICATE — This is an alternate copy. Archive or delete after
+                      confirming primary is preserved.
+
+  REVIEW_DUPLICATE — Operator judgment needed. Low-confidence duplicate
+                     selection. Check both versions before deciding.
+
+  RENAME          — File needs a name fix. Suggested name provided.
+                    May have illegal chars, bad parse, or collision.
+
+  VERIFY          — Proposed name looks correct but needs human sign-off.
+                    Check artist/title split is accurate.
+
+  HOLD            — Too ambiguous for automation. Park it and revisit
+                    when you have more context.
+
+  DELETE          — Junk/low-value file. Not a real track. Safe to delete.
+
+  IGNORE          — Low-value but not worth actively deleting. Skip it.
+
+3. FASTEST ORDER OF OPERATIONS
+---------------------------------
+  Step 1: DELETE SAFE (delete_safe_v1.csv)
+    - Open CSV, filter by recommended_action=DELETE_SAFE
+    - Verify each file_path still exists
+    - Delete source files (READY copy is the keeper)
+    - Time: ~5 minutes for 25 files
+
+  Step 2: RESOLVE DUPLICATES (duplicate_resolution_v1.csv)
+    - Sort by group (group ID in notes)
+    - For each group: keep PRIMARY, archive/delete ALTERNATES
+    - For REVIEW_DUPLICATE: manually compare files
+    - Time: ~20 minutes for high-priority groups
+
+  Step 3: FIX REQUIRED (fix_required_v1.csv)
+    - Sort by priority_score DESC
+    - Handle score=5 (DESTINATION_CONFLICT) first
+    - For RENAME: apply suggested_name
+    - For VERIFY: check and approve or edit
+    - For HOLD: skip, revisit later
+    - Time: ~30-60 minutes depending on count
+
+  Step 4: JUNK CLEANUP (junk_candidates_v1.csv)
+    - Low urgency. Do when convenient.
+    - DELETE compilations/mixes you don't want
+    - IGNORE the rest
+    - Time: ~10 minutes
+
+4. HOW TO USE PRIORITY_SCORE
+-------------------------------
+  5 = Handle IMMEDIATELY — blocks other operations
+  4 = STRONG candidate — high confidence, quick to process
+  3 = NORMAL review — standard operator judgment
+  2 = LOW urgency — handle when convenient
+  1 = IGNORE — long-tail, may never need attention
+
+  In every CSV, sort by priority_score DESC to process highest-impact first.
+
+5. WHAT NOT TO DO AUTOMATICALLY
+---------------------------------
+  - DO NOT batch-delete REVIEW_DUPLICATE rows without checking
+  - DO NOT auto-rename HOLD rows
+  - DO NOT delete files from READY_NORMALIZED
+  - DO NOT modify the live DJ library (C:\Users\suppo\Music)
+  - DO NOT assume near-duplicates are identical — always verify
+  - DO NOT process junk_candidates before completing safe deletes
+  - DO NOT trust low-confidence proposed names without verification

@@ -1,0 +1,11 @@
+metric,value,notes
+total_files_scanned,3055,From batch_normalization_plan
+total_ready_normalized,401,On disk (272 pre-existing + 129 promoted)
+total_promoted_waves_3_5,129,W3:50 W4:75 W5:4
+pct_automated_success,4.2%,Promoted / scanned
+pct_requiring_review,10.1%,308 rows need human judgment
+pct_held,28.8%,881 rows held/blocked
+duplicate_rate,0.8%,25 true duplicates of 3055 scanned
+collision_rate,0.2%,5 destination collisions
+ready_candidate_remaining,0,Pool fully drained
+safe_candidates_exhausted,true,All promotable rows processed

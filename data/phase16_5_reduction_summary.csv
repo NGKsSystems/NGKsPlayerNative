@@ -1,0 +1,11 @@
+metric,value
+original_fix_count,646
+cleaned_to_rename_count,397
+moved_to_junk_count,1
+remaining_verify_count,215
+remaining_hold_count,0
+v3_total_rows,645
+v3_RENAME,431
+v3_VERIFY,214
+v3_HOLD,0
+junk_v2_total,16

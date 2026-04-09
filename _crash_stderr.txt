@@ -1,0 +1,5 @@
+[AUDIO_TRACE] Previous session ring dump found at C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\build_graph\release\bin\data/runtime/trace_ring_dump.txt
+[AUDIO_TRACE ts=20:13:51.621 tid=33040] UI_HEARTBEAT beat=4
+[AUDIO_TRACE ts=20:13:53.629 tid=33040] UI_HEARTBEAT beat=8
+[AUDIO_TRACE ts=20:13:55.631 tid=33040] UI_HEARTBEAT beat=12
+[AUDIO_TRACE ts=20:13:57.629 tid=33040] UI_HEARTBEAT beat=16

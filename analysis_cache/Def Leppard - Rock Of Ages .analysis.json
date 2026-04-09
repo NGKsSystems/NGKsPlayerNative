@@ -1,0 +1,2444 @@
+{
+  "track_id": "Def Leppard - Rock Of Ages ",
+  "filepath": "C:/Users/suppo/Music/Def Leppard - Rock Of Ages .mp3",
+  "duration_s": 248.053,
+  "sample_rate": 22050,
+  "chunk_count": 50,
+  "chunks_completed": 50,
+  "progress": 100.0,
+  "phase": "done",
+  "status": "COMPLETED",
+  "error": "",
+  "final_bpm": 107.67,
+  "bpm_confidence": 0.868,
+  "bpm_family": "MID",
+  "bpm_candidates": [
+    {
+      "bpm": 107.67,
+      "confidence": 0.868,
+      "source": "global_median_ibi"
+    },
+    {
+      "bpm": 107.5,
+      "confidence": 0.76,
+      "source": "mode_histogram"
+    },
+    {
+      "bpm": 107.67,
+      "confidence": 0.6,
+      "source": "median_local_tempos"
+    }
+  ],
+  "final_key": "9A",
+  "final_key_name": "E minor",
+  "key_confidence": 0.542,
+  "key_change_detected": false,
+  "tempo_timeline": [
+    {
+      "time_s": 2.5,
+      "value": 107.67,
+      "confidence": 0.5,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 7.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 12.5,
+      "value": 103.36,
+      "confidence": 1.0,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 17.5,
+      "value": 103.36,
+      "confidence": 1.0,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 22.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 27.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 32.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 37.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 42.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 47.5,
+      "value": 103.36,
+      "confidence": 0.625,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 52.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 57.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 62.5,
+      "value": 103.36,
+      "confidence": 1.0,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 67.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 72.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 77.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 82.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 87.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 92.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 97.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 102.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 107.5,
+      "value": 103.36,
+      "confidence": 0.875,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 112.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 117.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 122.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 127.5,
+      "value": 107.67,
+      "confidence": 0.75,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 132.5,
+      "value": 103.36,
+      "confidence": 1.0,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 137.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 142.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 147.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 152.5,
+      "value": 107.67,
+      "confidence": 0.375,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 157.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 162.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 167.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 172.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 177.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 182.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 187.5,
+      "value": 103.36,
+      "confidence": 1.0,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 192.5,
+      "value": 103.36,
+      "confidence": 1.0,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 197.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 202.5,
+      "value": 107.67,
+      "confidence": 0.875,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 207.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 212.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 217.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 222.5,
+      "value": 107.67,
+      "confidence": 1.0,
+      "label": "107.7 BPM"
+    },
+    {
+      "time_s": 227.5,
+      "value": 103.36,
+      "confidence": 0.75,
+      "label": "103.4 BPM"
+    },
+    {
+      "time_s": 232.5,
+      "value": 136.0,
+      "confidence": 1.0,
+      "label": "136.0 BPM"
+    },
+    {
+      "time_s": 237.5,
+      "value": 112.35,
+      "confidence": 1.0,
+      "label": "112.3 BPM"
+    },
+    {
+      "time_s": 242.5,
+      "value": 129.2,
+      "confidence": 1.0,
+      "label": "129.2 BPM"
+    },
+    {
+      "time_s": 246.526,
+      "value": 107.67,
+      "confidence": 0.625,
+      "label": "107.7 BPM"
+    }
+  ],
+  "key_timeline": [
+    {
+      "time_s": 2.5,
+      "value": 23.0,
+      "confidence": 0.629,
+      "label": "10A (B minor)"
+    },
+    {
+      "time_s": 7.5,
+      "value": 7.0,
+      "confidence": 0.76,
+      "label": "2A (D# minor)"
+    },
+    {
+      "time_s": 12.5,
+      "value": 7.0,
+      "confidence": 0.692,
+      "label": "2A (D# minor)"
+    },
+    {
+      "time_s": 17.5,
+      "value": 7.0,
+      "confidence": 0.738,
+      "label": "2A (D# minor)"
+    },
+    {
+      "time_s": 22.5,
+      "value": 9.0,
+      "confidence": 0.84,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 27.5,
+      "value": 22.0,
+      "confidence": 0.851,
+      "label": "1B (B major)"
+    },
+    {
+      "time_s": 32.5,
+      "value": 8.0,
+      "confidence": 0.861,
+      "label": "12B (E major)"
+    },
+    {
+      "time_s": 37.5,
+      "value": 22.0,
+      "confidence": 0.815,
+      "label": "1B (B major)"
+    },
+    {
+      "time_s": 42.5,
+      "value": 9.0,
+      "confidence": 0.767,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 47.5,
+      "value": 9.0,
+      "confidence": 0.809,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 52.5,
+      "value": 22.0,
+      "confidence": 0.764,
+      "label": "1B (B major)"
+    },
+    {
+      "time_s": 57.5,
+      "value": 9.0,
+      "confidence": 0.801,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 62.5,
+      "value": 9.0,
+      "confidence": 0.815,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 67.5,
+      "value": 9.0,
+      "confidence": 0.813,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 72.5,
+      "value": 9.0,
+      "confidence": 0.735,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 77.5,
+      "value": 9.0,
+      "confidence": 0.815,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 82.5,
+      "value": 8.0,
+      "confidence": 0.835,
+      "label": "12B (E major)"
+    },
+    {
+      "time_s": 87.5,
+      "value": 9.0,
+      "confidence": 0.821,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 92.5,
+      "value": 1.0,
+      "confidence": 0.818,
+      "label": "5A (C minor)"
+    },
+    {
+      "time_s": 97.5,
+      "value": 9.0,
+      "confidence": 0.861,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 102.5,
+      "value": 0.0,
+      "confidence": 0.891,
+      "label": "8B (C major)"
+    },
+    {
+      "time_s": 107.5,
+      "value": 9.0,
+      "confidence": 0.842,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 112.5,
+      "value": 18.0,
+      "confidence": 0.871,
+      "label": "11B (A major)"
+    },
+    {
+      "time_s": 117.5,
+      "value": 9.0,
+      "confidence": 0.809,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 122.5,
+      "value": 22.0,
+      "confidence": 0.882,
+      "label": "1B (B major)"
+    },
+    {
+      "time_s": 127.5,
+      "value": 9.0,
+      "confidence": 0.812,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 132.5,
+      "value": 9.0,
+      "confidence": 0.85,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 137.5,
+      "value": 9.0,
+      "confidence": 0.81,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 142.5,
+      "value": 9.0,
+      "confidence": 0.818,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 147.5,
+      "value": 4.0,
+      "confidence": 0.756,
+      "label": "10B (D major)"
+    },
+    {
+      "time_s": 152.5,
+      "value": 9.0,
+      "confidence": 0.852,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 157.5,
+      "value": 9.0,
+      "confidence": 0.832,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 162.5,
+      "value": 9.0,
+      "confidence": 0.836,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 167.5,
+      "value": 9.0,
+      "confidence": 0.842,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 172.5,
+      "value": 9.0,
+      "confidence": 0.843,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 177.5,
+      "value": 9.0,
+      "confidence": 0.87,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 182.5,
+      "value": 9.0,
+      "confidence": 0.806,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 187.5,
+      "value": 9.0,
+      "confidence": 0.88,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 192.5,
+      "value": 9.0,
+      "confidence": 0.906,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 197.5,
+      "value": 9.0,
+      "confidence": 0.876,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 202.5,
+      "value": 8.0,
+      "confidence": 0.866,
+      "label": "12B (E major)"
+    },
+    {
+      "time_s": 207.5,
+      "value": 0.0,
+      "confidence": 0.847,
+      "label": "8B (C major)"
+    },
+    {
+      "time_s": 212.5,
+      "value": 9.0,
+      "confidence": 0.84,
+      "label": "9A (E minor)"
+    },
+    {
+      "time_s": 217.5,
+      "value": 22.0,
+      "confidence": 0.857,
+      "label": "1B (B major)"
+    },
+    {
+      "time_s": 222.5,
+      "value": 8.0,
+      "confidence": 0.846,
+      "label": "12B (E major)"
+    },
+    {
+      "time_s": 227.5,
+      "value": 18.0,
+      "confidence": 0.797,
+      "label": "11B (A major)"
+    },
+    {
+      "time_s": 232.5,
+      "value": 18.0,
+      "confidence": 0.908,
+      "label": "11B (A major)"
+    },
+    {
+      "time_s": 237.5,
+      "value": 18.0,
+      "confidence": 0.864,
+      "label": "11B (A major)"
+    },
+    {
+      "time_s": 242.5,
+      "value": 18.0,
+      "confidence": 0.896,
+      "label": "11B (A major)"
+    },
+    {
+      "time_s": 246.526,
+      "value": 18.0,
+      "confidence": 0.877,
+      "label": "11B (A major)"
+    }
+  ],
+  "sections": [
+    {
+      "index": 0,
+      "start_s": 0.0,
+      "end_s": 10.0,
+      "duration_s": 10.0,
+      "label": "intro",
+      "energy": 0.0809,
+      "bpm": 107.67,
+      "key": "2A",
+      "novelty": 0.0
+    },
+    {
+      "index": 1,
+      "start_s": 10.0,
+      "end_s": 25.0,
+      "duration_s": 15.0,
+      "label": "buildup",
+      "energy": 0.1507,
+      "bpm": 103.36,
+      "key": "9A",
+      "novelty": 0.0018
+    },
+    {
+      "index": 2,
+      "start_s": 25.0,
+      "end_s": 40.0,
+      "duration_s": 15.0,
+      "label": "verse",
+      "energy": 0.1543,
+      "bpm": 107.67,
+      "key": "1B",
+      "novelty": 0.0059
+    },
+    {
+      "index": 3,
+      "start_s": 40.0,
+      "end_s": 55.0,
+      "duration_s": 15.0,
+      "label": "verse",
+      "energy": 0.1187,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.0044
+    },
+    {
+      "index": 4,
+      "start_s": 55.0,
+      "end_s": 70.0,
+      "duration_s": 15.0,
+      "label": "buildup",
+      "energy": 0.1447,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.0055
+    },
+    {
+      "index": 5,
+      "start_s": 70.0,
+      "end_s": 85.0,
+      "duration_s": 15.0,
+      "label": "verse",
+      "energy": 0.1361,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.0024
+    },
+    {
+      "index": 6,
+      "start_s": 85.0,
+      "end_s": 100.0,
+      "duration_s": 15.0,
+      "label": "buildup",
+      "energy": 0.1738,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.0087
+    },
+    {
+      "index": 7,
+      "start_s": 100.0,
+      "end_s": 120.0,
+      "duration_s": 20.0,
+      "label": "verse",
+      "energy": 0.1746,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.0388
+    },
+    {
+      "index": 8,
+      "start_s": 120.0,
+      "end_s": 150.0,
+      "duration_s": 30.0,
+      "label": "verse",
+      "energy": 0.1478,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.014
+    },
+    {
+      "index": 9,
+      "start_s": 150.0,
+      "end_s": 185.0,
+      "duration_s": 35.0,
+      "label": "verse",
+      "energy": 0.1737,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.044
+    },
+    {
+      "index": 10,
+      "start_s": 185.0,
+      "end_s": 230.0,
+      "duration_s": 45.0,
+      "label": "verse",
+      "energy": 0.1673,
+      "bpm": 107.67,
+      "key": "9A",
+      "novelty": 0.0207
+    },
+    {
+      "index": 11,
+      "start_s": 230.0,
+      "end_s": 248.053,
+      "duration_s": 18.053,
+      "label": "outro",
+      "energy": 0.0463,
+      "bpm": 120.77,
+      "key": "11B",
+      "novelty": 0.2103
+    }
+  ],
+  "cues": [
+    {
+      "time_s": 85.0,
+      "type": "drop",
+      "label": "High energy @ 85.0s"
+    },
+    {
+      "time_s": 100.0,
+      "type": "drop",
+      "label": "High energy @ 100.0s"
+    },
+    {
+      "time_s": 150.0,
+      "type": "drop",
+      "label": "High energy @ 150.0s"
+    },
+    {
+      "time_s": 185.0,
+      "type": "drop",
+      "label": "High energy @ 185.0s"
+    }
+  ],
+  "frame_features": [
+    {
+      "chunk_index": 0,
+      "start_s": 0.0,
+      "end_s": 5.0,
+      "rms": 0.062404,
+      "onset_strength": 1.765185,
+      "spectral_flux": 0.951521,
+      "chroma": [
+        0.8989,
+        1.0,
+        0.986,
+        0.9038,
+        0.9899,
+        0.9671,
+        0.9569,
+        0.7226,
+        0.6471,
+        0.7104,
+        0.7957,
+        0.9003
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 4,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 1,
+      "start_s": 5.0,
+      "end_s": 10.0,
+      "rms": 0.099466,
+      "onset_strength": 1.553103,
+      "spectral_flux": 1.429152,
+      "chroma": [
+        0.7408,
+        0.8382,
+        0.7891,
+        1.0,
+        0.9026,
+        0.8418,
+        0.8938,
+        0.8074,
+        0.6042,
+        0.6678,
+        0.7499,
+        0.7622
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5341,
+        0.6037,
+        0.5341
+      ]
+    },
+    {
+      "chunk_index": 2,
+      "start_s": 10.0,
+      "end_s": 15.0,
+      "rms": 0.116922,
+      "onset_strength": 1.461044,
+      "spectral_flux": 1.660019,
+      "chroma": [
+        0.7902,
+        0.8176,
+        0.9159,
+        1.0,
+        0.926,
+        0.8421,
+        0.883,
+        0.7574,
+        0.6156,
+        0.7734,
+        0.7459,
+        0.7847
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5108,
+        0.4876
+      ]
+    },
+    {
+      "chunk_index": 3,
+      "start_s": 15.0,
+      "end_s": 20.0,
+      "rms": 0.161262,
+      "onset_strength": 1.366164,
+      "spectral_flux": 2.326688,
+      "chroma": [
+        0.799,
+        0.8428,
+        0.8013,
+        1.0,
+        0.925,
+        0.8633,
+        0.9324,
+        0.8446,
+        0.6404,
+        0.7634,
+        0.7725,
+        0.8198
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 4,
+      "start_s": 20.0,
+      "end_s": 25.0,
+      "rms": 0.173914,
+      "onset_strength": 1.138053,
+      "spectral_flux": 2.221494,
+      "chroma": [
+        0.5236,
+        0.5072,
+        0.6994,
+        0.719,
+        1.0,
+        0.6128,
+        0.6013,
+        0.5454,
+        0.4934,
+        0.6162,
+        0.5078,
+        0.8215
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.6269,
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 5,
+      "start_s": 25.0,
+      "end_s": 30.0,
+      "rms": 0.160437,
+      "onset_strength": 1.118589,
+      "spectral_flux": 2.113379,
+      "chroma": [
+        0.6314,
+        0.6615,
+        0.7924,
+        0.83,
+        0.9468,
+        0.6802,
+        0.8367,
+        0.6623,
+        0.5575,
+        0.7303,
+        0.6702,
+        1.0
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 6,
+      "start_s": 30.0,
+      "end_s": 35.0,
+      "rms": 0.146676,
+      "onset_strength": 1.082492,
+      "spectral_flux": 1.858137,
+      "chroma": [
+        0.5179,
+        0.5372,
+        0.6766,
+        0.7108,
+        1.0,
+        0.5751,
+        0.6937,
+        0.5414,
+        0.4978,
+        0.6017,
+        0.4981,
+        0.9432
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 7,
+      "start_s": 35.0,
+      "end_s": 40.0,
+      "rms": 0.155766,
+      "onset_strength": 1.149743,
+      "spectral_flux": 2.072026,
+      "chroma": [
+        0.6727,
+        0.6551,
+        0.7856,
+        0.8698,
+        1.0,
+        0.7287,
+        0.792,
+        0.6689,
+        0.5896,
+        0.6423,
+        0.6386,
+        0.9311
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.4644
+      ]
+    },
+    {
+      "chunk_index": 8,
+      "start_s": 40.0,
+      "end_s": 45.0,
+      "rms": 0.117849,
+      "onset_strength": 1.421719,
+      "spectral_flux": 1.677134,
+      "chroma": [
+        0.5694,
+        0.5805,
+        0.7015,
+        0.8662,
+        1.0,
+        0.6718,
+        0.707,
+        0.6165,
+        0.4998,
+        0.5067,
+        0.6012,
+        0.6834
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 9,
+      "start_s": 45.0,
+      "end_s": 50.0,
+      "rms": 0.116113,
+      "onset_strength": 1.436812,
+      "spectral_flux": 1.681882,
+      "chroma": [
+        0.5336,
+        0.5443,
+        0.6213,
+        0.8027,
+        1.0,
+        0.5739,
+        0.6172,
+        0.5758,
+        0.4776,
+        0.4584,
+        0.5421,
+        0.6474
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 5,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 10,
+      "start_s": 50.0,
+      "end_s": 55.0,
+      "rms": 0.122108,
+      "onset_strength": 1.344703,
+      "spectral_flux": 1.731977,
+      "chroma": [
+        0.6612,
+        0.6631,
+        0.7582,
+        0.9609,
+        1.0,
+        0.7705,
+        0.7601,
+        0.6661,
+        0.5891,
+        0.6411,
+        0.7348,
+        0.8699
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 11,
+      "start_s": 55.0,
+      "end_s": 60.0,
+      "rms": 0.127069,
+      "onset_strength": 1.198487,
+      "spectral_flux": 1.776268,
+      "chroma": [
+        0.6286,
+        0.6781,
+        0.8126,
+        0.9168,
+        1.0,
+        0.7628,
+        0.8193,
+        0.8581,
+        0.6319,
+        0.7487,
+        0.7009,
+        0.728
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 12,
+      "start_s": 60.0,
+      "end_s": 65.0,
+      "rms": 0.157451,
+      "onset_strength": 1.168657,
+      "spectral_flux": 2.001467,
+      "chroma": [
+        0.4924,
+        0.5357,
+        0.6374,
+        0.7817,
+        1.0,
+        0.6135,
+        0.5992,
+        0.5675,
+        0.5154,
+        0.5998,
+        0.5086,
+        0.6876
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.6037,
+        0.6502,
+        0.6502,
+        0.6502,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 13,
+      "start_s": 65.0,
+      "end_s": 70.0,
+      "rms": 0.149509,
+      "onset_strength": 1.175389,
+      "spectral_flux": 1.997317,
+      "chroma": [
+        0.4705,
+        0.5078,
+        0.5918,
+        0.7146,
+        1.0,
+        0.5907,
+        0.6333,
+        0.5253,
+        0.4638,
+        0.4794,
+        0.5243,
+        0.655
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 14,
+      "start_s": 70.0,
+      "end_s": 75.0,
+      "rms": 0.122227,
+      "onset_strength": 1.435826,
+      "spectral_flux": 1.749763,
+      "chroma": [
+        0.5369,
+        0.5646,
+        0.6775,
+        0.8773,
+        1.0,
+        0.6554,
+        0.6347,
+        0.5381,
+        0.4969,
+        0.506,
+        0.5987,
+        0.6934
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 15,
+      "start_s": 75.0,
+      "end_s": 80.0,
+      "rms": 0.133787,
+      "onset_strength": 1.238655,
+      "spectral_flux": 1.871787,
+      "chroma": [
+        0.6707,
+        0.6779,
+        0.7719,
+        0.9437,
+        1.0,
+        0.7917,
+        0.8624,
+        0.8897,
+        0.6346,
+        0.7088,
+        0.7138,
+        0.7722
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 16,
+      "start_s": 80.0,
+      "end_s": 85.0,
+      "rms": 0.152208,
+      "onset_strength": 1.116389,
+      "spectral_flux": 1.937416,
+      "chroma": [
+        0.5061,
+        0.5141,
+        0.6652,
+        0.7978,
+        1.0,
+        0.5929,
+        0.6464,
+        0.5638,
+        0.542,
+        0.708,
+        0.5528,
+        0.7508
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 17,
+      "start_s": 85.0,
+      "end_s": 90.0,
+      "rms": 0.162389,
+      "onset_strength": 1.112839,
+      "spectral_flux": 2.146555,
+      "chroma": [
+        0.4498,
+        0.4832,
+        0.5396,
+        0.7195,
+        1.0,
+        0.5664,
+        0.5756,
+        0.4809,
+        0.4216,
+        0.4116,
+        0.433,
+        0.6931
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 18,
+      "start_s": 90.0,
+      "end_s": 95.0,
+      "rms": 0.19,
+      "onset_strength": 1.048134,
+      "spectral_flux": 2.542375,
+      "chroma": [
+        1.0,
+        0.6885,
+        0.6958,
+        0.8456,
+        0.7895,
+        0.6805,
+        0.7781,
+        0.8695,
+        0.5314,
+        0.5164,
+        0.6054,
+        0.7372
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5573,
+        0.418
+      ]
+    },
+    {
+      "chunk_index": 19,
+      "start_s": 95.0,
+      "end_s": 100.0,
+      "rms": 0.168927,
+      "onset_strength": 1.021412,
+      "spectral_flux": 2.171429,
+      "chroma": [
+        0.458,
+        0.4579,
+        0.5718,
+        0.7177,
+        1.0,
+        0.5233,
+        0.5738,
+        0.5643,
+        0.4494,
+        0.4396,
+        0.4303,
+        0.6312
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.6037,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 20,
+      "start_s": 100.0,
+      "end_s": 105.0,
+      "rms": 0.167095,
+      "onset_strength": 1.015076,
+      "spectral_flux": 2.198311,
+      "chroma": [
+        1.0,
+        0.54,
+        0.5947,
+        0.6586,
+        0.7872,
+        0.5791,
+        0.6567,
+        0.7504,
+        0.4561,
+        0.4701,
+        0.5198,
+        0.6029
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 21,
+      "start_s": 105.0,
+      "end_s": 110.0,
+      "rms": 0.174961,
+      "onset_strength": 1.014133,
+      "spectral_flux": 2.290972,
+      "chroma": [
+        0.4574,
+        0.4721,
+        0.5214,
+        0.7093,
+        1.0,
+        0.5246,
+        0.5628,
+        0.5101,
+        0.4539,
+        0.4888,
+        0.455,
+        0.6301
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 22,
+      "start_s": 110.0,
+      "end_s": 115.0,
+      "rms": 0.164681,
+      "onset_strength": 1.061013,
+      "spectral_flux": 2.125762,
+      "chroma": [
+        0.6442,
+        0.6064,
+        0.5579,
+        0.6388,
+        0.8067,
+        0.507,
+        0.5724,
+        0.6638,
+        0.5137,
+        1.0,
+        0.5762,
+        0.5752
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5341,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573,
+        0.4876
+      ]
+    },
+    {
+      "chunk_index": 23,
+      "start_s": 115.0,
+      "end_s": 120.0,
+      "rms": 0.191651,
+      "onset_strength": 1.057966,
+      "spectral_flux": 2.551651,
+      "chroma": [
+        1.0,
+        0.655,
+        0.7946,
+        0.9452,
+        0.9968,
+        0.7136,
+        0.7597,
+        0.7518,
+        0.5758,
+        0.6333,
+        0.6742,
+        0.9139
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.4876
+      ]
+    },
+    {
+      "chunk_index": 24,
+      "start_s": 120.0,
+      "end_s": 125.0,
+      "rms": 0.163126,
+      "onset_strength": 1.098391,
+      "spectral_flux": 2.072695,
+      "chroma": [
+        0.5874,
+        0.6329,
+        0.7024,
+        0.7555,
+        0.8829,
+        0.5954,
+        0.7661,
+        0.5849,
+        0.5233,
+        0.6844,
+        0.5831,
+        1.0
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 25,
+      "start_s": 125.0,
+      "end_s": 130.0,
+      "rms": 0.153822,
+      "onset_strength": 1.22726,
+      "spectral_flux": 2.023002,
+      "chroma": [
+        0.5892,
+        0.5975,
+        0.7155,
+        0.7875,
+        1.0,
+        0.6581,
+        0.6774,
+        0.5867,
+        0.5044,
+        0.5051,
+        0.5529,
+        0.802
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 6,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 26,
+      "start_s": 130.0,
+      "end_s": 135.0,
+      "rms": 0.142055,
+      "onset_strength": 1.35548,
+      "spectral_flux": 1.889954,
+      "chroma": [
+        0.5265,
+        0.5815,
+        0.6883,
+        0.7471,
+        1.0,
+        0.6304,
+        0.6371,
+        0.6869,
+        0.4861,
+        0.464,
+        0.5218,
+        0.6593
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 27,
+      "start_s": 135.0,
+      "end_s": 140.0,
+      "rms": 0.141464,
+      "onset_strength": 1.247328,
+      "spectral_flux": 1.947526,
+      "chroma": [
+        0.5441,
+        0.5563,
+        0.629,
+        0.8012,
+        1.0,
+        0.6305,
+        0.6224,
+        0.588,
+        0.4932,
+        0.4981,
+        0.5816,
+        0.711
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 28,
+      "start_s": 140.0,
+      "end_s": 145.0,
+      "rms": 0.142473,
+      "onset_strength": 1.273747,
+      "spectral_flux": 2.03958,
+      "chroma": [
+        0.6184,
+        0.6211,
+        0.6446,
+        0.7833,
+        1.0,
+        0.6833,
+        0.682,
+        0.6091,
+        0.518,
+        0.5278,
+        0.6147,
+        0.7884
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.4644
+      ]
+    },
+    {
+      "chunk_index": 29,
+      "start_s": 145.0,
+      "end_s": 150.0,
+      "rms": 0.143786,
+      "onset_strength": 1.189921,
+      "spectral_flux": 1.983615,
+      "chroma": [
+        0.6639,
+        0.6621,
+        0.7865,
+        0.8782,
+        0.844,
+        0.7349,
+        0.8126,
+        0.938,
+        0.6745,
+        1.0,
+        0.6983,
+        0.7139
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 30,
+      "start_s": 150.0,
+      "end_s": 155.0,
+      "rms": 0.156947,
+      "onset_strength": 1.161973,
+      "spectral_flux": 2.006339,
+      "chroma": [
+        0.4715,
+        0.4499,
+        0.4978,
+        0.6182,
+        1.0,
+        0.5147,
+        0.5147,
+        0.462,
+        0.4291,
+        0.4009,
+        0.4518,
+        0.6565
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 3,
+      "beat_intervals": [
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 31,
+      "start_s": 155.0,
+      "end_s": 160.0,
+      "rms": 0.170449,
+      "onset_strength": 1.123052,
+      "spectral_flux": 2.257993,
+      "chroma": [
+        0.5604,
+        0.5886,
+        0.6558,
+        0.8262,
+        1.0,
+        0.5755,
+        0.6862,
+        0.6423,
+        0.5572,
+        0.5307,
+        0.6332,
+        0.8362
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 32,
+      "start_s": 160.0,
+      "end_s": 165.0,
+      "rms": 0.165582,
+      "onset_strength": 1.196154,
+      "spectral_flux": 2.222836,
+      "chroma": [
+        0.6249,
+        0.6772,
+        0.6448,
+        0.7824,
+        1.0,
+        0.6869,
+        0.747,
+        0.6663,
+        0.5317,
+        0.5602,
+        0.5795,
+        0.7476
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 33,
+      "start_s": 165.0,
+      "end_s": 170.0,
+      "rms": 0.165196,
+      "onset_strength": 1.208983,
+      "spectral_flux": 2.335284,
+      "chroma": [
+        0.6701,
+        0.6728,
+        0.6853,
+        0.8572,
+        1.0,
+        0.6709,
+        0.7736,
+        0.7204,
+        0.5773,
+        0.5823,
+        0.6806,
+        0.8557
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.4644
+      ]
+    },
+    {
+      "chunk_index": 34,
+      "start_s": 170.0,
+      "end_s": 175.0,
+      "rms": 0.176245,
+      "onset_strength": 1.199507,
+      "spectral_flux": 2.421151,
+      "chroma": [
+        0.5652,
+        0.5911,
+        0.633,
+        0.8773,
+        1.0,
+        0.6071,
+        0.683,
+        0.7301,
+        0.5203,
+        0.5182,
+        0.592,
+        0.7272
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 35,
+      "start_s": 175.0,
+      "end_s": 180.0,
+      "rms": 0.16188,
+      "onset_strength": 1.121381,
+      "spectral_flux": 2.16834,
+      "chroma": [
+        0.6611,
+        0.6467,
+        0.7882,
+        0.8575,
+        1.0,
+        0.705,
+        0.7788,
+        0.9526,
+        0.694,
+        0.9253,
+        0.6967,
+        0.7803
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 36,
+      "start_s": 180.0,
+      "end_s": 185.0,
+      "rms": 0.219711,
+      "onset_strength": 1.044239,
+      "spectral_flux": 2.899644,
+      "chroma": [
+        0.502,
+        0.4704,
+        0.6718,
+        0.8119,
+        1.0,
+        0.5247,
+        0.53,
+        0.5279,
+        0.466,
+        0.4988,
+        0.4975,
+        0.6526
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 37,
+      "start_s": 185.0,
+      "end_s": 190.0,
+      "rms": 0.160814,
+      "onset_strength": 0.990802,
+      "spectral_flux": 2.107789,
+      "chroma": [
+        0.9639,
+        0.6222,
+        0.7258,
+        0.8385,
+        1.0,
+        0.6912,
+        0.7821,
+        0.8813,
+        0.551,
+        0.5617,
+        0.6028,
+        0.7716
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 38,
+      "start_s": 190.0,
+      "end_s": 195.0,
+      "rms": 0.167806,
+      "onset_strength": 1.011548,
+      "spectral_flux": 2.173838,
+      "chroma": [
+        0.6819,
+        0.4918,
+        0.5335,
+        0.6849,
+        1.0,
+        0.5887,
+        0.6418,
+        0.6554,
+        0.4831,
+        0.478,
+        0.4603,
+        0.6264
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5805,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.4644
+      ]
+    },
+    {
+      "chunk_index": 39,
+      "start_s": 195.0,
+      "end_s": 200.0,
+      "rms": 0.171399,
+      "onset_strength": 1.006147,
+      "spectral_flux": 2.238077,
+      "chroma": [
+        0.8364,
+        0.5488,
+        0.6276,
+        0.7322,
+        1.0,
+        0.6167,
+        0.6683,
+        0.7245,
+        0.4818,
+        0.4742,
+        0.4975,
+        0.6148
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 40,
+      "start_s": 200.0,
+      "end_s": 205.0,
+      "rms": 0.1738,
+      "onset_strength": 1.024006,
+      "spectral_flux": 2.36604,
+      "chroma": [
+        0.5588,
+        0.6064,
+        0.639,
+        0.7721,
+        1.0,
+        0.626,
+        0.6785,
+        0.6341,
+        0.5809,
+        0.7726,
+        0.6036,
+        0.7454
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 7,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 41,
+      "start_s": 205.0,
+      "end_s": 210.0,
+      "rms": 0.165274,
+      "onset_strength": 1.108608,
+      "spectral_flux": 2.134948,
+      "chroma": [
+        1.0,
+        0.6198,
+        0.6223,
+        0.8044,
+        0.8394,
+        0.5334,
+        0.6077,
+        0.7467,
+        0.4902,
+        0.7455,
+        0.5624,
+        0.6058
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805
+      ]
+    },
+    {
+      "chunk_index": 42,
+      "start_s": 210.0,
+      "end_s": 215.0,
+      "rms": 0.177566,
+      "onset_strength": 1.007438,
+      "spectral_flux": 2.335478,
+      "chroma": [
+        0.6951,
+        0.5876,
+        0.7585,
+        0.8212,
+        1.0,
+        0.6186,
+        0.6398,
+        0.6031,
+        0.5033,
+        0.5949,
+        0.5498,
+        0.843
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 43,
+      "start_s": 215.0,
+      "end_s": 220.0,
+      "rms": 0.165443,
+      "onset_strength": 1.110109,
+      "spectral_flux": 2.159182,
+      "chroma": [
+        0.648,
+        0.6547,
+        0.7947,
+        0.8327,
+        0.9283,
+        0.6844,
+        0.8487,
+        0.7006,
+        0.6038,
+        0.755,
+        0.6336,
+        1.0
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5341,
+        0.4876
+      ]
+    },
+    {
+      "chunk_index": 44,
+      "start_s": 220.0,
+      "end_s": 225.0,
+      "rms": 0.165329,
+      "onset_strength": 1.081566,
+      "spectral_flux": 2.146321,
+      "chroma": [
+        0.5065,
+        0.5216,
+        0.6658,
+        0.7294,
+        1.0,
+        0.5194,
+        0.5717,
+        0.5002,
+        0.4736,
+        0.6019,
+        0.5302,
+        0.7773
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 9,
+      "beat_intervals": [
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.5805,
+        0.5573,
+        0.4412,
+        0.4412
+      ]
+    },
+    {
+      "chunk_index": 45,
+      "start_s": 225.0,
+      "end_s": 230.0,
+      "rms": 0.158647,
+      "onset_strength": 1.197024,
+      "spectral_flux": 2.041158,
+      "chroma": [
+        0.7073,
+        0.7653,
+        0.7653,
+        0.978,
+        1.0,
+        0.7143,
+        0.8358,
+        0.7539,
+        0.6088,
+        0.949,
+        0.6969,
+        0.8216
+      ],
+      "local_tempo": 103.36,
+      "beat_count": 6,
+      "beat_intervals": [
+        0.5805,
+        0.5573,
+        0.5573,
+        0.5805,
+        0.5573
+      ]
+    },
+    {
+      "chunk_index": 46,
+      "start_s": 230.0,
+      "end_s": 235.0,
+      "rms": 0.115538,
+      "onset_strength": 1.063739,
+      "spectral_flux": 0.86214,
+      "chroma": [
+        0.1683,
+        0.1853,
+        0.1399,
+        0.1572,
+        0.5252,
+        0.143,
+        0.1571,
+        0.2088,
+        0.1733,
+        1.0,
+        0.1537,
+        0.2049
+      ],
+      "local_tempo": 136.0,
+      "beat_count": 8,
+      "beat_intervals": [
+        0.4412,
+        0.4644,
+        0.4412,
+        0.4412,
+        0.4412,
+        0.418,
+        0.418
+      ]
+    },
+    {
+      "chunk_index": 47,
+      "start_s": 235.0,
+      "end_s": 240.0,
+      "rms": 0.047103,
+      "onset_strength": 0.98537,
+      "spectral_flux": 0.4167,
+      "chroma": [
+        0.1528,
+        0.2105,
+        0.1597,
+        0.1905,
+        0.3659,
+        0.2053,
+        0.193,
+        0.2436,
+        0.2354,
+        1.0,
+        0.2707,
+        0.1781
+      ],
+      "local_tempo": 112.35,
+      "beat_count": 10,
+      "beat_intervals": [
+        0.5341,
+        0.5341,
+        0.5573,
+        0.5573,
+        0.5108,
+        0.5805,
+        0.5341,
+        0.5573,
+        0.5108
+      ]
+    },
+    {
+      "chunk_index": 48,
+      "start_s": 240.0,
+      "end_s": 245.0,
+      "rms": 0.019077,
+      "onset_strength": 1.106661,
+      "spectral_flux": 0.178835,
+      "chroma": [
+        0.2179,
+        0.3102,
+        0.2302,
+        0.2371,
+        0.4597,
+        0.2685,
+        0.2669,
+        0.3032,
+        0.3039,
+        1.0,
+        0.2479,
+        0.264
+      ],
+      "local_tempo": 129.2,
+      "beat_count": 11,
+      "beat_intervals": [
+        0.4412,
+        0.4644,
+        0.418,
+        0.4412,
+        0.4644,
+        0.4412,
+        0.4644,
+        0.4412,
+        0.3947,
+        0.4412
+      ]
+    },
+    {
+      "chunk_index": 49,
+      "start_s": 245.0,
+      "end_s": 248.053,
+      "rms": 0.003448,
+      "onset_strength": 1.019999,
+      "spectral_flux": 0.030977,
+      "chroma": [
+        0.2651,
+        0.3651,
+        0.2873,
+        0.3288,
+        0.4809,
+        0.3253,
+        0.3315,
+        0.4313,
+        0.3716,
+        1.0,
+        0.286,
+        0.3306
+      ],
+      "local_tempo": 107.67,
+      "beat_count": 5,
+      "beat_intervals": [
+        0.5573,
+        0.5805,
+        0.5805,
+        0.5108
+      ]
+    }
+  ],
+  "analyzer_ready": true,
+  "review_required": false,
+  "review_reason": "",
+  "processing_time_s": 21.871,
+  "started_at": "2026-04-07T08:44:31.218169",
+  "completed_at": "2026-04-07T08:44:56.545471"
+}

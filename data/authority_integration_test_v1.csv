@@ -1,0 +1,51 @@
+track_id,old_chosen_artist,old_chosen_title,new_chosen_artist,new_chosen_title,old_confidence,new_confidence,authority_used,was_reversed_before,was_reversed_after,outcome
+586,DILBAR | Satyameva Jayate | John Abraham Nora Fatehi | Tanishk B Neha Kakkar Ikka Dhvani | T,Series,DILBAR | Satyameva Jayate | John Abraham Nora Fatehi | Tanishk B Neha Kakkar Ikka Dhvani | T,Series,0.36,0.41,1,1,1,review
+697,Guru Randhawa: High Rated Gabru Official Song | DirectorGifty | Bhushan Kumar | T,Series,Guru Randhawa: High Rated Gabru Official Song | DirectorGifty | Bhushan Kumar | T,Series,0.42,0.42,0,1,1,unchanged
+3037,MARC HUDSON,「ASTRALIVE」 | Napalm Records,MARC HUDSON,「ASTRALIVE」 | Napalm Records,0.42,0.42,0,1,1,unchanged
+3038,MARC HUDSON,「STARBOUND STORIES」 | Napalm Records,MARC HUDSON,「STARBOUND STORIES」 | Napalm Records,0.42,0.42,0,1,1,unchanged
+3039,MARC HUDSON,「THE SIREN」 | Napalm Records,MARC HUDSON,「THE SIREN」 | Napalm Records,0.42,0.42,0,1,1,unchanged
+69,Cancun,Jhanking |,Cancun,Jhanking |,0.48,0.48,0,1,1,unchanged
+123,Esperándote,Mtz Manuel Turizo | Video Oficial,Esperándote,Mtz Manuel Turizo | Video Oficial,0.48,0.48,0,1,1,unchanged
+200,La Temperatura,Tostao X Leysong X Buay Press X Maiki VI | Video Oficial,La Temperatura,Tostao X Leysong X Buay Press X Maiki VI | Video Oficial,0.48,0.48,0,1,1,unchanged
+201,Led Zeppelin,Rock and Roll,Led Zeppelin,Rock and Roll,0.48,0.48,0,1,1,unchanged
+206,Lycii,Yoko | Diversity Release,Lycii,Yoko | Diversity Release,0.48,0.48,0,1,1,unchanged
+213,Mello Buckzz X Dee Money,Grave Diggers | Presented by No More Heroes,Mello Buckzz X Dee Money,Grave Diggers | Presented by No More Heroes,0.48,0.48,0,1,1,unchanged
+328,Una Lady Como Tú,Mtz Manuel Turizo | Video Oficial,Una Lady Como Tú,Mtz Manuel Turizo | Video Oficial,0.48,0.48,0,1,1,unchanged
+394,2AM,Louwis,2AM,Louwis,0.48,0.48,0,1,1,unchanged
+543,CocoCay,10 Seconds,CocoCay,10 Seconds,0.48,0.48,0,1,1,unchanged
+558,Culpables,MTZ Manuel Turizo,Culpables,MTZ Manuel Turizo,0.48,0.48,0,1,1,unchanged
+633,El Amante,Nicky Jam,El Amante,Nicky Jam,0.48,0.53,1,1,1,review
+672,Flowcito Playero,Nicolukas,Flowcito Playero,Nicolukas,0.48,0.53,1,1,1,review
+884,Mojaito Seco Video,El Yesmy & El Killer ❌ @ELYirowYElTingo ❌ El Kennedy,Mojaito Seco Video,El Yesmy & El Killer ❌ @ELYirowYElTingo ❌ El Kennedy,0.48,0.48,0,1,1,unchanged
+911,No te saco ya de mi cabeza,CRIS GÁREZ,No te saco ya de mi cabeza,CRIS GÁREZ,0.48,0.48,0,1,1,unchanged
+1005,Sam Smith,Stay With Me & Sam Hunt - Vandalizer by Ryan Robinette,Sam Smith,Stay With Me & Sam Hunt - Vandalizer by Ryan Robinette,0.48,0.53,1,1,1,review
+1096,Travesuras,Nicky Jam,Travesuras,Nicky Jam,0.48,0.68,1,1,1,review
+1111,Vaina Loca,Ozuna x Manuel Turizo,Vaina Loca,Ozuna x Manuel Turizo,0.48,0.53,1,1,1,review
+1338,Delirious ft. Kid Ink,"Steve Aoki, Chris Lake, Tujamo",Delirious ft. Kid Ink,"Steve Aoki, Chris Lake, Tujamo",0.48,0.48,0,1,1,unchanged
+1408,Lycii,Yoko | Diversity Release,Lycii,Yoko | Diversity Release,0.48,0.48,0,1,1,unchanged
+2044,Eruption feat. Precious Wilson,I Cant Stand The Rain • TopPop,Eruption feat. Precious Wilson,I Cant Stand The Rain • TopPop,0.48,0.48,0,1,1,unchanged
+2225,Stand Up And Shout,Dio,Stand Up And Shout,Dio,0.48,0.48,0,1,1,unchanged
+2970,God Loves A Rolling Stone,The Kentucky Headhunters,God Loves A Rolling Stone,The Kentucky Headhunters,0.48,0.48,0,1,1,unchanged
+2999,Simple Man,Lynyrd Skynyrd,Simple Man,Lynyrd Skynyrd,0.48,0.48,0,1,1,unchanged
+2364,2Pac ft. Dr. Dre | Interscope,California Love,2Pac ft. Dr. Dre | Interscope,California Love,0.49,0.49,0,0,0,unchanged
+2911,Anna Netrebko. Russian subtitles,"La Traviata ""Addio, del passato""",Anna Netrebko. Russian subtitles,"La Traviata ""Addio, del passato""",0.49,0.49,0,0,0,unchanged
+1,017,Ice Cube - it Was a Good Day,017,Ice Cube - it Was a Good Day,0.56,0.66,1,0,0,improved
+2,026,Bone Thugs N Harmony - Crossroads,026,Bone Thugs N Harmony - Crossroads,0.56,0.66,1,0,0,improved
+3,030,Snoop Dogg - Gin and Juice,030,Snoop Dogg - Gin and Juice,0.56,0.66,1,0,0,improved
+4,098,Queen Latifah - U.n.i.t.y.,098,Queen Latifah - U.n.i.t.y.,0.56,0.66,1,0,0,improved
+6,175,2pac - I Get Around,175,2pac - I Get Around,0.56,0.66,1,0,0,improved
+7,236,Bone Thugs N Harmony - Thuggish Ruggish Bone,236,Bone Thugs N Harmony - Thuggish Ruggish Bone,0.56,0.66,1,0,0,improved
+8,2pac,Ambitionz Az a Ridah,2pac,Ambitionz Az a Ridah,0.56,0.66,1,0,0,improved
+10,2pac,Keep Ya Head up (From Album - Strictly 4 My N.i.g.g.a.z,2pac,Keep Ya Head up (From Album - Strictly 4 My N.i.g.g.a.z,0.56,0.66,1,0,0,improved
+11,319,Beastie Boys - Intergalactic,319,Beastie Boys - Intergalactic,0.56,0.66,1,0,0,improved
+12,390,Ice Cube - You Know How We Do It,390,Ice Cube - You Know How We Do It,0.56,0.66,1,0,0,improved
+13,440,The Roots - You Got Me ft. Erykah Badu,440,The Roots - You Got Me ft. Erykah Badu,0.56,0.66,1,0,0,improved
+15,530,Black Star - Respiration ft. Common,530,Black Star - Respiration ft. Common,0.56,0.66,1,0,0,improved
+34,Alan Jackson,Anywhere On Earth You Are,Alan Jackson,Anywhere On Earth You Are,0.56,0.66,1,0,0,improved
+35,Alan Jackson,Knew All Along,Alan Jackson,Knew All Along,0.56,0.66,1,0,0,improved
+36,Albert Collins,Ice Pick,Albert Collins,Ice Pick,0.56,0.66,1,0,0,improved
+63,Black Sabbath,~ War Pigs,Black Sabbath,~ War Pigs,0.56,0.66,1,0,0,improved
+91,Dio,The Last in Line,Dio,The Last in Line,0.56,0.56,0,0,0,unchanged
+103,Don Williams,~ No Use Running ~,Don Williams,~ No Use Running ~,0.56,0.66,1,0,0,improved
+104,Don Williams,~ Shes With Me ~,Don Williams,~ Shes With Me ~,0.56,0.66,1,0,0,improved
+105,Don Williams,~~The First Fool In Line ~~,Don Williams,~~The First Fool In Line ~~,0.56,0.66,1,0,0,improved

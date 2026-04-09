@@ -1,0 +1,27 @@
+{
+  "labels": [
+    "Country",
+    "Hip-Hop",
+    "Metal",
+    "Other",
+    "Pop",
+    "Rock"
+  ],
+  "mapping": {
+    "Country": 0,
+    "Hip-Hop": 1,
+    "Metal": 2,
+    "Other": 3,
+    "Pop": 4,
+    "Rock": 5
+  },
+  "features": [
+    "harmonic_stability",
+    "loudness_lufs",
+    "avg_section_duration",
+    "tempo_stability",
+    "energy",
+    "danceability",
+    "section_count"
+  ]
+}

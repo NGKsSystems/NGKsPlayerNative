@@ -82,6 +82,27 @@ bool AudioGraph::setDeckFxGain(DeckId deckId, int slotIndex, float gainLinear) n
     return deckFxChains[deckId].setSlotParam0(slotIndex, gainLinear);
 }
 
+bool AudioGraph::setDeckFilter(DeckId deckId, float position) noexcept
+{
+    if (deckId >= MAX_DECKS) {
+        return false;
+    }
+
+    constexpr int kFilterSlot = 3;  // dedicated slot for DJ filter
+    auto& chain = deckFxChains[deckId];
+
+    // Auto-setup: ensure slot 3 is a DjFilter, enabled, full wet
+    const auto slotState = chain.getSlotState(kFilterSlot);
+    if (slotState.type != static_cast<uint32_t>(FxType::DjFilter)) {
+        chain.setSlotType(kFilterSlot, static_cast<uint32_t>(FxType::DjFilter));
+        chain.setSlotEnabled(kFilterSlot, true);
+        chain.setSlotDryWet(kFilterSlot, 1.0f);
+    }
+
+    chain.setSlotParam0(kFilterSlot, position);
+    return true;
+}
+
 bool AudioGraph::setMasterFxSlotEnabled(int slotIndex, bool enabled) noexcept
 {
     return masterFxChain.setSlotEnabled(slotIndex, enabled);

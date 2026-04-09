@@ -1,0 +1,4 @@
+file_path,result,reason,track_id
+C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\data\_test_intake_phase3\test_intake_1_017 - Ice Cube - it Was a Good Day.mp3,skipped_existing,Already in DB as track_id=3049,3049
+C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\data\_test_intake_phase3\test_intake_2_026 - Bone Thugs N Harmony - Crossroads.mp3,skipped_existing,Already in DB as track_id=3050,3050
+C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\data\_test_intake_phase3\test_intake_3_030 - Snoop Dogg - Gin and Juice.mp3,skipped_existing,Already in DB as track_id=3051,3051

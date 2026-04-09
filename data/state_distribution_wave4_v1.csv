@@ -1,0 +1,5 @@
+state,count,change,notes
+READY_NORMALIZED,397,+75,"Was 322, now 397"
+READY_CANDIDATE_POOL,9,-75,"Pool was 84, 75 promoted"
+RECOVERED_APPLIED,71,,From Phase 11 recovery
+DEFERRED_APPLIED,4,,From Wave 3 deferred

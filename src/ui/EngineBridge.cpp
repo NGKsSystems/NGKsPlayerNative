@@ -43,20 +43,20 @@ void EngineBridge::start()
         return;
     }
     const auto seq = engine.nextSeq();
-    qInfo().noquote() << QStringLiteral("DIAG: EngineBridge::start() => enqueue Play DECK_A seq=%1").arg(seq);
-    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_A, seq, 0, 0.0f, 0 });
+    qInfo().noquote() << QStringLiteral("DIAG: EngineBridge::start() => enqueue Play DECK_S seq=%1").arg(seq);
+    engine.enqueueCommand({ ngks::CommandType::Play, ngks::DECK_S, seq, 0, 0.0f, 0 });
 }
 
 void EngineBridge::stop()
 {
     const auto seq = engine.nextSeq();
-    qInfo().noquote() << QStringLiteral("DIAG: EngineBridge::stop() => enqueue Stop DECK_A seq=%1").arg(seq);
-    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A, seq, 0, 0.0f, 0 });
+    qInfo().noquote() << QStringLiteral("DIAG: EngineBridge::stop() => enqueue Stop DECK_S seq=%1").arg(seq);
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_S, seq, 0, 0.0f, 0 });
 }
 
 void EngineBridge::setMasterGain(double linear01)
 {
-    engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_A, engine.nextSeq(), 0,
+    engine.enqueueCommand({ ngks::CommandType::SetMasterGain, ngks::DECK_S, engine.nextSeq(), 0,
                             static_cast<float>(std::clamp(linear01, 0.0, 1.0)), 0 });
 }
 
@@ -64,7 +64,7 @@ void EngineBridge::setEqBandGain(int band, double gainDb)
 {
     ngks::Command cmd{};
     cmd.type = ngks::CommandType::SetEqBandGain;
-    cmd.deck = ngks::DECK_A;
+    cmd.deck = ngks::DECK_S;
     cmd.seq = engine.nextSeq();
     cmd.slotIndex = static_cast<uint8_t>(std::clamp(band, 0, 15));
     cmd.floatValue = static_cast<float>(std::clamp(gainDb, -12.0, 12.0));
@@ -75,7 +75,7 @@ void EngineBridge::setEqBypass(bool bypassed)
 {
     ngks::Command cmd{};
     cmd.type = ngks::CommandType::SetEqBypass;
-    cmd.deck = ngks::DECK_A;
+    cmd.deck = ngks::DECK_S;
     cmd.seq = engine.nextSeq();
     cmd.boolValue = bypassed ? 1 : 0;
     engine.enqueueCommand(cmd);
@@ -102,13 +102,13 @@ bool EngineBridge::loadTrack(const QString& filePath)
     // Force deck lifecycle to Empty so LoadTrack command is accepted.
     // Stop (Playing→Stopped, rejected if already Stopped — OK) then
     // UnloadTrack (Stopped→Empty). Both harmless if deck is already Empty.
-    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_A,
+    engine.enqueueCommand({ ngks::CommandType::Stop, ngks::DECK_S,
                             engine.nextSeq(), 0, 0.0f, 0 });
-    engine.enqueueCommand({ ngks::CommandType::UnloadTrack, ngks::DECK_A,
+    engine.enqueueCommand({ ngks::CommandType::UnloadTrack, ngks::DECK_S,
                             engine.nextSeq(), 0, 0.0f, 0 });
 
     double duration = 0.0;
-    if (!engine.loadFileIntoDeck(ngks::DECK_A, path, duration, trackLoadGen_)) {
+    if (!engine.loadFileIntoDeck(ngks::DECK_S, path, duration, trackLoadGen_)) {
         qWarning().noquote() << QStringLiteral("TRC[G%1] loadTrack FAILED path=%2").arg(trackLoadGen_).arg(filePath);
         return false;
     }
@@ -123,7 +123,7 @@ bool EngineBridge::loadTrack(const QString& filePath)
 
 void EngineBridge::pause()
 {
-    engine.enqueueCommand({ ngks::CommandType::Pause, ngks::DECK_A, engine.nextSeq(), 0, 0.0f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::Pause, ngks::DECK_S, engine.nextSeq(), 0, 0.0f, 0 });
 }
 
 void EngineBridge::seek(double seconds)
@@ -134,7 +134,7 @@ void EngineBridge::seek(double seconds)
         .arg(lastDurationSeconds, 0, 'f', 2)
         .arg(endOfTrackEmitted ? "T" : "F")
         .arg(loadedTrackPath_);
-    engine.seekDeck(ngks::DECK_A, seconds);
+    engine.seekDeck(ngks::DECK_S, seconds);
 }
 
 // ── DJ deck-aware methods ──
@@ -198,6 +198,15 @@ void EngineBridge::stopDeck(int deckIndex)
     const auto did = static_cast<ngks::DeckId>(deckIndex);
     engine.enqueueCommand({ ngks::CommandType::Stop, did, engine.nextSeq(), 0, 0.0f, 0 });
     qInfo().noquote() << QStringLiteral("DJ stopDeck(deckIndex=%1)").arg(deckIndex);
+}
+
+void EngineBridge::unloadDeck(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return;
+    const auto did = static_cast<ngks::DeckId>(deckIndex);
+    engine.enqueueCommand({ ngks::CommandType::Stop, did, engine.nextSeq(), 0, 0.0f, 0 });
+    engine.enqueueCommand({ ngks::CommandType::UnloadTrack, did, engine.nextSeq(), 0, 0.0f, 0 });
+    qInfo().noquote() << QStringLiteral("DJ unloadDeck(deckIndex=%1)").arg(deckIndex);
 }
 
 void EngineBridge::pauseDeck(int deckIndex)
@@ -278,9 +287,21 @@ void EngineBridge::setDeckCueMonitor(int deckIndex, bool enabled)
     engine.enqueueCommand(cmd);
 }
 
+void EngineBridge::setDeckFilter(int deckIndex, double position)
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return;
+    ngks::Command cmd{};
+    cmd.type = ngks::CommandType::SetDeckFilter;
+    cmd.deck = static_cast<ngks::DeckId>(deckIndex);
+    cmd.seq = engine.nextSeq();
+    cmd.floatValue = static_cast<float>(std::clamp(position, 0.0, 1.0));
+    engine.enqueueCommand(cmd);
+}
+
 void EngineBridge::setCueMix(double ratio)
 {
     cueMixValue_ = std::clamp(ratio, 0.0, 1.0);
+    engine.setCueMixRatio(static_cast<float>(cueMixValue_));
 }
 
 void EngineBridge::setCueVolume(double linear)
@@ -308,6 +329,15 @@ QStringList EngineBridge::listAudioDeviceNames() const
             names.append(QString::fromStdString(d.deviceName));
         }
     }
+    return names;
+}
+
+QStringList EngineBridge::listMidiDeviceNames() const
+{
+    QStringList names;
+    const auto devices = juce::MidiInput::getAvailableDevices();
+    for (const auto& d : devices)
+        names.append(QString::fromStdString(d.name.toStdString()));
     return names;
 }
 
@@ -401,6 +431,12 @@ std::vector<ngks::WaveMinMax> EngineBridge::getWaveformOverview(int deckIndex, i
 {
     if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return {};
     return engine.getWaveformOverview(static_cast<ngks::DeckId>(deckIndex), numBins);
+}
+
+std::vector<ngks::BandEnergy> EngineBridge::getBandEnergyOverview(int deckIndex, int numBins)
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return {};
+    return engine.getBandEnergyOverview(static_cast<ngks::DeckId>(deckIndex), numBins);
 }
 
 bool EngineBridge::isDeckFullyDecoded(int deckIndex) const
@@ -801,7 +837,7 @@ QString EngineBridge::engineStateMachineSummary()
 {
     const auto snapshot = engine.getSnapshot();
     const bool audioRunning = (snapshot.flags & ngks::SNAP_AUDIO_RUNNING) != 0u;
-    const auto t = snapshot.decks[ngks::DECK_A].transport;
+    const auto t = snapshot.decks[ngks::DECK_S].transport;
 
     return QString("audio=%1 transportA=%2")
         .arg(audioRunning ? "RUNNING" : "STOPPED")
@@ -851,16 +887,18 @@ void EngineBridge::pollSnapshot()
 
     const auto& deckA = snapshot.decks[ngks::DECK_A];
     const auto& deckB = snapshot.decks[ngks::DECK_B];
-    const double newL = std::clamp(static_cast<double>(deckA.peakL), 0.0, 1.0);
-    const double newR = std::clamp(static_cast<double>(deckA.peakR), 0.0, 1.0);
+    const auto& deckS = snapshot.decks[ngks::DECK_S];
+    const double newL = std::clamp(static_cast<double>(deckS.peakL), 0.0, 1.0);
+    const double newR = std::clamp(static_cast<double>(deckS.peakR), 0.0, 1.0);
     const auto transportA = deckA.transport;
     const auto transportB = deckB.transport;
+    const auto transportS = deckS.transport;
     const auto isActive = [](ngks::TransportState t) {
         return t == ngks::TransportState::Starting
             || t == ngks::TransportState::Playing
             || t == ngks::TransportState::Stopping;
     };
-    const bool nowRunning = isActive(transportA) || isActive(transportB);
+    const bool nowRunning = isActive(transportA) || isActive(transportB) || isActive(transportS);
 
     const bool audioReady = (snapshot.flags & ngks::SNAP_AUDIO_RUNNING) != 0u;
     const bool renderOk = std::isfinite(snapshot.masterPeakL)
@@ -899,9 +937,9 @@ void EngineBridge::pollSnapshot()
     // Drop snapshot data if the engine hasn't processed the current
     // track load yet. trackLoadGen is threaded through the command
     // queue and stamped on DeckSnapshot — zero timing dependency.
-    const double playhead = deckA.playheadSeconds;
-    const double duration = deckA.lengthSeconds;
-    const uint64_t snapGen = deckA.trackLoadGen;
+    const double playhead = deckS.playheadSeconds;
+    const double duration = deckS.lengthSeconds;
+    const uint64_t snapGen = deckS.trackLoadGen;
 
     if (snapGen != trackLoadGen_) {
         // Stale snapshot from previous track — drop simple-mode updates

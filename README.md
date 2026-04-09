@@ -7,10 +7,10 @@ Default build flow uses NGKsGraph. **Always build and run with `--profile releas
 
 ```powershell
 # Build
-python -m ngksgraph build --project ngksgraph.toml --profile release --target native
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_native_release.ps1
 
 # Run (builds first)
-python -m ngksgraph run --project ngksgraph.toml --profile release --target native --build-first
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_native_release.ps1 -Launch
 ```
 
 Output binary: `build_graph\release\bin\NGKsPlayerNative.exe`

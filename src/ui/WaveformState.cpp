@@ -70,13 +70,9 @@ void WaveformStateController::onPlay()
     if (!trackLoaded_) return;
     trackPlaying_ = true;
 
-    if (userMode_ == WaveUserMode::LIVE) {
-        setState(WaveViewState::LIVE_SCROLL);
-        log("WAVE_PLAY_MODE_LIVE");
-    } else {
-        setState(WaveViewState::STATIC_PLAY);
-        log("WAVE_PLAY_MODE_STATIC");
-    }
+    // Always LIVE — no STATIC full-track mode.
+    setState(WaveViewState::LIVE_SCROLL);
+    log("WAVE_PLAY_MODE_LIVE");
 }
 
 void WaveformStateController::onPause()
@@ -127,15 +123,10 @@ void WaveformStateController::setUserMode(WaveUserMode mode)
     userMode_ = mode;
     log("WAVE_MODE_SET");
 
-    // If currently playing, transition to the appropriate play state
+    // If currently playing, stay in LIVE — no STATIC fallback.
     if (trackPlaying_) {
-        if (userMode_ == WaveUserMode::LIVE) {
-            setState(WaveViewState::LIVE_SCROLL);
-            log("WAVE_PLAY_MODE_LIVE", "reason=mode_switch");
-        } else {
-            setState(WaveViewState::STATIC_PLAY);
-            log("WAVE_PLAY_MODE_STATIC", "reason=mode_switch");
-        }
+        setState(WaveViewState::LIVE_SCROLL);
+        log("WAVE_PLAY_MODE_LIVE", "reason=mode_switch");
     }
 }
 

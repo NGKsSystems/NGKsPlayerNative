@@ -40,6 +40,7 @@ public:
     bool setDeckFxSlotEnabled(DeckId deckId, int slotIndex, bool enabled) noexcept;
     bool setDeckFxSlotDryWet(DeckId deckId, int slotIndex, float dryWet) noexcept;
     bool setDeckFxGain(DeckId deckId, int slotIndex, float gainLinear) noexcept;
+    bool setDeckFilter(DeckId deckId, float position) noexcept;
     bool setMasterFxSlotEnabled(int slotIndex, bool enabled) noexcept;
     bool setMasterFxGain(int slotIndex, float gainLinear) noexcept;
     bool isDeckFxSlotEnabled(DeckId deckId, int slotIndex) const noexcept;

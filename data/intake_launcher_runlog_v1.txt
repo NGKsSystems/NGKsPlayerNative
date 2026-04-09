@@ -1,0 +1,15 @@
+
+============================================================
+INTAKE RUN 20260406_093911
+Timestamp: 2026-04-06T09:39:11.933571
+Folder: C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\data\_test_intake_phase3
+Results: {'inserted': 3}
+New statuses: {'REVIEW': 3}
+============================================================
+
+============================================================
+INTAKE RUN 20260406_093911
+Timestamp: 2026-04-06T09:39:11.952056
+Folder: C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\data\_test_intake_phase3
+Results: {'skipped_existing': 3}
+============================================================

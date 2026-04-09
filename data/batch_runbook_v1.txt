@@ -1,0 +1,97 @@
+NGKsPlayerNative — Music Library Normalization: Operator Runbook
+================================================================
+Generated: 2026-04-05 17:09:51
+
+1. HOW TO PROCESS A NEW BATCH
+------------------------------
+a) Drop raw music files into: C:\Users\suppo\Downloads\New Music\<genre folder>
+b) Run the normalization engine:
+     python db/library_normalization_engine_v2.py
+c) This produces:
+   - batch_normalization_plan.csv (all files scanned + proposed names)
+   - routing_log.csv (state routing decisions)
+   - queue_state_rebuilt_v1.csv (final queue assignment)
+
+2. QUEUE ROUTING
+-----------------
+Files are routed to one of three queues:
+
+  READY (auto-approved):
+    - High confidence (>= 0.8)
+    - No collisions, no duplicate risk
+    - Clean parse (Artist - Title format)
+    - Auto-promoted to READY_NORMALIZED
+
+  REVIEW (human judgment):
+    - Medium confidence (0.4-0.79)
+    - Ambiguous artist/title split
+    - Near-duplicate detected
+    - May need manual rename
+
+  HELD (blocked):
+    - Low confidence (< 0.4)
+    - TRUE_DUPLICATE (hash-identical copy exists)
+    - No-parse (can't extract Artist - Title)
+    - Compilation/mix (multi-artist, no single track)
+    - Destination conflict (name collision)
+
+3. HANDLING SPECIFIC CASES
+---------------------------
+  Duplicates:
+    - TRUE_DUPLICATE_HOLD: hash-identical. Keep one copy, archive other.
+    - NEAR_DUPLICATE: similar but not identical. Manual inspection needed.
+    - Never auto-delete. Always archive first.
+
+  Destination Conflicts:
+    - File name collides with existing READY file.
+    - Use (Alt N) suffix: "Artist - Title (Alt 1).mp3"
+    - Check destination_alternate_plan_v1.csv for pre-computed alts.
+
+  Low-Confidence:
+    - Run through low_confidence_recovery process.
+    - Artist-name boundary detection can upgrade some.
+    - Remaining go to REVIEW or HELD.
+
+4. PROMOTION WAVE PROCESS
+---------------------------
+  a) Build candidate pool from READY_CANDIDATE queue
+  b) Apply eligibility filter:
+     - File exists at source
+     - Proposed name valid (>= 5 chars, valid extension)
+     - No collision with READY_NORMALIZED
+     - No TRUE_DUPLICATE risk
+     - Confidence >= 0.6
+  c) Apply cap (50-100 per wave)
+  d) Copy (not move) to READY_NORMALIZED with proposed name
+  e) SHA-256 hash verify before and after
+  f) Log all operations to promotion_wave<N>_results_v1.csv
+  g) Run safety validation (11 checks minimum)
+  h) Produce proof artifacts
+
+  CRITICAL: Use copy2 (not move) to preserve source for rollback.
+
+5. WHEN TO STOP AND REVIEW MANUALLY
+-------------------------------------
+  - READY_CANDIDATE pool empty (all promoted or blocked)
+  - Remaining rows are all REVIEW or HELD
+  - Collision rate > 10% in a wave
+  - Hash mismatches detected
+  - Any safety check fails
+  - Confidence distribution shifts below 0.5 median
+
+6. FILE PATHS
+--------------
+  Batch input:       C:\Users\suppo\Downloads\New Music\
+  READY_NORMALIZED:  C:\Users\suppo\Downloads\New Music\READY_NORMALIZED\
+  Live DJ Library:   C:\Users\suppo\Music\  (NEVER TOUCH AUTOMATICALLY)
+  Data CSVs:         data\
+  Proof artifacts:   _proof\library_normalization_phase<N>\
+
+7. SAFETY INVARIANTS
+---------------------
+  - READY_NORMALIZED count must match filesystem
+  - No overwrites (hash verify every copy)
+  - No TRUE_DUPLICATE promotions
+  - No unbounded automation (always use caps)
+  - Live DJ library is read-only for all automation
+  - Every wave produces proof artifacts + zip bundle

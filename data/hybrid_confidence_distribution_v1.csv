@@ -1,0 +1,7 @@
+confidence_bucket,count,source_used
+0.2-0.4,46,filename
+0.4-0.6,1278,filename
+0.6-0.8,1020,filename
+0.6-0.8,457,hybrid
+0.6-0.8,198,metadata
+0.8-1.0,49,metadata

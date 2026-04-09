@@ -320,6 +320,98 @@ std::vector<WaveMinMax> DeckNode::generateWaveformOverview(int numBins) const
     return bins;
 }
 
+std::vector<BandEnergy> DeckNode::generateBandEnergyOverview(int numBins) const
+{
+    if (numBins <= 0) return {};
+    std::shared_lock<std::shared_mutex> lock(bufferMutex_);
+    const int64_t frames = streamDecodedFrames_.load(std::memory_order_acquire);
+    if (!hasAudioData_ || frames <= 0 || decodedL_.empty()) {
+        return std::vector<BandEnergy>(static_cast<size_t>(numBins), {0.0f, 0.0f, 0.0f, 0.0f});
+    }
+
+    std::vector<BandEnergy> bands(static_cast<size_t>(numBins));
+    const float* srcL = decodedL_.data();
+    const float* srcR = decodedR_.empty() ? nullptr : decodedR_.data();
+    const int64_t usableFrames = std::min(frames, static_cast<int64_t>(decodedL_.size()));
+
+    // Lightweight 4-band estimation via inter-sample-difference partitioning.
+    // 
+    // 1st difference (d1): sample[n] - sample[n-1]  → HF-weighted
+    // 2nd difference (d2): d1[n] - d1[n-1]          → even more HF-weighted
+    //
+    // Energy ratios from d1 and d2 vs total energy separate 4 frequency
+    // regions without FFT:
+    //   low     = slow-changing energy (bass/sub)
+    //   lowMid  = moderate-changing energy (body/warmth)
+    //   highMid = faster-changing energy (vocals/presence)
+    //   high    = rapid-changing energy (cymbals/air)
+    for (int b = 0; b < numBins; ++b) {
+        const int64_t startF = (usableFrames * b) / numBins;
+        const int64_t endF   = (usableFrames * (b + 1)) / numBins;
+        const int64_t count  = endF - startF;
+        if (count <= 2) {
+            bands[static_cast<size_t>(b)] = {0.0f, 0.0f, 0.0f, 0.0f};
+            continue;
+        }
+
+        double sumSq = 0.0;
+        double diff1SumSq = 0.0;
+        double diff2SumSq = 0.0;
+        float prevSample = srcL[startF];
+        if (srcR) prevSample = (prevSample + srcR[startF]) * 0.5f;
+        float prevDiff = 0.0f;
+
+        for (int64_t f = startF; f < endF; ++f) {
+            float v = srcL[f];
+            if (srcR) v = (v + srcR[f]) * 0.5f;
+
+            sumSq += static_cast<double>(v * v);
+
+            const float d1 = v - prevSample;
+            diff1SumSq += static_cast<double>(d1 * d1);
+
+            if (f > startF) {
+                const float d2 = d1 - prevDiff;
+                diff2SumSq += static_cast<double>(d2 * d2);
+            }
+
+            prevSample = v;
+            prevDiff = d1;
+        }
+
+        const float totalE = static_cast<float>(std::sqrt(sumSq / static_cast<double>(count)));
+        const float d1E    = static_cast<float>(std::sqrt(diff1SumSq / static_cast<double>(count)));
+        const float d2E    = static_cast<float>(std::sqrt(diff2SumSq / static_cast<double>(count - 1)));
+
+        if (totalE < 0.0001f) {
+            bands[static_cast<size_t>(b)] = {0.0f, 0.0f, 0.0f, 0.0f};
+            continue;
+        }
+
+        // d1 ratio = overall HF content, d2 ratio = very-HF content
+        const float d1Ratio = std::min(1.0f, d1E / (totalE * 2.0f));
+        const float d2Ratio = std::min(1.0f, d2E / (totalE * 3.0f));
+
+        // 4-band split:
+        //   high    = d2-weighted (very rapid changes)
+        //   highMid = d1 minus d2 (moderate-rapid changes)
+        //   lowMid  = residual mid energy
+        //   low     = slow-changing energy
+        const float highFrac   = std::min(0.5f, d2Ratio);
+        const float hMidFrac   = std::max(0.0f, std::min(0.5f, d1Ratio - highFrac));
+        const float lowFrac    = std::max(0.0f, 1.0f - d1Ratio * 2.5f);
+        const float lMidFrac   = std::max(0.0f, 1.0f - lowFrac - hMidFrac - highFrac);
+
+        bands[static_cast<size_t>(b)] = {
+            totalE * lowFrac,      // low  (bass/sub)
+            totalE * lMidFrac,     // lowMid (body/warmth)
+            totalE * hMidFrac,     // highMid (vocals/presence)
+            totalE * highFrac      // high (cymbals/air)
+        };
+    }
+    return bands;
+}
+
 void DeckNode::render(const DeckSnapshot& deck,
                       int numSamples,
                       float* outLeft,
