@@ -3,8 +3,11 @@
 #include "ui/EqPanel.h"
 #include "ui/WaveformOverview.h"
 
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QFont>
 #include <QFrame>
+#include <QMimeData>
 #include <QHBoxLayout>
 #include <QLinearGradient>
 #include <QMouseEvent>
@@ -443,6 +446,7 @@ DeckStrip::DeckStrip(int deckIndex, const QString& accentHex,
 {
     buildUi();
     wireSignals();
+    setAcceptDrops(true);
 }
 
 void DeckStrip::buildUi()
@@ -1994,6 +1998,29 @@ void DeckStrip::wireSignals()
             std::fflush(stderr);
         }
     });
+}
+
+void DeckStrip::dragEnterEvent(QDragEnterEvent* e)
+{
+    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id")))
+        e->acceptProposedAction();
+    else
+        QWidget::dragEnterEvent(e);
+}
+
+void DeckStrip::dropEvent(QDropEvent* e)
+{
+    if (!e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id"))) {
+        QWidget::dropEvent(e);
+        return;
+    }
+    bool ok = false;
+    const qint64 tid = QString::fromUtf8(
+        e->mimeData()->data(QStringLiteral("application/x-ngks-track-id"))).toLongLong(&ok);
+    if (ok) {
+        e->acceptProposedAction();
+        emit loadTrackRequested(deckIndex_, tid);
+    }
 }
 
 bool DeckStrip::eventFilter(QObject* obj, QEvent* event)

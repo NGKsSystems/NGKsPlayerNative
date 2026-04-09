@@ -166,6 +166,8 @@ signals:
     void loadRequested(int deckIndex);
     /// Emitted on each playhead tick with current position in seconds.
     void playheadMoved(int deckIndex, double seconds);
+    /// Emitted when a track is dragged from the library and dropped on this deck.
+    void loadTrackRequested(int deckIndex, qint64 trackId);
 
 private:
     void buildUi();
@@ -175,6 +177,8 @@ private:
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
+    void dragEnterEvent(QDragEnterEvent* e) override;
+    void dropEvent(QDropEvent* e) override;
 
     int deckIndex_{0};
     QString accent_;

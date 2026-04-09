@@ -1,0 +1,188 @@
+#include "ui/library/DjLibraryModel.h"
+
+#include <QMimeData>
+#include <QUrl>
+
+// ─────────────────────────────────────────────────────────────────────────────
+DjLibraryModel::DjLibraryModel(DjLibraryDatabase* db, QObject* parent)
+    : QAbstractTableModel(parent), db_(db)
+{}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QAbstractTableModel interface
+// ─────────────────────────────────────────────────────────────────────────────
+int DjLibraryModel::rowCount(const QModelIndex& parent) const
+{
+    if (parent.isValid()) return 0;
+    return rows_.size();
+}
+
+int DjLibraryModel::columnCount(const QModelIndex& parent) const
+{
+    if (parent.isValid()) return 0;
+    return kColumns;
+}
+
+QVariant DjLibraryModel::data(const QModelIndex& index, int role) const
+{
+    if (!index.isValid() || index.row() >= rows_.size()) return {};
+
+    const Row& r = rows_[index.row()];
+
+    if (role == Qt::UserRole) return r.trackId;
+
+    if (role == Qt::DisplayRole) {
+        const TrackInfo& t = r.info;
+        switch (index.column()) {
+        case 0: return t.displayName.isEmpty() ? QStringLiteral("Unknown") : t.displayName;
+        case 1: return t.artist.isEmpty()      ? QStringLiteral("-")       : t.artist;
+        case 2: return t.album.isEmpty()       ? QStringLiteral("-")       : t.album;
+        case 3: return t.durationStr.isEmpty() ? QStringLiteral("--:--")   : t.durationStr;
+        case 4: return t.bpm.isEmpty()         ? QStringLiteral("-")       : t.bpm;
+        case 5: return t.musicalKey.isEmpty()  ? QStringLiteral("-")       : t.musicalKey;
+        default: return {};
+        }
+    }
+
+    if (role == Qt::TextAlignmentRole) {
+        // Right-align numeric columns
+        if (index.column() >= 3)
+            return static_cast<int>(Qt::AlignRight | Qt::AlignVCenter);
+        return static_cast<int>(Qt::AlignLeft | Qt::AlignVCenter);
+    }
+
+    return {};
+}
+
+QVariant DjLibraryModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if (orientation != Qt::Horizontal || role != Qt::DisplayRole) return {};
+    switch (section) {
+    case 0: return QStringLiteral("Name");
+    case 1: return QStringLiteral("Artist");
+    case 2: return QStringLiteral("Album");
+    case 3: return QStringLiteral("Duration");
+    case 4: return QStringLiteral("BPM");
+    case 5: return QStringLiteral("Key");
+    default: return {};
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Incremental loading
+// ─────────────────────────────────────────────────────────────────────────────
+bool DjLibraryModel::canFetchMore(const QModelIndex& parent) const
+{
+    if (parent.isValid()) return false;
+    return rows_.size() < totalCount_;
+}
+
+void DjLibraryModel::fetchMore(const QModelIndex& parent)
+{
+    if (parent.isValid() || !db_) return;
+    if (rows_.size() >= totalCount_) return;
+
+    const int offset = rows_.size();
+    const int toFetch = qMin(kPageSize, totalCount_ - offset);
+    if (toFetch <= 0) return;
+
+    auto page = db_->queryPage(search_, searchMode_, playlistPaths_,
+                               sortCol_, offset, toFetch);
+    if (page.empty()) return;
+
+    beginInsertRows({}, rows_.size(), rows_.size() + static_cast<int>(page.size()) - 1);
+    for (auto& r : page) rows_.append({r.trackId, std::move(r.info)});
+    endInsertRows();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Drag
+// ─────────────────────────────────────────────────────────────────────────────
+Qt::ItemFlags DjLibraryModel::flags(const QModelIndex& index) const
+{
+    if (!index.isValid()) return Qt::NoItemFlags;
+    return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsDragEnabled;
+}
+
+QStringList DjLibraryModel::mimeTypes() const
+{
+    return { QString(kMimeType), QString(kMimeTypeUri) };
+}
+
+QMimeData* DjLibraryModel::mimeData(const QModelIndexList& indexes) const
+{
+    // Use the first unique row
+    QSet<int> seen;
+    for (const auto& idx : indexes) {
+        if (idx.isValid() && !seen.contains(idx.row())) {
+            seen.insert(idx.row());
+            const int    row  = idx.row();
+            const qint64 tid  = trackIdAt(row);
+            if (tid < 0) continue;
+
+            const QString filePath = (row >= 0 && row < rows_.size())
+                                     ? rows_[row].info.filePath : QString();
+
+            auto* mime = new QMimeData();
+            mime->setData(QString(kMimeType), QByteArray::number(tid));
+            if (!filePath.isEmpty())
+                mime->setData(QString(kMimeTypeUri),
+                              QUrl::fromLocalFile(filePath).toEncoded() + "\r\n");
+            return mime;
+        }
+    }
+    return nullptr;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter / sort
+// ─────────────────────────────────────────────────────────────────────────────
+void DjLibraryModel::setSearch(const QString& text, int mode)
+{
+    search_     = text;
+    searchMode_ = mode;
+}
+
+void DjLibraryModel::setSortCol(int col)
+{
+    sortCol_ = col;
+}
+
+void DjLibraryModel::setPlaylistPaths(const QStringList& paths)
+{
+    playlistPaths_ = paths;
+}
+
+void DjLibraryModel::reload()
+{
+    beginResetModel();
+    rows_.clear();
+    totalCount_ = db_ ? db_->queryCount(search_, searchMode_, playlistPaths_) : 0;
+    endResetModel();
+
+    // Immediately populate the first page so the view isn't blank on load
+    if (totalCount_ > 0) fetchMore({});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Accessors
+// ─────────────────────────────────────────────────────────────────────────────
+qint64 DjLibraryModel::trackIdAt(int row) const
+{
+    if (row < 0 || row >= rows_.size()) return -1;
+    return rows_[row].trackId;
+}
+
+const TrackInfo& DjLibraryModel::trackInfoAt(int row) const
+{
+    static const TrackInfo kEmpty{};
+    if (row < 0 || row >= rows_.size()) return kEmpty;
+    return rows_[row].info;
+}
+
+int DjLibraryModel::rowOfTrackId(qint64 id) const
+{
+    for (int i = 0; i < rows_.size(); ++i)
+        if (rows_[i].trackId == id) return i;
+    return -1;
+}

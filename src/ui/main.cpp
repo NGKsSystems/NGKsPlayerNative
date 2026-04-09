@@ -1,4 +1,4 @@
-#include <QAction>
+﻿#include <QAction>
 #include <QApplication>
 #include <QComboBox>
 #include <QDialog>
@@ -39,7 +39,6 @@
 #include <QUrl>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QTreeWidget>
 #include <QHeaderView>
 #include <QSplitter>
 #include <QSlider>
@@ -80,6 +79,17 @@
 #include "ui/DeckStrip.h"
 #include "engine/DiagLog.h"
 
+#include "ui/diagnostics/RuntimeLogSupport.h"
+#include "ui/library/LibraryPersistence.h"
+#include "ui/library/DjLibraryDatabase.h"
+#include "ui/library/LibraryBrowserWidget.h"
+#include "ui/library/DjLibraryWidget.h"
+#include "ui/library/LibraryScanner.h"
+#include "ui/library/LegacyLibraryImport.h"
+#include "ui/audio/AudioProfileStore.h"
+#include "ui/diagnostics/DiagnosticsDialog.h"
+#include "ui/widgets/VisualizerWidget.h"
+
 #ifndef NGKS_BUILD_STAMP
 #define NGKS_BUILD_STAMP "unknown"
 #endif
@@ -88,1760 +98,7 @@
 #define NGKS_GIT_SHA "unknown"
 #endif
 
-QString detectQtBinFromPath(const QString& pathValue);
-bool writeDependencySnapshot(const QString& exePath,
-                             const QString& cwd,
-                             const QString& pathValue,
-                             const QStringList& pluginPaths);
-void installCrashCaptureHandlers();
-
 namespace {
-
-QMutex gLogMutex;
-std::string gLogPath;
-bool gConsoleEcho = false;
-bool gRuntimeDirReady = false;
-bool gLogWritable = false;
-bool gDllProbePass = false;
-QString gDllProbeMissing;
-std::string gJsonLogPath;
-std::string gDepsSnapshotPath;
-QString gPathSnapshot;
-QString gQtBinUsed;
-std::atomic<bool> gCrashCaptured { false };
-
-struct DllProbeEntry {
-    QString name;
-    bool pass{false};
-};
-
-std::vector<DllProbeEntry> gDllProbeEntries;
-
-// ── Exe-relative runtime base dir (resolved once, before QApp) ──
-std::string gExeBaseDir; // set by resolveExeBaseDir()
-
-std::string resolveExeBaseDir()
-{
-#ifdef _WIN32
-    wchar_t buf[MAX_PATH]{};
-    const DWORD len = GetModuleFileNameW(NULL, buf, MAX_PATH);
-    if (len > 0 && len < MAX_PATH) {
-        std::filesystem::path p(buf);
-        return p.parent_path().string();
-    }
-#endif
-    // Fallback: CWD (original behavior)
-    return std::filesystem::current_path().string();
-}
-
-QString runtimePath(const char* relative)
-{
-    return QString::fromStdString(
-        (std::filesystem::path(gExeBaseDir) / relative).string());
-}
-
-QString kAudioProfilesPath() { return runtimePath("data/runtime/audio_device_profiles.json"); }
-QString kLibraryPersistPath() { return runtimePath("data/runtime/library.json"); }
-QString kPlaylistsPersistPath() { return runtimePath("data/runtime/playlists.json"); }
-
-struct Playlist {
-    QString name;
-    QStringList trackPaths;
-};
-
-bool savePlaylists(const std::vector<Playlist>& playlists)
-{
-    QJsonArray arr;
-    for (const Playlist& pl : playlists) {
-        QJsonObject obj;
-        obj.insert(QStringLiteral("name"), pl.name);
-        QJsonArray paths;
-        for (const QString& p : pl.trackPaths) paths.append(p);
-        obj.insert(QStringLiteral("tracks"), paths);
-        arr.append(obj);
-    }
-    QJsonObject root;
-    root.insert(QStringLiteral("version"), 1);
-    root.insert(QStringLiteral("playlists"), arr);
-    QSaveFile file(kPlaylistsPersistPath());
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
-    const QByteArray payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
-    if (file.write(payload) != payload.size()) { file.cancelWriting(); return false; }
-    return file.commit();
-}
-
-bool loadPlaylists(std::vector<Playlist>& out)
-{
-    out.clear();
-    QFile file(kPlaylistsPersistPath());
-    if (!file.exists()) return false;
-    if (!file.open(QIODevice::ReadOnly)) return false;
-    QJsonParseError parseErr{};
-    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseErr);
-    if (parseErr.error != QJsonParseError::NoError || !doc.isObject()) return false;
-    const QJsonArray arr = doc.object().value(QStringLiteral("playlists")).toArray();
-    for (const QJsonValue& val : arr) {
-        if (!val.isObject()) continue;
-        const QJsonObject obj = val.toObject();
-        Playlist pl;
-        pl.name = obj.value(QStringLiteral("name")).toString();
-        if (pl.name.isEmpty()) continue;
-        const QJsonArray paths = obj.value(QStringLiteral("tracks")).toArray();
-        for (const QJsonValue& pv : paths) {
-            const QString p = pv.toString();
-            if (!p.isEmpty()) pl.trackPaths.append(p);
-        }
-        out.push_back(std::move(pl));
-    }
-    return true;
-}
-
-struct TrackInfo {
-    QString filePath;
-    QString title;
-    QString artist;
-    QString album;
-    QString displayName;
-    qint64  durationMs{0};
-    QString durationStr;
-    QString bpm;
-    QString musicalKey;
-    qint64  fileSize{0};
-    // Legacy DB fields
-    QString genre;
-    QString camelotKey;
-    double  energy{-1.0};
-    double  loudnessLUFS{0.0};
-    double  loudnessRange{0.0};
-    QString cueIn;
-    QString cueOut;
-    double  danceability{-1.0};
-    double  acousticness{-1.0};
-    double  instrumentalness{-1.0};
-    double  liveness{-1.0};
-    int     year{0};
-    int     rating{0};
-    QString comments;
-    bool    legacyImported{false};
-};
-
-QString formatDurationMs(qint64 ms)
-{
-    if (ms <= 0) return QStringLiteral("--:--");
-    const int totalSec = static_cast<int>(ms / 1000);
-    const int min = totalSec / 60;
-    const int sec = totalSec % 60;
-    return QStringLiteral("%1:%2").arg(min).arg(sec, 2, 10, QLatin1Char('0'));
-}
-
-QString formatFileSize(qint64 bytes)
-{
-    if (bytes < 1024) return QStringLiteral("%1 B").arg(bytes);
-    if (bytes < 1048576) return QStringLiteral("%1 KB").arg(bytes / 1024);
-    return QStringLiteral("%1 MB").arg(QString::number(static_cast<double>(bytes) / 1048576.0, 'f', 1));
-}
-
-bool saveLibraryJson(const std::vector<TrackInfo>& tracks, const QString& folderPath)
-{
-    QJsonArray arr;
-    for (const TrackInfo& t : tracks) {
-        QJsonObject obj;
-        obj.insert(QStringLiteral("filePath"), t.filePath);
-        obj.insert(QStringLiteral("title"), t.title);
-        obj.insert(QStringLiteral("artist"), t.artist);
-        obj.insert(QStringLiteral("album"), t.album);
-        obj.insert(QStringLiteral("displayName"), t.displayName);
-        obj.insert(QStringLiteral("durationMs"), t.durationMs);
-        obj.insert(QStringLiteral("durationStr"), t.durationStr);
-        obj.insert(QStringLiteral("bpm"), t.bpm);
-        obj.insert(QStringLiteral("musicalKey"), t.musicalKey);
-        obj.insert(QStringLiteral("fileSize"), t.fileSize);
-        // Legacy DB fields
-        if (!t.genre.isEmpty()) obj.insert(QStringLiteral("genre"), t.genre);
-        if (!t.camelotKey.isEmpty()) obj.insert(QStringLiteral("camelotKey"), t.camelotKey);
-        if (t.energy >= 0) obj.insert(QStringLiteral("energy"), t.energy);
-        if (t.loudnessLUFS != 0.0) obj.insert(QStringLiteral("loudnessLUFS"), t.loudnessLUFS);
-        if (t.loudnessRange != 0.0) obj.insert(QStringLiteral("loudnessRange"), t.loudnessRange);
-        if (!t.cueIn.isEmpty()) obj.insert(QStringLiteral("cueIn"), t.cueIn);
-        if (!t.cueOut.isEmpty()) obj.insert(QStringLiteral("cueOut"), t.cueOut);
-        if (t.danceability >= 0) obj.insert(QStringLiteral("danceability"), t.danceability);
-        if (t.acousticness >= 0) obj.insert(QStringLiteral("acousticness"), t.acousticness);
-        if (t.instrumentalness >= 0) obj.insert(QStringLiteral("instrumentalness"), t.instrumentalness);
-        if (t.liveness >= 0) obj.insert(QStringLiteral("liveness"), t.liveness);
-        if (t.year > 0) obj.insert(QStringLiteral("year"), t.year);
-        if (t.rating > 0) obj.insert(QStringLiteral("rating"), t.rating);
-        if (!t.comments.isEmpty()) obj.insert(QStringLiteral("comments"), t.comments);
-        if (t.legacyImported) obj.insert(QStringLiteral("legacyImported"), true);
-        arr.append(obj);
-    }
-    QJsonObject root;
-    root.insert(QStringLiteral("version"), 1);
-    root.insert(QStringLiteral("folderPath"), folderPath);
-    root.insert(QStringLiteral("tracks"), arr);
-
-    QSaveFile file(kLibraryPersistPath());
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
-    const QByteArray payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
-    if (file.write(payload) != payload.size()) { file.cancelWriting(); return false; }
-    return file.commit();
-}
-
-bool loadLibraryJson(std::vector<TrackInfo>& outTracks, QString& outFolderPath)
-{
-    outTracks.clear();
-    outFolderPath.clear();
-    QFile file(kLibraryPersistPath());
-    if (!file.exists()) return false;
-    if (!file.open(QIODevice::ReadOnly)) return false;
-    QJsonParseError parseErr{};
-    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseErr);
-    if (parseErr.error != QJsonParseError::NoError || !doc.isObject()) return false;
-    const QJsonObject root = doc.object();
-    outFolderPath = root.value(QStringLiteral("folderPath")).toString();
-    const QJsonArray arr = root.value(QStringLiteral("tracks")).toArray();
-    outTracks.reserve(static_cast<size_t>(arr.size()));
-    for (const QJsonValue& val : arr) {
-        if (!val.isObject()) continue;
-        const QJsonObject obj = val.toObject();
-        TrackInfo t;
-        t.filePath    = obj.value(QStringLiteral("filePath")).toString();
-        t.title       = obj.value(QStringLiteral("title")).toString();
-        t.artist      = obj.value(QStringLiteral("artist")).toString();
-        t.album       = obj.value(QStringLiteral("album")).toString();
-        t.displayName = obj.value(QStringLiteral("displayName")).toString();
-        t.durationMs  = obj.value(QStringLiteral("durationMs")).toInteger(0);
-        t.durationStr = obj.value(QStringLiteral("durationStr")).toString();
-        t.bpm         = obj.value(QStringLiteral("bpm")).toString();
-        t.musicalKey  = obj.value(QStringLiteral("musicalKey")).toString();
-        t.fileSize    = obj.value(QStringLiteral("fileSize")).toInteger(0);
-        // Legacy DB fields
-        t.genre             = obj.value(QStringLiteral("genre")).toString();
-        t.camelotKey        = obj.value(QStringLiteral("camelotKey")).toString();
-        t.energy            = obj.value(QStringLiteral("energy")).toDouble(-1.0);
-        t.loudnessLUFS      = obj.value(QStringLiteral("loudnessLUFS")).toDouble(0.0);
-        t.loudnessRange     = obj.value(QStringLiteral("loudnessRange")).toDouble(0.0);
-        t.cueIn             = obj.value(QStringLiteral("cueIn")).toString();
-        t.cueOut            = obj.value(QStringLiteral("cueOut")).toString();
-        t.danceability      = obj.value(QStringLiteral("danceability")).toDouble(-1.0);
-        t.acousticness      = obj.value(QStringLiteral("acousticness")).toDouble(-1.0);
-        t.instrumentalness  = obj.value(QStringLiteral("instrumentalness")).toDouble(-1.0);
-        t.liveness          = obj.value(QStringLiteral("liveness")).toDouble(-1.0);
-        t.year              = obj.value(QStringLiteral("year")).toInt(0);
-        t.rating            = obj.value(QStringLiteral("rating")).toInt(0);
-        t.comments          = obj.value(QStringLiteral("comments")).toString();
-        t.legacyImported    = obj.value(QStringLiteral("legacyImported")).toBool(false);
-        if (t.filePath.isEmpty()) continue;
-        outTracks.push_back(std::move(t));
-    }
-    return !outTracks.empty();
-}
-
-void readId3Tags(TrackInfo& track)
-{
-    if (!track.filePath.endsWith(QStringLiteral(".mp3"), Qt::CaseInsensitive)) return;
-    QFile f(track.filePath);
-    if (!f.open(QIODevice::ReadOnly)) return;
-    const QByteArray hdr = f.read(10);
-    if (hdr.size() < 10 || hdr[0] != 'I' || hdr[1] != 'D' || hdr[2] != '3') return;
-    const int ver = static_cast<unsigned char>(hdr[3]);
-    const quint32 tagSz = (quint32(static_cast<unsigned char>(hdr[6])) << 21)
-                         | (quint32(static_cast<unsigned char>(hdr[7])) << 14)
-                         | (quint32(static_cast<unsigned char>(hdr[8])) << 7)
-                         | quint32(static_cast<unsigned char>(hdr[9]));
-    const QByteArray tag = f.read(qMin(qint64(tagSz), qint64(256 * 1024)));
-    int pos = 0;
-    while (pos + 10 <= tag.size()) {
-        const QByteArray fid = tag.mid(pos, 4);
-        if (fid[0] == '\0') break;
-        quint32 fsz;
-        if (ver >= 4) {
-            fsz = (quint32(static_cast<unsigned char>(tag[pos+4])) << 21)
-                | (quint32(static_cast<unsigned char>(tag[pos+5])) << 14)
-                | (quint32(static_cast<unsigned char>(tag[pos+6])) << 7)
-                | quint32(static_cast<unsigned char>(tag[pos+7]));
-        } else {
-            fsz = (quint32(static_cast<unsigned char>(tag[pos+4])) << 24)
-                | (quint32(static_cast<unsigned char>(tag[pos+5])) << 16)
-                | (quint32(static_cast<unsigned char>(tag[pos+6])) << 8)
-                | quint32(static_cast<unsigned char>(tag[pos+7]));
-        }
-        pos += 10;
-        if (fsz == 0 || pos + static_cast<int>(fsz) > tag.size()) break;
-        const bool isTextFrame = (fid == "TBPM" || fid == "TKEY" || fid == "TIT2"
-                                  || fid == "TPE1" || fid == "TALB" || fid == "TLEN");
-        if (isTextFrame && fsz > 1) {
-            const unsigned char enc = static_cast<unsigned char>(tag[pos]);
-            QString val;
-            if (enc == 0 || enc == 3) {
-                val = QString::fromUtf8(tag.mid(pos + 1, static_cast<int>(fsz) - 1)).trimmed();
-                val.remove(QChar('\0'));
-            } else if (enc == 1 || enc == 2) {
-                // UTF-16 (enc 1 = with BOM, enc 2 = big-endian no BOM)
-                const char* raw = tag.constData() + pos + 1;
-                const int rawLen = static_cast<int>(fsz) - 1;
-                if (rawLen >= 2) {
-                    const auto b0 = static_cast<unsigned char>(raw[0]);
-                    const auto b1 = static_cast<unsigned char>(raw[1]);
-                    if (enc == 1 && b0 == 0xFF && b1 == 0xFE) {
-                        val = QString::fromUtf16(reinterpret_cast<const char16_t*>(raw + 2), (rawLen - 2) / 2).trimmed();
-                    } else if (enc == 1 && b0 == 0xFE && b1 == 0xFF) {
-                        QByteArray swapped(rawLen - 2, '\0');
-                        for (int i = 0; i < rawLen - 2; i += 2) {
-                            swapped[i] = raw[2 + i + 1];
-                            swapped[i + 1] = raw[2 + i];
-                        }
-                        val = QString::fromUtf16(reinterpret_cast<const char16_t*>(swapped.constData()), swapped.size() / 2).trimmed();
-                    } else {
-                        val = QString::fromUtf16(reinterpret_cast<const char16_t*>(raw), rawLen / 2).trimmed();
-                    }
-                    val.remove(QChar('\0'));
-                }
-            }
-            if (!val.isEmpty()) {
-                if (fid == "TBPM" && track.bpm.isEmpty()) {
-                    track.bpm = val;
-                    qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_END source=id3_TBPM bpm=%1 path=%2")
-                        .arg(val, track.filePath);
-                }
-                else if (fid == "TKEY" && track.musicalKey.isEmpty()) track.musicalKey = val;
-                else if (fid == "TIT2" && track.title.isEmpty()) track.title = val;
-                else if (fid == "TPE1" && track.artist.isEmpty()) track.artist = val;
-                else if (fid == "TALB" && track.album.isEmpty()) track.album = val;
-                else if (fid == "TLEN" && track.durationMs <= 0) {
-                    bool ok = false;
-                    const qint64 ms = val.toLongLong(&ok);
-                    if (ok && ms > 0) {
-                        track.durationMs = ms;
-                        track.durationStr = formatDurationMs(ms);
-                    }
-                }
-            }
-        }
-        pos += static_cast<int>(fsz);
-    }
-    // Update displayName from enriched tag data
-    if (!track.artist.isEmpty() && !track.title.isEmpty()) {
-        track.displayName = track.artist + QStringLiteral(" \u2014 ") + track.title;
-    } else if (!track.title.isEmpty()) {
-        track.displayName = track.title;
-    }
-}
-
-// Normalize file path for matching: forward slashes, lowercase, trimmed
-QString normalizePath(const QString& raw)
-{
-    return QDir::fromNativeSeparators(raw).trimmed().toLower();
-}
-
-// Locate the legacy ngksplayer library.db
-QString findLegacyDbPath()
-{
-    // Prefer ngksplayer, fall back to proproductionsuite, then proaudioclipper
-    const QStringList candidates = {
-        QDir::homePath() + QStringLiteral("/AppData/Roaming/ngksplayer/library.db"),
-        QDir::homePath() + QStringLiteral("/AppData/Roaming/proproductionsuite/library.db"),
-        QDir::homePath() + QStringLiteral("/AppData/Roaming/proaudioclipper/library.db"),
-    };
-    for (const QString& p : candidates) {
-        if (QFile::exists(p)) return p;
-    }
-    return {};
-}
-
-struct LegacyImportResult {
-    int matched{0};
-    int unmatched{0};
-    int totalDbRows{0};
-    QString dbPath;
-};
-
-LegacyImportResult importLegacyDb(std::vector<TrackInfo>& tracks, const QString& dbPath)
-{
-    LegacyImportResult result;
-    result.dbPath = dbPath;
-
-    if (dbPath.isEmpty() || !QFile::exists(dbPath)) return result;
-
-    // Use a unique connection name to avoid the default connection
-    const QString connName = QStringLiteral("legacyImport");
-    {
-        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
-        db.setDatabaseName(dbPath);
-        db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
-        if (!db.open()) {
-            qWarning().noquote() << QStringLiteral("LEGACY_DB_OPEN_FAIL=%1").arg(db.lastError().text());
-            return result;
-        }
-
-        // Build a lookup from normalized filePath to index in tracks
-        std::map<QString, size_t> pathIndex;
-        for (size_t i = 0; i < tracks.size(); ++i) {
-            pathIndex[normalizePath(tracks[i].filePath)] = i;
-        }
-
-        QSqlQuery q(db);
-        q.setForwardOnly(true);
-        if (!q.exec(QStringLiteral(
-            "SELECT filePath, genre, bpm, key, camelotKey, energy, loudnessLUFS, loudnessRange, "
-            "cueIn, cueOut, danceability, acousticness, instrumentalness, liveness, "
-            "year, rating, comments, album, artist, title "
-            "FROM tracks"))) {
-            qWarning().noquote() << QStringLiteral("LEGACY_DB_QUERY_FAIL=%1").arg(q.lastError().text());
-            db.close();
-            return result;
-        }
-
-        while (q.next()) {
-            ++result.totalDbRows;
-            const QString rawPath = q.value(0).toString();
-            const QString normalized = normalizePath(rawPath);
-            auto it = pathIndex.find(normalized);
-            if (it == pathIndex.end()) {
-                ++result.unmatched;
-                continue;
-            }
-
-            TrackInfo& t = tracks[it->second];
-            ++result.matched;
-            t.legacyImported = true;
-
-            // Only overwrite empty/default fields
-            if (t.genre.isEmpty()) t.genre = q.value(1).toString().trimmed();
-
-            if (t.bpm.isEmpty()) {
-                const int dbBpm = q.value(2).toInt();
-                if (dbBpm > 0) {
-                    t.bpm = QString::number(dbBpm);
-                    qInfo().noquote() << QStringLiteral("BPM_ANALYSIS_END source=legacy_db bpm=%1 path=%2")
-                        .arg(dbBpm).arg(t.filePath);
-                }
-            }
-
-            if (t.musicalKey.isEmpty()) t.musicalKey = q.value(3).toString().trimmed();
-            if (t.camelotKey.isEmpty()) t.camelotKey = q.value(4).toString().trimmed();
-
-            if (t.energy < 0) {
-                const double v = q.value(5).toDouble();
-                if (v > 0) t.energy = v;
-            }
-
-            if (t.loudnessLUFS == 0.0) t.loudnessLUFS = q.value(6).toDouble();
-            if (t.loudnessRange == 0.0) t.loudnessRange = q.value(7).toDouble();
-
-            if (t.cueIn.isEmpty()) t.cueIn = q.value(8).toString().trimmed();
-            if (t.cueOut.isEmpty()) t.cueOut = q.value(9).toString().trimmed();
-
-            if (t.danceability < 0) {
-                const double v = q.value(10).toDouble();
-                if (v > 0) t.danceability = v;
-            }
-            if (t.acousticness < 0) {
-                const double v = q.value(11).toDouble();
-                if (v > 0) t.acousticness = v;
-            }
-            if (t.instrumentalness < 0) {
-                const double v = q.value(12).toDouble();
-                if (v > 0) t.instrumentalness = v;
-            }
-            if (t.liveness < 0) {
-                const double v = q.value(13).toDouble();
-                if (v > 0) t.liveness = v;
-            }
-
-            if (t.year == 0) t.year = q.value(14).toInt();
-            if (t.rating == 0) t.rating = q.value(15).toInt();
-            if (t.comments.isEmpty()) t.comments = q.value(16).toString().trimmed();
-
-            // Album/Artist/Title from DB if still empty
-            if (t.album.isEmpty()) t.album = q.value(17).toString().trimmed();
-            if (t.artist.isEmpty()) t.artist = q.value(18).toString().trimmed();
-            if (t.title.isEmpty()) t.title = q.value(19).toString().trimmed();
-        }
-
-        db.close();
-    }
-    QSqlDatabase::removeDatabase(connName);
-
-    return result;
-}
-
-std::vector<TrackInfo> scanFolderForTracks(const QString& folderPath)
-{
-    std::vector<TrackInfo> tracks;
-    static const QStringList filters = {
-        QStringLiteral("*.mp3"), QStringLiteral("*.wav"), QStringLiteral("*.flac"),
-        QStringLiteral("*.ogg"), QStringLiteral("*.aac"), QStringLiteral("*.m4a"),
-        QStringLiteral("*.wma")
-    };
-
-    QDirIterator it(folderPath, filters, QDir::Files, QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        it.next();
-        TrackInfo info;
-        info.filePath = it.filePath();
-        info.fileSize = it.fileInfo().size();
-        const QString baseName = it.fileInfo().completeBaseName();
-
-        const int dashPos = baseName.indexOf(QStringLiteral(" - "));
-        if (dashPos > 0) {
-            info.artist = baseName.left(dashPos).trimmed();
-            info.title = baseName.mid(dashPos + 3).trimmed();
-            info.displayName = info.artist + QStringLiteral(" \u2014 ") + info.title;
-        } else {
-            info.title = baseName;
-            info.displayName = baseName;
-        }
-        readId3Tags(info);
-        tracks.push_back(std::move(info));
-    }
-    return tracks;
-}
-
-struct UiAudioProfile {
-    QString deviceId;
-    QString deviceName;
-    int sampleRate{0};
-    int bufferFrames{0};
-    int channelsOut{2};
-};
-
-struct UiAudioProfilesStore {
-    QString activeProfile;
-    std::map<QString, UiAudioProfile> profiles;
-    QJsonObject root;
-};
-
-bool loadUiAudioProfiles(UiAudioProfilesStore& outStore, QString& outError)
-{
-    outStore = {};
-    outError.clear();
-
-    QFile file(kAudioProfilesPath());
-    if (!file.exists()) {
-        outError = QStringLiteral("No profiles found");
-        return false;
-    }
-    if (!file.open(QIODevice::ReadOnly)) {
-        outError = QStringLiteral("Unable to open profiles file");
-        return false;
-    }
-
-    QJsonParseError parseError {};
-    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
-    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
-        outError = QStringLiteral("Invalid profiles JSON");
-        return false;
-    }
-
-    outStore.root = doc.object();
-    outStore.activeProfile = outStore.root.value(QStringLiteral("active_profile")).toString();
-
-    const QJsonObject profilesObj = outStore.root.value(QStringLiteral("profiles")).toObject();
-    for (auto it = profilesObj.begin(); it != profilesObj.end(); ++it) {
-        if (!it.value().isObject()) {
-            continue;
-        }
-        const QJsonObject p = it.value().toObject();
-        UiAudioProfile profile {};
-        profile.deviceId = p.value(QStringLiteral("device_id")).toString();
-        profile.deviceName = p.value(QStringLiteral("device_name")).toString();
-        profile.sampleRate = p.value(QStringLiteral("sample_rate")).toInt(p.value(QStringLiteral("sr")).toInt(0));
-        profile.bufferFrames = p.value(QStringLiteral("buffer_frames")).toInt(p.value(QStringLiteral("buffer")).toInt(128));
-        profile.channelsOut = p.value(QStringLiteral("channels_out")).toInt(p.value(QStringLiteral("ch_out")).toInt(2));
-        outStore.profiles[it.key()] = profile;
-    }
-
-    if (outStore.profiles.empty()) {
-        outError = QStringLiteral("No profiles found");
-        return false;
-    }
-
-    if (outStore.activeProfile.isEmpty() || outStore.profiles.find(outStore.activeProfile) == outStore.profiles.end()) {
-        outStore.activeProfile = outStore.profiles.begin()->first;
-    }
-
-    return true;
-}
-
-bool writeUiAudioProfilesActiveProfile(const UiAudioProfilesStore& store, const QString& activeProfile, QString& outError)
-{
-    outError.clear();
-    QJsonObject root = store.root;
-    if (root.isEmpty()) {
-        root.insert(QStringLiteral("profiles"), QJsonObject());
-    }
-
-    root.insert(QStringLiteral("active_profile"), activeProfile);
-
-    QSaveFile saveFile(kAudioProfilesPath());
-    if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        outError = QStringLiteral("Unable to open profiles file for write");
-        return false;
-    }
-
-    const QByteArray payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
-    if (saveFile.write(payload) != payload.size()) {
-        outError = QStringLiteral("Failed writing profiles file");
-        saveFile.cancelWriting();
-        return false;
-    }
-
-    if (!saveFile.commit()) {
-        outError = QStringLiteral("Failed to commit profiles file");
-        return false;
-    }
-
-    return true;
-}
-
-QString uiLogAbsolutePath()
-{
-    return QString::fromStdString(std::filesystem::absolute(gLogPath).string());
-}
-
-const char* levelToText(QtMsgType type)
-{
-    switch (type) {
-    case QtDebugMsg:
-        return "DEBUG";
-    case QtInfoMsg:
-        return "INFO";
-    case QtWarningMsg:
-        return "WARN";
-    case QtCriticalMsg:
-        return "CRIT";
-    case QtFatalMsg:
-        return "FATAL";
-    default:
-        return "UNKNOWN";
-    }
-}
-
-void writeLine(const QString& line)
-{
-    QMutexLocker locker(&gLogMutex);
-    if (!gLogPath.empty()) {
-        std::ofstream stream(gLogPath, std::ios::app);
-        if (stream.is_open()) {
-            stream << line.toStdString() << '\n';
-            stream.flush();
-        }
-    }
-    if (gConsoleEcho) {
-        std::cerr << line.toStdString() << std::endl;
-    }
-}
-
-void writeJsonEvent(const QString& level, const QString& eventName, const QJsonObject& payload)
-{
-    QMutexLocker locker(&gLogMutex);
-    if (gJsonLogPath.empty()) {
-        return;
-    }
-
-    QJsonObject root;
-    root.insert(QStringLiteral("timestamp_utc"), QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
-    root.insert(QStringLiteral("level"), level);
-    root.insert(QStringLiteral("event"), eventName);
-    root.insert(QStringLiteral("payload"), payload);
-
-    const QByteArray jsonLine = QJsonDocument(root).toJson(QJsonDocument::Compact);
-    std::ofstream stream(gJsonLogPath, std::ios::app | std::ios::binary);
-    if (!stream.is_open()) {
-        return;
-    }
-    stream.write(jsonLine.constData(), static_cast<std::streamsize>(jsonLine.size()));
-    stream.put('\n');
-    stream.flush();
-}
-
-QString truncateForLog(const QString& value, int maxChars)
-{
-    if (value.size() <= maxChars) {
-        return value;
-    }
-    return value.left(maxChars) + QStringLiteral("...(truncated)");
-}
-
-bool runDllProbe(QString& missingDlls)
-{
-#ifdef _WIN32
-    // Check only the DLLs this binary actually imports (verified via dumpbin).
-    // Use debug-suffixed names for debug builds, release names for release builds.
-    // Qt6Qml/Qt6Quick are intentionally excluded — native.exe does not import them.
-#ifdef _DEBUG
-    static const wchar_t* kDllNames[] = {
-        L"Qt6Cored.dll",
-        L"Qt6Guid.dll",
-        L"Qt6Sqld.dll",
-        L"Qt6Widgetsd.dll",
-        L"vcruntime140d.dll",
-        L"msvcp140d.dll"
-    };
-#else
-    static const wchar_t* kDllNames[] = {
-        L"Qt6Core.dll",
-        L"Qt6Gui.dll",
-        L"Qt6Sql.dll",
-        L"Qt6Widgets.dll",
-        L"vcruntime140.dll",
-        L"msvcp140.dll"
-    };
-#endif
-
-    QStringList missing;
-    gDllProbeEntries.clear();
-    for (const wchar_t* dllName : kDllNames) {
-        HMODULE handle = LoadLibraryW(dllName);
-        DllProbeEntry entry;
-        entry.name = QString::fromWCharArray(dllName);
-        if (handle == nullptr) {
-            entry.pass = false;
-            missing.push_back(entry.name);
-            gDllProbeEntries.push_back(entry);
-            continue;
-        }
-        entry.pass = true;
-        gDllProbeEntries.push_back(entry);
-        FreeLibrary(handle);
-    }
-
-    missingDlls = missing.join(',');
-    return missing.isEmpty();
-#else
-    missingDlls.clear();
-    return true;
-#endif
-}
-
-QString currentExecutablePathForLog()
-{
-#ifdef _WIN32
-    wchar_t buffer[MAX_PATH] {};
-    const DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
-    if (length > 0 && length < MAX_PATH) {
-        return QString::fromWCharArray(buffer, static_cast<int>(length));
-    }
-#endif
-    return QString::fromStdString(std::filesystem::absolute(".").string());
-}
-
-void qtRuntimeMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
-{
-    const QString ts = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
-    const QString category = context.category ? QString::fromUtf8(context.category) : QStringLiteral("qt");
-    const QString file = context.file ? QString::fromUtf8(context.file) : QStringLiteral("?");
-    const int line = context.line;
-    const QString text = QStringLiteral("%1 [%2] [%3] %4:%5 %6")
-                             .arg(ts,
-                                  QString::fromUtf8(levelToText(type)),
-                                  category,
-                                  file,
-                                  QString::number(line),
-                                  msg);
-    writeLine(text);
-
-    if (type == QtFatalMsg) {
-        abort();
-    }
-}
-
-void initializeUiRuntimeLog()
-{
-    if (gExeBaseDir.empty()) gExeBaseDir = resolveExeBaseDir();
-    const auto rtDir = std::filesystem::path(gExeBaseDir) / "data" / "runtime";
-    std::filesystem::create_directories(rtDir);
-    gRuntimeDirReady = std::filesystem::exists(rtDir) && std::filesystem::is_directory(rtDir);
-    gLogPath = (rtDir / "ui_qt.log").string();
-    gJsonLogPath = (rtDir / "ui_qt.jsonl").string();
-
-    const QString echoValue = qEnvironmentVariable("NGKS_UI_LOG_ECHO").trimmed().toLower();
-    gConsoleEcho = (echoValue == QStringLiteral("1") || echoValue == QStringLiteral("true") || echoValue == QStringLiteral("yes"));
-
-    qInstallMessageHandler(qtRuntimeMessageHandler);
-
-    const QString banner = QStringLiteral("=== UI bootstrap BuildStamp=%1 GitSHA=%2 ===")
-                               .arg(QStringLiteral(NGKS_BUILD_STAMP), QStringLiteral(NGKS_GIT_SHA));
-    writeLine(banner);
-
-    {
-        std::ofstream stream(gLogPath, std::ios::app);
-        gLogWritable = stream.is_open();
-    }
-
-    {
-        std::ofstream jsonStream(gJsonLogPath, std::ios::app);
-        gLogWritable = gLogWritable && jsonStream.is_open();
-    }
-
-    gDllProbePass = runDllProbe(gDllProbeMissing);
-
-    const QString exePath = currentExecutablePathForLog();
-    const QString exeDir = QFileInfo(exePath).absolutePath();
-    const QString cwd = QDir::currentPath();
-    const QString pathValue = qEnvironmentVariable("PATH");
-    gPathSnapshot = pathValue;
-    gQtBinUsed = detectQtBinFromPath(pathValue);
-    const QString qtDebugPlugins = qEnvironmentVariable("QT_DEBUG_PLUGINS");
-
-    writeLine(QStringLiteral("EnvReport BuildStamp=%1 GitSHA=%2")
-                  .arg(QStringLiteral(NGKS_BUILD_STAMP), QStringLiteral(NGKS_GIT_SHA)));
-    writeLine(QStringLiteral("EnvReport ExePath=%1").arg(exePath));
-    writeLine(QStringLiteral("EnvReport ExeDir=%1").arg(exeDir));
-    writeLine(QStringLiteral("EnvReport RuntimeBaseDir=%1").arg(QString::fromStdString(gExeBaseDir)));
-    writeLine(QStringLiteral("EnvReport Cwd=%1").arg(cwd));
-    writeLine(QStringLiteral("EnvReport QtVersion=%1").arg(QString::fromLatin1(QT_VERSION_STR)));
-    writeLine(QStringLiteral("EnvReport PlatformProduct=%1").arg(QSysInfo::prettyProductName()));
-    writeLine(QStringLiteral("EnvReport QT_DEBUG_PLUGINS=%1").arg(qtDebugPlugins.isEmpty() ? QStringLiteral("<unset>") : qtDebugPlugins));
-    writeLine(QStringLiteral("EnvReport QtBinUsed=%1").arg(gQtBinUsed));
-    writeLine(QStringLiteral("EnvReport PATH=%1").arg(truncateForLog(pathValue, 1024)));
-    writeLine(QStringLiteral("EnvReport=PASS"));
-
-    QJsonObject bootstrapPayload;
-    bootstrapPayload.insert(QStringLiteral("build_stamp"), QStringLiteral(NGKS_BUILD_STAMP));
-    bootstrapPayload.insert(QStringLiteral("git_sha"), QStringLiteral(NGKS_GIT_SHA));
-    writeJsonEvent(QStringLiteral("INFO"), QStringLiteral("bootstrap"), bootstrapPayload);
-
-    QJsonObject envPayload;
-    envPayload.insert(QStringLiteral("exe_path"), exePath);
-    envPayload.insert(QStringLiteral("exe_dir"), exeDir);
-    envPayload.insert(QStringLiteral("cwd"), cwd);
-    envPayload.insert(QStringLiteral("qt_version"), QString::fromLatin1(QT_VERSION_STR));
-    envPayload.insert(QStringLiteral("platform_product"), QSysInfo::prettyProductName());
-    envPayload.insert(QStringLiteral("qt_debug_plugins"), qtDebugPlugins.isEmpty() ? QStringLiteral("<unset>") : qtDebugPlugins);
-    envPayload.insert(QStringLiteral("path"), truncateForLog(pathValue, 1024));
-    envPayload.insert(QStringLiteral("qt_bin_used"), gQtBinUsed);
-    writeJsonEvent(QStringLiteral("INFO"), QStringLiteral("env_report"), envPayload);
-
-    if (gDllProbePass) {
-        writeLine(QStringLiteral("DllProbe=PASS"));
-    } else {
-        writeLine(QStringLiteral("DllProbe=FAIL missing=%1").arg(gDllProbeMissing));
-    }
-
-    QJsonObject dllPayload;
-    dllPayload.insert(QStringLiteral("pass"), gDllProbePass);
-    dllPayload.insert(QStringLiteral("missing"), gDllProbeMissing);
-    QJsonArray dllItems;
-    for (const auto& entry : gDllProbeEntries) {
-        QJsonObject item;
-        item.insert(QStringLiteral("name"), entry.name);
-        item.insert(QStringLiteral("pass"), entry.pass);
-        dllItems.append(item);
-    }
-    dllPayload.insert(QStringLiteral("dlls"), dllItems);
-    writeJsonEvent(gDllProbePass ? QStringLiteral("INFO") : QStringLiteral("ERROR"), QStringLiteral("dll_probe"), dllPayload);
-}
-
-QString utcNowIso()
-{
-    return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
-}
-
-QString statusSummaryLine(const UIStatus& status)
-{
-    return QStringLiteral("StatusReady=%1 peakLinear=%2 sampleRateHz=%3 blockSize=%4 limiterActive=%5 lastUpdateUtc=%6")
-        .arg(status.engineReady ? QStringLiteral("TRUE") : QStringLiteral("FALSE"),
-             QString::number(status.masterPeakLinear, 'f', 6),
-             QString::number(status.sampleRateHz),
-             QString::number(status.blockSize),
-             QStringLiteral("N/A"),
-             QString::fromStdString(status.lastUpdateUtc));
-}
-
-QString boolToFlag(bool value)
-{
-    return value ? QStringLiteral("TRUE") : QStringLiteral("FALSE");
-}
-
-QString rtWatchdogStateText(int32_t code)
-{
-    switch (code) {
-    case 0:
-        return QStringLiteral("GRACE");
-    case 1:
-        return QStringLiteral("ACTIVE");
-    case 2:
-        return QStringLiteral("STALL");
-    case 3:
-        return QStringLiteral("FAILED");
-    default:
-        return QStringLiteral("UNKNOWN");
-    }
-}
-
-QString healthSummaryLine(const UIHealthSnapshot& health)
-{
-    return QStringLiteral("HealthEngineInit=%1 HealthAudioReady=%2 HealthRenderOK=%3 RenderCycleCounter=%4")
-        .arg(boolToFlag(health.engineInitialized),
-             boolToFlag(health.audioDeviceReady),
-             boolToFlag(health.lastRenderCycleOk),
-             QString::number(static_cast<qulonglong>(health.renderCycleCounter)));
-}
-
-QString telemetrySummaryLine(const UIEngineTelemetrySnapshot& telemetry)
-{
-    return QStringLiteral("TelemetryRenderCycles=%1 TelemetryAudioCallbacks=%2 TelemetryXRuns=%3 TelemetryLastRenderUs=%4 TelemetryMaxRenderUs=%5 TelemetryLastCallbackUs=%6 TelemetryMaxCallbackUs=%7")
-        .arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)),
-             QString::number(static_cast<qulonglong>(telemetry.audioCallbacks)),
-             QString::number(static_cast<qulonglong>(telemetry.xruns)),
-             QString::number(telemetry.lastRenderDurationUs),
-             QString::number(telemetry.maxRenderDurationUs),
-             QString::number(telemetry.lastCallbackDurationUs),
-             QString::number(telemetry.maxCallbackDurationUs));
-}
-
-QString agSummaryLine(const UIEngineTelemetrySnapshot& telemetry)
-{
-    return QStringLiteral("RTAudioDeviceId=%1 RTAudioDeviceName=%2 RTAudioAGRequestedSR=%3 RTAudioAGRequestedBufferFrames=%4 RTAudioAGRequestedChOut=%5 RTAudioAGAppliedSR=%6 RTAudioAGAppliedBufferFrames=%7 RTAudioAGAppliedChOut=%8 RTAudioAGFallback=%9")
-        .arg(QString::fromUtf8(telemetry.rtDeviceId),
-             QString::fromUtf8(telemetry.rtDeviceName),
-             QString::number(telemetry.rtRequestedSampleRate),
-             QString::number(telemetry.rtRequestedBufferFrames),
-             QString::number(telemetry.rtRequestedChannelsOut),
-             QString::number(telemetry.rtSampleRate),
-             QString::number(telemetry.rtBufferFrames),
-             QString::number(telemetry.rtChannelsOut),
-             telemetry.rtAgFallback ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
-}
-
-QString telemetrySparkline(const UIEngineTelemetrySnapshot& telemetry)
-{
-    static const char* levels = " .:-=+*#%@";
-    constexpr int levelCount = 10;
-
-    uint32_t count = telemetry.renderDurationWindowCount;
-    if (count > UIEngineTelemetrySnapshot::kRenderDurationWindowSize) {
-        count = UIEngineTelemetrySnapshot::kRenderDurationWindowSize;
-    }
-    if (count == 0u) {
-        return QStringLiteral("(empty)");
-    }
-
-    uint32_t peak = 1u;
-    for (uint32_t i = 0u; i < count; ++i) {
-        peak = std::max(peak, telemetry.renderDurationWindowUs[i]);
-    }
-
-    QString line;
-    line.reserve(static_cast<int>(count));
-    for (uint32_t i = 0u; i < count; ++i) {
-        const uint32_t value = telemetry.renderDurationWindowUs[i];
-        const int idx = static_cast<int>((static_cast<uint64_t>(value) * static_cast<uint64_t>(levelCount - 1)) / peak);
-        line.append(QChar::fromLatin1(levels[idx]));
-    }
-
-    return line;
-}
-
-QString passFail(bool value)
-{
-    return value ? QStringLiteral("PASS") : QStringLiteral("FAIL");
-}
-
-QString foundationReportLine(const UIFoundationSnapshot& foundation)
-{
-    return QStringLiteral("EngineInit=%1 OfflineRender=%2 Telemetry=%3 HealthSnapshot=%4 Diagnostics=%5 TelemetryRenderCycles=%6 HealthRenderOK=%7")
-        .arg(passFail(foundation.engineInit),
-             passFail(foundation.offlineRender),
-             passFail(foundation.telemetry),
-             passFail(foundation.healthSnapshot),
-             passFail(foundation.diagnostics),
-             QString::number(static_cast<qulonglong>(foundation.telemetryRenderCycles)),
-             foundation.healthRenderOk ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
-}
-
-QString foundationBlockText(const UIFoundationSnapshot& foundation, const UISelfTestSnapshot* selfTests)
-{
-    QString text = QStringLiteral(
-        "Foundation:\n"
-        "  EngineInit: %1\n"
-        "  OfflineRender: %2\n"
-        "  Telemetry: %3\n"
-        "  HealthSnapshot: %4\n"
-        "  Diagnostics: %5\n"
-        "  TelemetryRenderCycles: %6\n"
-        "  HealthRenderOK: %7")
-                       .arg(passFail(foundation.engineInit),
-                            passFail(foundation.offlineRender),
-                            passFail(foundation.telemetry),
-                            passFail(foundation.healthSnapshot),
-                            passFail(foundation.diagnostics),
-                            QString::number(static_cast<qulonglong>(foundation.telemetryRenderCycles)),
-                            foundation.healthRenderOk ? QStringLiteral("TRUE") : QStringLiteral("FALSE"));
-
-    if (selfTests != nullptr) {
-        text += QStringLiteral(
-            "\n  SelfTests: %1"
-            "\n    SelfTest_TelemetryReadable: %2"
-            "\n    SelfTest_HealthReadable: %3"
-            "\n    SelfTest_OfflineRenderPasses: %4")
-                    .arg(passFail(selfTests->allPass),
-                         passFail(selfTests->telemetryReadable),
-                         passFail(selfTests->healthReadable),
-                         passFail(selfTests->offlineRenderPasses));
-    }
-
-    return text;
-}
-
-class DiagnosticsDialog : public QDialog {
-public:
-    explicit DiagnosticsDialog(EngineBridge& engineBridge, QWidget* parent = nullptr)
-        : QDialog(parent)
-        , bridge_(engineBridge)
-    {
-        setWindowTitle(QStringLiteral("Diagnostics"));
-        resize(780, 430);
-
-        auto* layout = new QVBoxLayout(this);
-
-        auto* pathLabel = new QLabel(QStringLiteral("ui_qt.log: %1").arg(uiLogAbsolutePath()), this);
-        pathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        layout->addWidget(pathLabel);
-
-        auto* row = new QHBoxLayout();
-        auto* refreshButton = new QPushButton(QStringLiteral("Refresh Log Tail"), this);
-        auto* copyButton = new QPushButton(QStringLiteral("Copy Report"), this);
-        auto* rtProbeButton = new QPushButton(QStringLiteral("Start RT Probe (440Hz/5s)"), this);
-        row->addWidget(refreshButton);
-        row->addWidget(copyButton);
-        row->addWidget(rtProbeButton);
-        row->addStretch(1);
-        layout->addLayout(row);
-
-        statusLabel_ = new QLabel(QStringLiteral("Engine: NOT_READY"), this);
-        statusLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        layout->addWidget(statusLabel_);
-
-        detailsLabel_ = new QLabel(QStringLiteral("StatusReady=FALSE peakLinear=0 sampleRateHz=0 blockSize=0 limiterActive=N/A lastUpdateUtc=N/A"), this);
-        detailsLabel_->setWordWrap(true);
-        detailsLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        layout->addWidget(detailsLabel_);
-
-        lastUpdateLabel_ = new QLabel(QStringLiteral("Last status update: N/A"), this);
-        lastUpdateLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        layout->addWidget(lastUpdateLabel_);
-
-        healthLabel_ = new QLabel(
-            QStringLiteral("Engine Health:\n  Initialized: FALSE\n  Audio Ready: FALSE\n  Render OK: FALSE\n  Render Cycles: 0"),
-            this);
-        healthLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        layout->addWidget(healthLabel_);
-
-        telemetryLabel_ = new QLabel(
-            QStringLiteral("Telemetry:\n  Render Cycles: 0\n  Audio Callbacks: 0\n  XRuns: 0\n  Last Render Us: 0\n  Max Render Us: 0\n  Last Callback Us: 0\n  Max Callback Us: 0\n  Sparkline: (empty)"),
-            this);
-        telemetryLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        layout->addWidget(telemetryLabel_);
-
-        foundationLabel_ = new QLabel(
-            QStringLiteral("Foundation:\n  EngineInit: FAIL\n  OfflineRender: FAIL\n  Telemetry: FAIL\n  HealthSnapshot: FAIL\n  Diagnostics: FAIL\n  TelemetryRenderCycles: 0\n  HealthRenderOK: FALSE"),
-            this);
-        foundationLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        foundationLabel_->setWordWrap(true);
-        layout->addWidget(foundationLabel_);
-
-        rtAudioLabel_ = new QLabel(
-            QStringLiteral("RT Audio:\n  DeviceOpen: FALSE\n  Device: <none>\n  SampleRate: 0\n  BufferFrames: 0\n  ChannelsOut: 0\n  CallbackCount: 0\n  XRuns: 0\n  PeakDb: -120.0\n  Watchdog: FALSE"),
-            this);
-        rtAudioLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        rtAudioLabel_->setWordWrap(true);
-        layout->addWidget(rtAudioLabel_);
-
-        logTailBox_ = new QPlainTextEdit(this);
-        logTailBox_->setReadOnly(true);
-        layout->addWidget(logTailBox_);
-
-        QObject::connect(refreshButton, &QPushButton::clicked, this, &DiagnosticsDialog::refreshLogTail);
-        QObject::connect(copyButton, &QPushButton::clicked, this, &DiagnosticsDialog::copyReportToClipboard);
-        QObject::connect(rtProbeButton, &QPushButton::clicked, this, [this]() {
-            bridge_.startRtProbe(440.0, -12.0);
-            QTimer::singleShot(5000, this, [this]() { bridge_.stopRtProbe(); });
-        });
-
-        qInfo() << "DiagnosticsDialogConstructed=PASS";
-        refreshLogTail();
-    }
-
-    void setStatus(const UIStatus& status)
-    {
-        statusLabel_->setText(status.engineReady ? QStringLiteral("Engine: READY") : QStringLiteral("Engine: NOT_READY"));
-        detailsLabel_->setText(statusSummaryLine(status));
-        lastUpdateLabel_->setText(QStringLiteral("Last status update: %1").arg(QString::fromStdString(status.lastUpdateUtc)));
-    }
-
-    void setHealth(const UIHealthSnapshot& health)
-    {
-        healthLabel_->setText(
-            QStringLiteral("Engine Health:\n  Initialized: %1\n  Audio Ready: %2\n  Render OK: %3\n  Render Cycles: %4")
-                .arg(boolToFlag(health.engineInitialized),
-                     boolToFlag(health.audioDeviceReady),
-                     boolToFlag(health.lastRenderCycleOk),
-                     QString::number(static_cast<qulonglong>(health.renderCycleCounter))));
-    }
-
-    void setTelemetry(const UIEngineTelemetrySnapshot& telemetry)
-    {
-        telemetryLabel_->setText(
-            QStringLiteral("Telemetry:\n  Render Cycles: %1\n  Audio Callbacks: %2\n  XRuns: %3\n  Last Render Us: %4\n  Max Render Us: %5\n  Last Callback Us: %6\n  Max Callback Us: %7\n  Sparkline: %8")
-                .arg(QString::number(static_cast<qulonglong>(telemetry.renderCycles)),
-                     QString::number(static_cast<qulonglong>(telemetry.audioCallbacks)),
-                     QString::number(static_cast<qulonglong>(telemetry.xruns)),
-                     QString::number(telemetry.lastRenderDurationUs),
-                     QString::number(telemetry.maxRenderDurationUs),
-                     QString::number(telemetry.lastCallbackDurationUs),
-                     QString::number(telemetry.maxCallbackDurationUs),
-                     telemetrySparkline(telemetry)));
-    }
-
-    void refreshLogTail()
-    {
-        std::ifstream stream(gLogPath);
-        if (!stream.is_open()) {
-            logTailBox_->setPlainText(QStringLiteral("log missing"));
-            return;
-        }
-
-        std::vector<std::string> lines;
-        std::string line;
-        while (std::getline(stream, line)) {
-            lines.push_back(line);
-        }
-
-        const size_t start = (lines.size() > 20u) ? (lines.size() - 20u) : 0u;
-        QStringList tail;
-        for (size_t i = start; i < lines.size(); ++i) {
-            tail.push_back(QString::fromStdString(lines[i]));
-        }
-
-        if (tail.isEmpty()) {
-            logTailBox_->setPlainText(QStringLiteral("log missing"));
-        } else {
-            logTailBox_->setPlainText(tail.join('\n'));
-        }
-    }
-
-    void setFoundation(const UIFoundationSnapshot& foundation, const UISelfTestSnapshot* selfTests)
-    {
-        foundationText_ = foundationBlockText(foundation, selfTests);
-        foundationLabel_->setText(foundationText_);
-    }
-
-    void setRtAudio(const UIEngineTelemetrySnapshot& telemetry)
-    {
-        const double peakDb = static_cast<double>(telemetry.rtMeterPeakDb10) / 10.0;
-        rtAudioLabel_->setText(
-            QStringLiteral("RT Audio:\n  DeviceOpen: %1\n  DeviceId: %2\n  DeviceName: %3\n  Requested: sr=%4 buffer=%5 ch_out=%6\n  Applied: sr=%7 buffer=%8 ch_out=%9\n  Fallback: %10\n  CallbackCount: %11\n  XRuns: %12\n  XRunsTotal: %13\n  XRunsWindow: %14\n  JitterMaxNsWindow: %15\n  RestartCount: %16\n  WatchdogState: %17\n  LastDeviceErrorCode: %18\n  PeakDb: %19\n  Watchdog: %20")
-                .arg(boolToFlag(telemetry.rtDeviceOpenOk),
-                     QString::fromUtf8(telemetry.rtDeviceId),
-                     QString::fromUtf8(telemetry.rtDeviceName),
-                     QString::number(telemetry.rtRequestedSampleRate),
-                     QString::number(telemetry.rtRequestedBufferFrames),
-                     QString::number(telemetry.rtRequestedChannelsOut),
-                     QString::number(telemetry.rtSampleRate),
-                     QString::number(telemetry.rtBufferFrames),
-                     QString::number(telemetry.rtChannelsOut),
-                     telemetry.rtAgFallback ? QStringLiteral("TRUE") : QStringLiteral("FALSE"),
-                     QString::number(static_cast<qulonglong>(telemetry.rtCallbackCount)),
-                     QString::number(static_cast<qulonglong>(telemetry.rtXRunCount)),
-                     QString::number(static_cast<qulonglong>(telemetry.rtXRunCountTotal)),
-                     QString::number(static_cast<qulonglong>(telemetry.rtXRunCountWindow)),
-                     QString::number(static_cast<qulonglong>(telemetry.rtJitterAbsNsMaxWindow)),
-                     QString::number(telemetry.rtDeviceRestartCount),
-                     rtWatchdogStateText(telemetry.rtWatchdogStateCode),
-                     QString::number(telemetry.rtLastDeviceErrorCode),
-                     QString::number(peakDb, 'f', 1),
-                     boolToFlag(telemetry.rtWatchdogOk)));
-    }
-
-    void copyReportToClipboard()
-    {
-        QString report;
-        report += statusLabel_->text() + '\n';
-        report += detailsLabel_->text() + '\n';
-        report += healthLabel_->text() + '\n';
-        report += telemetryLabel_->text() + '\n';
-        report += foundationText_;
-        report += '\n' + rtAudioLabel_->text();
-        if (QGuiApplication::clipboard() != nullptr) {
-            QGuiApplication::clipboard()->setText(report);
-        }
-    }
-
-private:
-    EngineBridge& bridge_;
-    QLabel* statusLabel_{nullptr};
-    QLabel* detailsLabel_{nullptr};
-    QLabel* lastUpdateLabel_{nullptr};
-    QLabel* healthLabel_{nullptr};
-    QLabel* telemetryLabel_{nullptr};
-    QLabel* foundationLabel_{nullptr};
-    QLabel* rtAudioLabel_{nullptr};
-    QPlainTextEdit* logTailBox_{nullptr};
-    QString foundationText_;
-};
-
-// ═══════════════════════════════════════════════════════════════════
-// VisualizerWidget — lightweight animated display surface
-// Supports display modes: None, Bars, Line, Circle
-// ═══════════════════════════════════════════════════════════════════
-class VisualizerWidget : public QWidget {
-public:
-    enum class DisplayMode { None, Bars, Line, Circle };
-
-    explicit VisualizerWidget(QWidget* parent = nullptr)
-        : QWidget(parent)
-    {
-        setMinimumHeight(120);
-        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        setAttribute(Qt::WA_OpaquePaintEvent, true);
-        elapsed_.start();
-        audioActiveTimer_.start();
-        for (int i = 0; i < kMaxBars; ++i) {
-            barHeights_[i] = 0.0f;
-            peakHold_[i] = 0.0f;
-            peakAge_[i] = 0.0f;
-        }
-        // Seed particles with initial positions
-        for (int i = 0; i < kParticleCount; ++i) {
-            particles_[i] = {
-                static_cast<float>(i) / kParticleCount,
-                0.3f + 0.4f * std::sin(i * 1.618f),
-                0.0f,
-                0.005f + 0.01f * std::sin(i * 0.73f),
-                0.4f + 0.6f * static_cast<float>(i % 7) / 6.0f
-            };
-        }
-    }
-
-    void setDisplayMode(DisplayMode m) { mode_ = m; update(); }
-    DisplayMode displayMode() const { return mode_; }
-
-    void setPulseEnabled(bool on) { pulseOn_ = on; update(); }
-    bool pulseEnabled() const { return pulseOn_; }
-
-    void setTuneLevel(int level) { tuneLevel_ = qBound(0, level, 4); update(); }
-    int tuneLevel() const { return tuneLevel_; }
-
-    void setAudioLevel(float level)
-    {
-        audioLevel_ = qBound(0.0f, level, 1.0f);
-        audioActiveTimer_.restart();
-    }
-
-    // Title pulse: paint-pipeline driven, no Qt property changes
-    void setTitleText(const QString& text) { titleText_ = text; }
-    void setTitlePulse(float envelope) { titlePulse_ = qBound(0.0f, envelope, 1.0f); }
-    void setUpNextText(const QString& text) { upNextText_ = text; }
-
-    // Returns the dynamic bar count for the current width
-    int barCount() const { return qBound(kMinBars, width() / kSlotPx, kMaxBars); }
-
-    void tick()
-    {
-        const float dt = 0.033f;
-        const float sensitivity = 0.3f + tuneLevel_ * 0.175f;
-        const qint64 elapsedMs = elapsed_.elapsed();
-        const bool hasAudio = audioActiveTimer_.elapsed() < 500;
-
-        // Use raw audio level directly — DO NOT over-amplify to a constant 1.0.
-        // The raw peak (0..1) drives bar height so bars actually follow volume.
-        const float rawLevel = hasAudio ? audioLevel_ : 0.0f;
-        // Sensitivity-scaled level for overall bar height
-        const float level = qBound(0.0f, rawLevel * (1.0f + sensitivity), 1.0f);
-
-        const int n = barCount();
-        const float invN = 1.0f / n;
-
-        // ── Update bar heights for dynamic count ──
-        for (int i = 0; i < n; ++i) {
-            float target;
-            if (hasAudio && rawLevel > 0.001f) {
-                const float freq = i * invN;
-                // Frequency shape: bass bars taller, highs shorter
-                const float shape = (1.0f - 0.35f * freq)
-                    * (0.85f + 0.15f * std::sin(freq * 6.28318f));
-                // Small per-bar jitter for visual spread (NOT the primary driver)
-                const float jitter = std::sin(i * 2.71828f + elapsedMs * 0.003f
-                    + i * i * 0.37f) * 0.12f;
-                const float jitter2 = std::sin(i * 1.414f + elapsedMs * 0.005f) * 0.08f;
-                // Audio level IS the primary driver — bars scale with volume
-                target = level * shape + (jitter + jitter2) * level;
-                target = qBound(0.0f, target, 1.0f);
-            } else {
-                target = (std::sin(elapsedMs * 0.0008f
-                    * (1.0f + i * 0.04f) * sensitivity) + 1.0f)
-                    * 0.5f * 0.10f;
-            }
-
-            // Live bar motion: fast attack, normal decay
-            if (target > barHeights_[i])
-                barHeights_[i] += (target - barHeights_[i]) * qMin(1.0f, dt * 30.0f);
-            else
-                barHeights_[i] += (target - barHeights_[i]) * qMin(1.0f, dt * 3.5f);
-
-            // Peak-hold indicator (separate from bar body)
-            if (barHeights_[i] >= peakHold_[i]) {
-                peakHold_[i] = barHeights_[i];
-                peakAge_[i] = 0.0f;
-            } else {
-                peakAge_[i] += dt;
-                if (peakAge_[i] > 1.0f)
-                    peakHold_[i] += (0.0f - peakHold_[i]) * qMin(1.0f, dt * 2.5f);
-            }
-        }
-
-        // ── Update particles (use dynamic bar count for tip tracking) ──
-        for (int i = 0; i < kParticleCount; ++i) {
-            auto& pt = particles_[i];
-            pt.x += pt.drift * dt * (0.5f + level * 2.0f);
-            if (pt.x > 1.0f) pt.x -= 1.0f;
-            if (pt.x < 0.0f) pt.x += 1.0f;
-
-            const float targetBright = hasAudio
-                ? qBound(0.0f, level * 1.2f + 0.05f * std::sin(elapsedMs * 0.002f + i * 0.5f), 1.0f)
-                : 0.08f;
-            if (targetBright > pt.brightness)
-                pt.brightness += (targetBright - pt.brightness) * qMin(1.0f, dt * 12.0f);
-            else
-                pt.brightness += (targetBright - pt.brightness) * qMin(1.0f, dt * 2.0f);
-
-            const int barIdx = qBound(0, static_cast<int>(pt.x * n), n - 1);
-            const float barTip = 1.0f - barHeights_[barIdx] * 0.75f;
-            const float floatRange = 0.10f + 0.05f * std::sin(elapsedMs * 0.0015f + i * 1.3f);
-            pt.y += (barTip - floatRange - pt.y) * qMin(1.0f, dt * 4.0f);
-        }
-
-        phase_ += dt * 2.0f * sensitivity;
-        update();
-    }
-
-protected:
-    void paintEvent(QPaintEvent*) override
-    {
-        QPainter p(this);
-
-        const int w = width();
-        const int h = height();
-        const int n = barCount();
-
-        // ── Background: flat fill (cheaper than gradient — widget is behind overlay text) ──
-        p.fillRect(rect(), QColor(0x0a, 0x0e, 0x27));
-
-        if (mode_ == DisplayMode::None) return;
-
-        const float pulseScale = pulseOn_
-            ? 0.88f + 0.12f * std::sin(elapsed_.elapsed() * 0.004f)
-            : 1.0f;
-
-        if (mode_ == DisplayMode::Bars) {
-            p.setRenderHint(QPainter::Antialiasing, false);
-            p.setPen(Qt::NoPen);
-            const float slotW = static_cast<float>(w) / n;
-            const float gap = qMax(1.0f, slotW * 0.30f);
-            const float barW = qBound(1.0f, slotW - gap, 3.0f);
-            const float invN = 1.0f / n;
-
-            // Pre-compute one band color per bar
-            QRgb bandCol[kMaxBars];
-            for (int i = 0; i < n; ++i)
-                bandCol[i] = bandColor(i * invN, barHeights_[i]).rgb();
-
-            // ── Layers 1+2 merged: Main bars + dim reflection in one pass ──
-            for (int i = 0; i < n; ++i) {
-                const float bh = barHeights_[i] * h * 0.75f * pulseScale;
-                if (bh < 1.0f) continue;
-                const float x = i * slotW + (slotW - barW) * 0.5f;
-                // Main bar
-                p.setBrush(QColor(bandCol[i]));
-                p.drawRect(QRectF(x, h - bh, barW, bh));
-                // Dim reflection below
-                const float rh = bh * 0.10f;
-                if (rh >= 1.0f) {
-                    QColor ref(bandCol[i]);
-                    ref.setAlpha(25);
-                    p.setBrush(ref);
-                    p.drawRect(QRectF(x, h - rh * 0.35f, barW, rh * 0.35f));
-                }
-            }
-
-            // ── Layer 3: Bar-tip glow caps ──
-            {
-                p.setPen(Qt::NoPen);
-                for (int i = 0; i < n; ++i) {
-                    const float bh = barHeights_[i] * h * 0.75f * pulseScale;
-                    if (bh < 4.0f) continue;
-                    const float x = i * slotW + (slotW - barW) * 0.5f;
-                    const float capH = qMin(2.5f, bh * 0.06f);
-                    const int alpha = static_cast<int>(100 + barHeights_[i] * 155);
-                    QColor glow(bandCol[i]);
-                    glow.setAlpha(alpha);
-                    p.setBrush(glow);
-                    p.drawRect(QRectF(x, h - bh, barW, capH));
-                }
-            }
-
-            // ── Layer 4: Peak-hold cap markers ──
-            {
-                p.setPen(Qt::NoPen);
-                for (int i = 0; i < n; ++i) {
-                    if (peakHold_[i] < 0.02f) continue;
-                    const float peakY = h - peakHold_[i] * h * 0.75f * pulseScale;
-                    const float x = i * slotW + (slotW - barW) * 0.5f;
-                    const float fade = (peakAge_[i] < 1.0f) ? 1.0f
-                        : qMax(0.0f, 1.0f - (peakAge_[i] - 1.0f) * 1.5f);
-                    const int alpha = static_cast<int>(180 * fade);
-                    QColor capCol(bandCol[i]);
-                    capCol.setAlpha(alpha);
-                    p.setBrush(capCol);
-                    p.drawRect(QRectF(x, peakY - 1.5f, barW, 2.0f));
-                }
-            }
-
-            // ── Layer 5: Sparkle / particle overlay ──
-            {
-                p.setPen(Qt::NoPen);
-                for (int i = 0; i < kParticleCount; ++i) {
-                    const auto& pt = particles_[i];
-                    if (pt.brightness < 0.02f) continue;
-                    const float px = pt.x * w;
-                    const float py = pt.y * h;
-                    const float sz = pt.size * (1.0f + pt.brightness * 1.5f);
-                    const int alpha = static_cast<int>(pt.brightness * 200);
-                    const int barIdx = qBound(0, static_cast<int>(pt.x * n), n - 1);
-                    QColor c(bandCol[barIdx]);
-                    c.setAlpha(alpha);
-                    p.setBrush(c);
-                    p.drawEllipse(QPointF(px, py), sz, sz);
-                }
-            }
-
-        } else if (mode_ == DisplayMode::Line) {
-            // ════════════════════════════════════════════════════════
-            // LINE MODE — same barHeights_[]/peakHold_[] data as Bars
-            // 5 layers: glow line, main line, area fill, peak trace, particles
-            // ════════════════════════════════════════════════════════
-            p.setRenderHint(QPainter::Antialiasing, true);
-            const float step = static_cast<float>(w) / (n - 1);
-            const float invN = 1.0f / n;
-
-            // Build main waveform path and peak-hold path
-            QPainterPath linePath;
-            QPainterPath peakPath;
-            for (int i = 0; i < n; ++i) {
-                const float x = i * step;
-                const float y = h * 0.5f - (barHeights_[i] - 0.5f) * h * 0.70f * pulseScale;
-                const float peakY = h * 0.5f - (peakHold_[i] - 0.5f) * h * 0.70f * pulseScale;
-                if (i == 0) { linePath.moveTo(x, y); peakPath.moveTo(x, peakY); }
-                else        { linePath.lineTo(x, y); peakPath.lineTo(x, peakY); }
-            }
-
-            // Frequency-band gradient (same palette as Bars)
-            QLinearGradient bandGrad(0, 0, w, 0);
-            bandGrad.setColorAt(0.00, bandColor(0.00f, 0.70f));
-            bandGrad.setColorAt(0.22, bandColor(0.22f, 0.70f));
-            bandGrad.setColorAt(0.55, bandColor(0.55f, 0.70f));
-            bandGrad.setColorAt(1.00, bandColor(1.00f, 0.70f));
-
-            // Layer 1: Glow line (wide, semi-transparent)
-            {
-                QLinearGradient glowGrad(0, 0, w, 0);
-                QColor c0 = bandColor(0.0f, 0.5f); c0.setAlpha(50);
-                QColor c1 = bandColor(0.55f, 0.5f); c1.setAlpha(50);
-                QColor c2 = bandColor(1.0f, 0.5f); c2.setAlpha(50);
-                glowGrad.setColorAt(0.0, c0);
-                glowGrad.setColorAt(0.55, c1);
-                glowGrad.setColorAt(1.0, c2);
-                p.setPen(QPen(QBrush(glowGrad), 6.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-                p.setBrush(Qt::NoBrush);
-                p.drawPath(linePath);
-            }
-
-            // Layer 2: Main line with band gradient
-            p.setPen(QPen(QBrush(bandGrad), 2.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-            p.setBrush(Qt::NoBrush);
-            p.drawPath(linePath);
-
-            // Layer 3: Area fill under the line
-            {
-                QPainterPath fillPath = linePath;
-                fillPath.lineTo(w, h);
-                fillPath.lineTo(0, h);
-                fillPath.closeSubpath();
-                QLinearGradient fillGrad(0, 0, w, 0);
-                QColor f0 = bandColor(0.0f, 0.4f); f0.setAlpha(35);
-                QColor f1 = bandColor(0.55f, 0.4f); f1.setAlpha(35);
-                QColor f2 = bandColor(1.0f, 0.4f); f2.setAlpha(35);
-                fillGrad.setColorAt(0.0, f0);
-                fillGrad.setColorAt(0.55, f1);
-                fillGrad.setColorAt(1.0, f2);
-                p.setPen(Qt::NoPen);
-                p.fillPath(fillPath, QBrush(fillGrad));
-            }
-
-            // Layer 4: Peak-hold trace line (thin, bright)
-            {
-                QLinearGradient peakGrad(0, 0, w, 0);
-                QColor k0 = bandColor(0.0f, 0.9f); k0.setAlpha(90);
-                QColor k1 = bandColor(0.55f, 0.9f); k1.setAlpha(90);
-                QColor k2 = bandColor(1.0f, 0.9f); k2.setAlpha(90);
-                peakGrad.setColorAt(0.0, k0);
-                peakGrad.setColorAt(0.55, k1);
-                peakGrad.setColorAt(1.0, k2);
-                p.setPen(QPen(QBrush(peakGrad), 1.0, Qt::SolidLine, Qt::RoundCap));
-                p.setBrush(Qt::NoBrush);
-                p.drawPath(peakPath);
-            }
-
-            // Layer 5: Particles colored by frequency position
-            p.setPen(Qt::NoPen);
-            for (int i = 0; i < kParticleCount; ++i) {
-                const auto& pt = particles_[i];
-                if (pt.brightness < 0.03f) continue;
-                const float px = pt.x * w;
-                const float py = pt.y * h;
-                const float sz = pt.size * (1.0f + pt.brightness * 1.5f);
-                const int alpha = static_cast<int>(pt.brightness * 180);
-                QColor c = bandColor(pt.x, pt.brightness);
-                c.setAlpha(alpha);
-                p.setBrush(c);
-                p.drawEllipse(QPointF(px, py), sz, sz);
-            }
-
-        } else if (mode_ == DisplayMode::Circle) {
-            // ════════════════════════════════════════════════════════
-            // CIRCLE MODE — same barHeights_[]/peakHold_[] data as Bars
-            // 5 layers: glow ring, fill, main ring, peak ring, particles
-            // ════════════════════════════════════════════════════════
-            p.setRenderHint(QPainter::Antialiasing, true);
-            const float cx = w * 0.5f;
-            const float cy = h * 0.5f;
-            const float baseR = qMin(w, h) * 0.25f * pulseScale;
-            const float invN = 1.0f / n;
-            const float angleStep = 6.28318f / n;
-            const float phaseRad = phase_ * 0.5f;
-            const float phaseDeg = phaseRad * (180.0f / 3.14159f);
-
-            // Build main polygon and peak-hold polygon
-            QPolygonF mainPoly, peakPoly;
-            for (int i = 0; i < n; ++i) {
-                const float angle = i * angleStep + phaseRad;
-                const float cosA = std::cos(angle);
-                const float sinA = std::sin(angle);
-                const float r  = baseR + barHeights_[i] * baseR * 0.8f;
-                const float pr = baseR + peakHold_[i]   * baseR * 0.8f;
-                mainPoly << QPointF(cx + r  * cosA, cy + r  * sinA);
-                peakPoly << QPointF(cx + pr * cosA, cy + pr * sinA);
-            }
-            mainPoly << mainPoly.first();
-            peakPoly << peakPoly.first();
-
-            // Conical gradient matching frequency band palette
-            QConicalGradient cg(cx, cy, phaseDeg);
-            cg.setColorAt(0.00, bandColor(0.00f, 0.70f));
-            cg.setColorAt(0.22, bandColor(0.22f, 0.70f));
-            cg.setColorAt(0.55, bandColor(0.55f, 0.70f));
-            cg.setColorAt(1.00, bandColor(1.00f, 0.70f));
-
-            // Layer 1: Glow ring (wide, semi-transparent)
-            {
-                QConicalGradient glowCg(cx, cy, phaseDeg);
-                QColor c0 = bandColor(0.0f, 0.5f); c0.setAlpha(45);
-                QColor c1 = bandColor(0.55f, 0.5f); c1.setAlpha(45);
-                QColor c2 = bandColor(1.0f, 0.5f); c2.setAlpha(45);
-                glowCg.setColorAt(0.0, c0);
-                glowCg.setColorAt(0.55, c1);
-                glowCg.setColorAt(1.0, c2);
-                p.setPen(QPen(QBrush(glowCg), 6.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-                p.setBrush(Qt::NoBrush);
-                p.drawPolygon(mainPoly);
-            }
-
-            // Layer 2: Inner fill with radial gradient
-            {
-                QRadialGradient rg(cx, cy, baseR * 2.0f);
-                rg.setColorAt(0.0, QColor(0x53, 0x34, 0x83, 40));
-                rg.setColorAt(0.6, QColor(0x0f, 0x34, 0x60, 20));
-                rg.setColorAt(1.0, QColor(0x0a, 0x0e, 0x27, 5));
-                p.setPen(Qt::NoPen);
-                p.setBrush(QBrush(rg));
-                p.drawPolygon(mainPoly);
-            }
-
-            // Layer 3: Main ring with conical band gradient
-            p.setPen(QPen(QBrush(cg), 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-            p.setBrush(Qt::NoBrush);
-            p.drawPolygon(mainPoly);
-
-            // Layer 4: Peak-hold outer ring
-            {
-                QConicalGradient peakCg(cx, cy, phaseDeg);
-                QColor k0 = bandColor(0.0f, 0.8f); k0.setAlpha(65);
-                QColor k1 = bandColor(0.55f, 0.8f); k1.setAlpha(65);
-                QColor k2 = bandColor(1.0f, 0.8f); k2.setAlpha(65);
-                peakCg.setColorAt(0.0, k0);
-                peakCg.setColorAt(0.55, k1);
-                peakCg.setColorAt(1.0, k2);
-                p.setPen(QPen(QBrush(peakCg), 1.0));
-                p.setBrush(Qt::NoBrush);
-                p.drawPolygon(peakPoly);
-            }
-
-            // Layer 5: Particles orbiting outside the ring
-            p.setPen(Qt::NoPen);
-            for (int i = 0; i < kParticleCount; ++i) {
-                const auto& pt = particles_[i];
-                if (pt.brightness < 0.03f) continue;
-                const float angle = pt.x * 6.28318f + phaseRad;
-                const int barIdx = qBound(0, static_cast<int>(pt.x * n), n - 1);
-                const float r = baseR + barHeights_[barIdx] * baseR * 0.8f + 10.0f;
-                const float px = cx + r * std::cos(angle);
-                const float py = cy + r * std::sin(angle);
-                const float sz = pt.size * (1.0f + pt.brightness * 1.5f);
-                const int alpha = static_cast<int>(pt.brightness * 180);
-                QColor c = bandColor(pt.x, pt.brightness);
-                c.setAlpha(alpha);
-                p.setBrush(c);
-                p.drawEllipse(QPointF(px, py), sz, sz);
-            }
-        }
-
-        // ── Now Playing + Title pulse overlay ──
-        if (!titleText_.isEmpty()) {
-            p.setRenderHint(QPainter::Antialiasing, true);
-
-            // Pre-measure all fonts to vertically centre the block
-            QFont hdrFont(QStringLiteral("Segoe UI"), 9, QFont::Bold);
-            hdrFont.setLetterSpacing(QFont::AbsoluteSpacing, 3.0);
-            QFontMetrics hfm(hdrFont);
-
-            QFont tf(QStringLiteral("Segoe UI"), 18, QFont::Bold);
-            QFontMetrics tfm(tf);
-
-            QFont unf(QStringLiteral("Segoe UI"), 11);
-            unf.setItalic(true);
-            QFontMetrics unfm(unf);
-
-            const bool hasUpNext = !upNextText_.isEmpty();
-            // Spacing constants
-            const int gapAfterHdr   = 10;  // NOW PLAYING → title
-            const int gapAfterTitle = 20;  // title → UP NEXT
-            const int gapAfterUpHdr = 6;   // UP NEXT → track name
-
-            // Total block height
-            int blockH = hfm.height() + gapAfterHdr + tfm.height();
-            if (hasUpNext)
-                blockH += gapAfterTitle + hfm.height() + gapAfterUpHdr + unfm.height();
-
-            // Vertically centre the block in the widget
-            int y = (height() - blockH) / 2 - 20; // shift up a touch so bars have room
-            if (y < 16) y = 16;
-
-            // "NOW PLAYING" header
-            p.setFont(hdrFont);
-            p.setPen(QColor(233, 69, 96, 200));
-            const QString hdr = QStringLiteral("NOW PLAYING");
-            const int hw = hfm.horizontalAdvance(hdr);
-            p.drawText((width() - hw) / 2, y + hfm.ascent(), hdr);
-            y += hfm.height() + gapAfterHdr;
-
-            // Pulsing title
-            const float t = qBound(0.0f, titlePulse_, 1.0f);
-            const int cr = 255 - static_cast<int>(t * (255 - 233));
-            const int cg = 255 - static_cast<int>(t * (255 - 69));
-            const int cb = 255 - static_cast<int>(t * (255 - 96));
-            const int glowAlpha = static_cast<int>(t * 120);
-
-            p.setFont(tf);
-            const int tw = tfm.horizontalAdvance(titleText_);
-            const int tx = (width() - tw) / 2;
-            const int ty = y + tfm.ascent();
-
-            if (glowAlpha > 2 && t > 0.001f) {
-                QColor glow(cr, cg, cb, glowAlpha);
-                p.setPen(glow);
-                for (auto [dx, dy] : {std::pair{-1,0},{1,0},{0,-1},{0,1},{-2,0},{2,0},{0,-2},{0,2}}) {
-                    p.drawText(tx + dx, ty + dy, titleText_);
-                }
-            }
-            p.setPen(QColor(cr, cg, cb, 220 + static_cast<int>(t * 35)));
-            p.drawText(tx, ty, titleText_);
-            y += tfm.height() + gapAfterTitle;
-
-            // ── Up Next section ──
-            if (hasUpNext) {
-                // "UP NEXT" header
-                p.setFont(hdrFont);
-                p.setPen(QColor(233, 69, 96, 140));
-                const QString upHdr = QStringLiteral("UP NEXT");
-                const int uhw = hfm.horizontalAdvance(upHdr);
-                p.drawText((width() - uhw) / 2, y + hfm.ascent(), upHdr);
-                y += hfm.height() + gapAfterUpHdr;
-
-                // Track name
-                p.setFont(unf);
-                p.setPen(QColor(180, 180, 180, 180));
-                const int unw = unfm.horizontalAdvance(upNextText_);
-                p.drawText((width() - unw) / 2, y + unfm.ascent(), upNextText_);
-            }
-        }
-    }
-
-private:
-    // Dynamic bar count: width / kSlotPx, clamped to [kMinBars, kMaxBars]
-    static constexpr int kSlotPx   = 3;    // target: 2px bar + 1px gap
-    static constexpr int kMinBars  = 120;
-    static constexpr int kMaxBars  = 256;
-    static constexpr int kParticleCount = 40;
-
-    // Frequency-band color: bass→warm, mids→magenta, highs→violet/blue-white
-    // energy (0..1) drives brightness so quiet bands are dimmer
-    static QColor bandColor(float freq, float energy) {
-        float r, g, b;
-        if (freq < 0.22f) {
-            // Bass → warm red-orange
-            const float s = freq / 0.22f;
-            r = 0.96f; g = 0.38f + 0.10f * s; b = 0.18f + 0.08f * s;
-        } else if (freq < 0.55f) {
-            // Mids → hot pink / magenta
-            const float s = (freq - 0.22f) / 0.33f;
-            r = 0.92f - 0.05f * s; g = 0.28f + 0.10f * s; b = 0.40f + 0.22f * s;
-        } else {
-            // Highs → purple to blue-violet with white accent
-            const float s = (freq - 0.55f) / 0.45f;
-            r = 0.62f - 0.14f * s; g = 0.36f + 0.28f * s; b = 0.74f + 0.14f * s;
-        }
-        const float bright = 0.35f + 0.65f * qBound(0.0f, energy, 1.0f);
-        return QColor(
-            qBound(0, static_cast<int>(r * bright * 255), 255),
-            qBound(0, static_cast<int>(g * bright * 255), 255),
-            qBound(0, static_cast<int>(b * bright * 255), 255));
-    }
-
-    struct Particle {
-        float x;
-        float y;
-        float brightness;
-        float drift;
-        float size;
-    };
-
-    DisplayMode mode_{DisplayMode::Bars};
-    bool pulseOn_{true};
-    int tuneLevel_{2};
-    float barHeights_[256]{};
-    float peakHold_[256]{};
-    float peakAge_[256]{};
-    float phase_{0.0f};
-    float audioLevel_{0.0f};
-    QString titleText_;
-    float titlePulse_{0.0f};
-    QString upNextText_;
-    Particle particles_[40]{};
-    QElapsedTimer elapsed_;
-    QElapsedTimer audioActiveTimer_;
-};
 
 class MainWindow : public QMainWindow {
 public:
@@ -1900,6 +157,9 @@ public:
         const QString rtAutorun = qEnvironmentVariable("NGKS_RT_AUDIO_AUTORUN").trimmed().toLower();
         rtProbeAutorun_ = (rtAutorun == QStringLiteral("1") || rtAutorun == QStringLiteral("true") || rtAutorun == QStringLiteral("yes"));
 
+        // ── Open SQLite library database ──
+        djDb_.open(runtimePath("data/runtime/ngks_library.db"));
+
         // ── Restore persisted library ──
         {
             QString restoredFolder;
@@ -1925,6 +185,7 @@ public:
                     }
                 }
 
+                djDb_.bulkInsert(allTracks_);
                 refreshLibraryList();
                 rebuildPlayerQueue();
                 qInfo().noquote() << QStringLiteral("LIBRARY_RESTORED=%1").arg(allTracks_.size());
@@ -1937,6 +198,14 @@ public:
 
         // ── Splash auto-transition (2 s) ──
         QTimer::singleShot(2000, this, [this]() { stack_->setCurrentIndex(1); });
+
+
+        // ── Refresh player library every time the player page becomes visible ──
+        QObject::connect(stack_, &QStackedWidget::currentChanged, this, [this](int index) {
+            if (index == 2) {
+                refreshPlayerLibrary();
+            }
+        });
 
         qInfo() << "MainWindowConstructed=PASS";
 
@@ -2101,84 +370,13 @@ private:
         toolRow->addStretch(1);
         layout->addLayout(toolRow);
 
-        // ── Search row: mode selector + search bar + sort ── (directly above song list)
-        auto* searchRow = new QHBoxLayout();
-        searchRow->setSpacing(6);
-
-        searchModeCombo_ = new QComboBox(page);
-        searchModeCombo_->addItem(QStringLiteral("File Name"),  0);
-        searchModeCombo_->addItem(QStringLiteral("Artist"),     1);
-        searchModeCombo_->addItem(QStringLiteral("Album"),      2);
-        searchModeCombo_->addItem(QStringLiteral("BPM"),        3);
-        searchModeCombo_->addItem(QStringLiteral("Length"),      4);
-        searchModeCombo_->addItem(QStringLiteral("All Fields"), 5);
-        searchModeCombo_->setMinimumHeight(34);
-        searchModeCombo_->setMinimumWidth(110);
-        searchModeCombo_->setStyleSheet(QStringLiteral(
-            "QComboBox { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460;"
-            "  border-radius: 6px; padding: 4px 10px; font-size: 12px; }"
-            "QComboBox::drop-down { border: none; }"
-            "QComboBox QAbstractItemView { background: #16213e; color: #e0e0e0;"
-            "  selection-background-color: #533483; }"
-        ));
-        searchRow->addWidget(searchModeCombo_);
-
-        searchBar_ = new QLineEdit(page);
-        searchBar_->setPlaceholderText(QStringLiteral("Search by file name..."));
-        searchBar_->setClearButtonEnabled(true);
-        searchBar_->setMinimumHeight(34);
-        searchRow->addWidget(searchBar_, 1);
-
-        sortCombo_ = new QComboBox(page);
-        sortCombo_->addItem(QStringLiteral("Sort: Title"),      0);
-        sortCombo_->addItem(QStringLiteral("Sort: Artist"),     1);
-        sortCombo_->addItem(QStringLiteral("Sort: Album"),      2);
-        sortCombo_->addItem(QStringLiteral("Sort: Duration"),   3);
-        sortCombo_->addItem(QStringLiteral("Sort: BPM"),        4);
-        sortCombo_->addItem(QStringLiteral("Sort: Key"),        5);
-        sortCombo_->setMinimumHeight(34);
-        sortCombo_->setStyleSheet(QStringLiteral(
-            "QComboBox { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460;"
-            "  border-radius: 6px; padding: 4px 10px; font-size: 12px; }"
-            "QComboBox::drop-down { border: none; }"
-            "QComboBox QAbstractItemView { background: #16213e; color: #e0e0e0;"
-            "  selection-background-color: #533483; }"
-        ));
-        searchRow->addWidget(sortCombo_);
-        layout->addLayout(searchRow);
-
-        // ── Main content: splitter (tree | detail panel) ──
+        // ── Main content: splitter (library browser | detail panel) ──
         auto* splitter = new QSplitter(Qt::Horizontal, page);
         splitter->setHandleWidth(2);
         splitter->setStyleSheet(QStringLiteral("QSplitter::handle { background: #0f3460; }"));
 
-        // ── Track tree widget ──
-        libraryTree_ = new QTreeWidget(splitter);
-        libraryTree_->setAlternatingRowColors(true);
-        libraryTree_->setRootIsDecorated(false);
-        libraryTree_->setSelectionMode(QAbstractItemView::SingleSelection);
-        libraryTree_->setHeaderLabels({
-            QStringLiteral("Name"), QStringLiteral("Artist"),
-            QStringLiteral("Album"), QStringLiteral("Duration"),
-            QStringLiteral("BPM"), QStringLiteral("Key")
-        });
-        libraryTree_->header()->setStretchLastSection(false);
-        libraryTree_->header()->setSectionResizeMode(QHeaderView::Interactive);
-        libraryTree_->header()->setMinimumSectionSize(40);
-        libraryTree_->header()->resizeSection(0, 340);
-        libraryTree_->header()->resizeSection(1, 140);
-        libraryTree_->header()->resizeSection(2, 140);
-        libraryTree_->header()->resizeSection(3, 70);
-        libraryTree_->header()->resizeSection(4, 55);
-        libraryTree_->header()->resizeSection(5, 50);
-        libraryTree_->setSortingEnabled(false);
-
-        // Empty state placeholder
-        {
-            auto* emptyItem = new QTreeWidgetItem(libraryTree_);
-            emptyItem->setText(0, QStringLiteral("Click \"Import Folder\" to load music"));
-            emptyItem->setFlags(Qt::NoItemFlags);
-        }
+        libraryTree_ = new LibraryBrowserWidget(LibraryBrowserWidget::Mode::MainPanel, splitter);
+        libraryTree_->setDatabase(&djDb_);
 
         // ── Detail panel (scrollable) ──
         auto* detailScroll = new QScrollArea(splitter);
@@ -2257,6 +455,10 @@ private:
             qInfo().noquote() << QStringLiteral("FILES_FOUND=%1").arg(allTracks_.size());
             qInfo().noquote() << QStringLiteral("TRACKS_INDEXED=%1").arg(allTracks_.size());
 
+            djDb_.bulkInsert(allTracks_);
+
+            djDb_.bulkInsert(allTracks_);
+
             // Clear detail panel before rebuild
             clearTrackDetail();
             refreshLibraryList();
@@ -2284,6 +486,7 @@ private:
             qInfo().noquote() << QStringLiteral("LEGACY_DB_IMPORT_DONE matched=%1 unmatched=%2 total=%3")
                 .arg(res.matched).arg(res.unmatched).arg(res.totalDbRows);
 
+            djDb_.bulkInsert(allTracks_);
             refreshLibraryList();
             saveLibraryJson(allTracks_, importedFolderPath_);
             qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_LEGACY_IMPORT");
@@ -2293,48 +496,18 @@ private:
                     .arg(res.matched).arg(res.totalDbRows).arg(res.unmatched));
         });
 
-        // Live search
-        QObject::connect(searchBar_, &QLineEdit::textChanged, this, [this](const QString& text) {
-            searchQuery_ = text;
-            qInfo().noquote() << QStringLiteral("SEARCH_QUERY=%1 MODE=%2").arg(text).arg(
-                searchModeCombo_ ? searchModeCombo_->currentText() : QStringLiteral("?"));
-            refreshLibraryList();
-        });
-
-        // Search mode selector
-        QObject::connect(searchModeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) {
-            static const QString placeholders[] = {
-                QStringLiteral("Search by file name..."),
-                QStringLiteral("Search by artist..."),
-                QStringLiteral("Search by album..."),
-                QStringLiteral("Search by BPM (e.g. 120 or 120-130)..."),
-                QStringLiteral("Search by length (e.g. 3:00 or 3:00-5:00)..."),
-                QStringLiteral("Search all fields..."),
-            };
-            const int mode = searchModeCombo_->currentData().toInt();
-            if (mode >= 0 && mode <= 5) searchBar_->setPlaceholderText(placeholders[mode]);
-            qInfo().noquote() << QStringLiteral("SEARCH_MODE=%1").arg(searchModeCombo_->currentText());
-            if (!searchQuery_.isEmpty()) refreshLibraryList();
-        });
-
-        // Sort combo
-        QObject::connect(sortCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) {
-            refreshLibraryList();
-        });
-
         // Single-click → show detail
-        QObject::connect(libraryTree_, &QTreeWidget::currentItemChanged, this,
-            [this](QTreeWidgetItem* current, QTreeWidgetItem*) {
-            if (!current) return;
-            const int trackIdx = current->data(0, Qt::UserRole).toInt();
+        QObject::connect(libraryTree_, &LibraryBrowserWidget::trackSelected, this,
+            [this](qint64 trackId) {
+            const int trackIdx = static_cast<int>(trackId);
             if (trackIdx < 0 || trackIdx >= static_cast<int>(allTracks_.size())) return;
             showTrackDetail(trackIdx);
         });
 
         // Double-click track → play
-        QObject::connect(libraryTree_, &QTreeWidget::itemDoubleClicked, this,
-            [this](QTreeWidgetItem* item, int) {
-            const int trackIdx = item->data(0, Qt::UserRole).toInt();
+        QObject::connect(libraryTree_, &LibraryBrowserWidget::trackActivated, this,
+            [this](qint64 trackId) {
+            const int trackIdx = static_cast<int>(trackId);
             if (trackIdx < 0 || trackIdx >= static_cast<int>(allTracks_.size())) return;
             currentTrackIndex_ = trackIdx;
             qInfo().noquote() << QStringLiteral("TRACK_SELECTED=%1").arg(allTracks_[trackIdx].displayName);
@@ -2345,15 +518,11 @@ private:
         });
 
         // ── Right-click context menu on library tree ──
-        libraryTree_->setContextMenuPolicy(Qt::CustomContextMenu);
-        QObject::connect(libraryTree_, &QTreeWidget::customContextMenuRequested, this,
-            [this](const QPoint& pos) {
-            auto* item = libraryTree_->itemAt(pos);
-            if (!item) return;
-            const int trackIdx = item->data(0, Qt::UserRole).toInt();
+        QObject::connect(libraryTree_, &LibraryBrowserWidget::contextMenuRequested, this,
+            [this](qint64 trackId, QPoint globalPos) {
+            const int trackIdx = static_cast<int>(trackId);
             if (trackIdx < 0 || trackIdx >= static_cast<int>(allTracks_.size())) return;
-            // Ensure this item is selected so detail panel updates
-            libraryTree_->setCurrentItem(item);
+            libraryTree_->setCurrentTrackId(trackId);
             const TrackInfo& t = allTracks_[trackIdx];
 
             QMenu menu(libraryTree_);
@@ -2415,7 +584,7 @@ private:
             auto* deleteFromDiskAction = menu.addAction(QStringLiteral("Delete from Disk..."));
 
             // ── Execute selected action ──
-            auto* chosen = menu.exec(libraryTree_->viewport()->mapToGlobal(pos));
+            auto* chosen = menu.exec(globalPos);
             if (!chosen) return;
 
             if (chosen == playAction || chosen == openInPlayerAction) {
@@ -2510,34 +679,33 @@ private:
             }
         });
 
+        // Track count → update bottom bar label
+        QObject::connect(libraryTree_, &LibraryBrowserWidget::trackCountChanged, this,
+            [this](int count) {
+            if (trackCountLabel_)
+                trackCountLabel_->setText(QStringLiteral("%1 tracks").arg(count));
+        });
+
         // ── Play All button ──
         QObject::connect(playAllBtn, &QPushButton::clicked, this, [this]() {
             if (allTracks_.empty()) return;
-            // Play first visible track (or first track if no filter)
-            if (libraryTree_->topLevelItemCount() > 0) {
-                auto* first = libraryTree_->topLevelItem(0);
-                const int idx = first->data(0, Qt::UserRole).toInt();
-                if (idx >= 0 && idx < static_cast<int>(allTracks_.size())) {
-                    currentTrackIndex_ = idx;
-                    rebuildPlayerQueue();
-                    loadAndPlayTrack(idx);
-                    qInfo().noquote() << QStringLiteral("PLAY_ALL_START=%1").arg(allTracks_[idx].displayName);
-                    stack_->setCurrentIndex(2);
-                }
+            const qint64 firstId = libraryTree_->firstVisibleTrackId();
+            if (firstId < 0) return;
+            const int idx = static_cast<int>(firstId);
+            if (idx >= 0 && idx < static_cast<int>(allTracks_.size())) {
+                currentTrackIndex_ = idx;
+                rebuildPlayerQueue();
+                loadAndPlayTrack(idx);
+                qInfo().noquote() << QStringLiteral("PLAY_ALL_START=%1").arg(allTracks_[idx].displayName);
+                stack_->setCurrentIndex(2);
             }
         });
 
         // ── Now Playing button — scroll to current track ──
         QObject::connect(nowPlayingBtn, &QPushButton::clicked, this, [this]() {
             if (currentTrackIndex_ < 0 || currentTrackIndex_ >= static_cast<int>(allTracks_.size())) return;
-            for (int i = 0; i < libraryTree_->topLevelItemCount(); ++i) {
-                if (libraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt() == currentTrackIndex_) {
-                    libraryTree_->setCurrentItem(libraryTree_->topLevelItem(i));
-                    libraryTree_->scrollToItem(libraryTree_->topLevelItem(i));
-                    qInfo().noquote() << QStringLiteral("NOW_PLAYING_SCROLL=%1").arg(allTracks_[currentTrackIndex_].displayName);
-                    break;
-                }
-            }
+            libraryTree_->scrollToTrackId(static_cast<qint64>(currentTrackIndex_));
+            qInfo().noquote() << QStringLiteral("NOW_PLAYING_SCROLL=%1").arg(allTracks_[currentTrackIndex_].displayName);
         });
 
         // ── Playlists button — popup menu to browse / filter by playlist ──
@@ -2745,6 +913,7 @@ private:
             "QFrame#heroFrame { background: #0a0e27; border: 1px solid #0f3460; border-radius: 12px; }"));
         heroFrame->setObjectName(QStringLiteral("heroFrame"));
         heroFrame->setMinimumHeight(220);
+        heroFrame->setMaximumHeight(280);
 
         // QStackedLayout::StackAll shows all children simultaneously, stacked
         auto* heroStack = new QStackedLayout(heroFrame);
@@ -3200,44 +1369,33 @@ private:
         layout->addLayout(libHeaderRow);
         layout->addSpacing(4);
 
-        playerLibraryTree_ = new QTreeWidget(page);
-        playerLibraryTree_->setHeaderLabels({
-            QStringLiteral("Name"), QStringLiteral("Artist"), QStringLiteral("Album"),
-            QStringLiteral("Duration"), QStringLiteral("BPM"), QStringLiteral("Key")
-        });
-        playerLibraryTree_->setSelectionMode(QAbstractItemView::SingleSelection);
-        playerLibraryTree_->setRootIsDecorated(false);
-        playerLibraryTree_->setAlternatingRowColors(true);
-        playerLibraryTree_->setSortingEnabled(false);
-        playerLibraryTree_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-        playerLibraryTree_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        playerLibraryTree_ = new DjLibraryWidget(page);
+        playerLibraryTree_->setDatabase(&djDb_);
         {
             QFont f = playerLibraryTree_->font();
             f.setPointSize(11);
-            playerLibraryTree_->setFont(f);
+            playerLibraryTree_->setViewFont(f);
         }
-        playerLibraryTree_->setStyleSheet(QStringLiteral(
-            "QTreeWidget { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460;"
+        playerLibraryTree_->setViewStyleSheet(QStringLiteral(
+            "QTableView { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460;"
             "  border-radius: 8px; outline: none; alternate-background-color: #1a1a2e; }"
-            "QTreeWidget::item { padding: 4px 6px; }"
-            "QTreeWidget::item:selected { background: #533483; color: #ffffff; }"
-            "QTreeWidget::item:hover { background: #1a1a2e; }"
+            "QTableView::item { padding: 4px 6px; }"
+            "QTableView::item:selected { background: #533483; color: #ffffff; }"
+            "QTableView::item:hover { background: #1a1a2e; }"
             "QHeaderView::section { background: #0f3460; color: #e0e0e0; border: none;"
             "  padding: 5px 8px; font-weight: bold; font-size: 11px; }"
             "QScrollBar:vertical { background: #0a0e27; width: 8px; }"
             "QScrollBar::handle:vertical { background: #533483; border-radius: 4px; min-height: 20px; }"
             "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"));
-        // Column widths
         playerLibraryTree_->header()->setSectionResizeMode(QHeaderView::Interactive);
-        playerLibraryTree_->setColumnWidth(0, 280);  // Name
-        playerLibraryTree_->setColumnWidth(1, 140);  // Artist
-        playerLibraryTree_->setColumnWidth(2, 130);  // Album
-        playerLibraryTree_->setColumnWidth(3, 65);   // Duration
-        playerLibraryTree_->setColumnWidth(4, 50);   // BPM
-        playerLibraryTree_->setColumnWidth(5, 45);   // Key
+        playerLibraryTree_->header()->resizeSection(0, 280);
+        playerLibraryTree_->header()->resizeSection(1, 140);
+        playerLibraryTree_->header()->resizeSection(2, 130);
+        playerLibraryTree_->header()->resizeSection(3,  65);
+        playerLibraryTree_->header()->resizeSection(4,  50);
+        playerLibraryTree_->header()->resizeSection(5,  45);
         layout->addWidget(playerLibraryTree_, 1);
 
-        // Store libCountLabel for refreshPlayerLibrary to update
         playerLibCountLabel_ = libCountLabel;
 
         // ═══════════════════════════════════════════════════
@@ -3346,8 +1504,8 @@ private:
         });
 
         // Library tree → double-click to play
-        QObject::connect(playerLibraryTree_, &QTreeWidget::itemDoubleClicked, this, [this](QTreeWidgetItem* item, int) {
-            const int idx = item->data(0, Qt::UserRole).toInt();
+        QObject::connect(playerLibraryTree_, &DjLibraryWidget::trackActivated, this, [this](qint64 trackId) {
+            const int idx = static_cast<int>(trackId);
             if (idx >= 0 && idx < static_cast<int>(allTracks_.size())) {
                 currentTrackIndex_ = idx;
                 loadAndPlayTrack(idx);
@@ -3355,12 +1513,12 @@ private:
             }
         });
 
-        // Search bar → filter library
+        // Search bar → filter player library
         QObject::connect(playerSearchBar_, &QLineEdit::textChanged, this, [this](const QString&) {
             refreshPlayerLibrary();
         });
 
-        // Sort combo → re-sort library
+        // Sort combo → re-sort player library
         QObject::connect(playerSortCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) {
             refreshPlayerLibrary();
         });
@@ -3661,6 +1819,20 @@ private:
         QObject::connect(djDeckA_, &DeckStrip::loadRequested, this, [](int) {});
         QObject::connect(djDeckB_, &DeckStrip::loadRequested, this, [](int) {});
 
+        // ── DeckStrip drag-to-deck: load track by track_id ──
+        QObject::connect(djDeckA_, &DeckStrip::loadTrackRequested, this,
+            [this](int /*deckIndex*/, qint64 trackId) {
+            const int idx = static_cast<int>(trackId);
+            if (idx >= 0 && idx < static_cast<int>(allTracks_.size()))
+                loadAndPlayTrack(idx);
+        });
+        QObject::connect(djDeckB_, &DeckStrip::loadTrackRequested, this,
+            [this](int /*deckIndex*/, qint64 trackId) {
+            const int idx = static_cast<int>(trackId);
+            if (idx >= 0 && idx < static_cast<int>(allTracks_.size()))
+                loadAndPlayTrack(idx);
+        });
+
         // Wire snapshot refresh
         QObject::connect(&bridge_, &EngineBridge::djSnapshotUpdated, this, [this]() {
             if (djDeckA_) djDeckA_->refreshFromSnapshot();
@@ -3782,189 +1954,25 @@ private:
     void refreshLibraryList()
     {
         if (!libraryTree_) return;
-        // Save selection before rebuild
-        int prevSelectedTrackIdx = -1;
-        if (auto* cur = libraryTree_->currentItem())
-            prevSelectedTrackIdx = cur->data(0, Qt::UserRole).toInt();
-        // Block selection signals during rebuild to prevent stale callbacks
-        const QSignalBlocker blocker(libraryTree_);
-        libraryTree_->clear();
-        int visibleCount = 0;
-        const QString query = searchQuery_.trimmed().toLower();
-        const int searchMode = searchModeCombo_ ? searchModeCombo_->currentData().toInt() : 5;
-
-        // Build set of allowed paths when a playlist is active
-        QSet<QString> playlistPathSet;
+        QStringList playlistPaths;
         if (activePlaylistIndex_ >= 0
-            && activePlaylistIndex_ < static_cast<int>(playlists_.size())) {
+                && activePlaylistIndex_ < static_cast<int>(playlists_.size())) {
             for (const QString& p : playlists_[activePlaylistIndex_].trackPaths)
-                playlistPathSet.insert(p);
+                playlistPaths << p;
         }
-
-        // Build filtered index list
-        std::vector<int> filtered;
-        for (int i = 0; i < static_cast<int>(allTracks_.size()); ++i) {
-            const TrackInfo& t = allTracks_[i];
-            // Playlist filter: skip tracks not in the active playlist
-            if (!playlistPathSet.isEmpty() && !playlistPathSet.contains(t.filePath))
-                continue;
-            if (!query.isEmpty()) {
-                bool match = false;
-                switch (searchMode) {
-                case 0: // File Name
-                    match = t.displayName.toLower().contains(query);
-                    break;
-                case 1: // Artist
-                    match = t.artist.toLower().contains(query);
-                    break;
-                case 2: // Album
-                    match = t.album.toLower().contains(query);
-                    break;
-                case 3: { // BPM — supports single value or range like "120-130"
-                    if (t.bpm.isEmpty()) break;
-                    const double trackBpm = t.bpm.toDouble();
-                    if (trackBpm <= 0) break;
-                    const int dashIdx = query.indexOf('-');
-                    if (dashIdx > 0) {
-                        bool okLo = false, okHi = false;
-                        const double lo = query.left(dashIdx).trimmed().toDouble(&okLo);
-                        const double hi = query.mid(dashIdx + 1).trimmed().toDouble(&okHi);
-                        if (okLo && okHi) match = (trackBpm >= lo && trackBpm <= hi);
-                    } else {
-                        bool ok = false;
-                        const double target = query.toDouble(&ok);
-                        if (ok) match = (std::abs(trackBpm - target) < 1.0);
-                    }
-                    break;
-                }
-                case 4: { // Length — supports "M:SS" or "M:SS-M:SS" range
-                    if (t.durationMs <= 0) break;
-                    auto parseMMSS = [](const QString& s, bool& ok) -> qint64 {
-                        ok = false;
-                        const int ci = s.indexOf(':');
-                        if (ci > 0) {
-                            bool mOk = false, sOk = false;
-                            const int m = s.left(ci).trimmed().toInt(&mOk);
-                            const int sec = s.mid(ci + 1).trimmed().toInt(&sOk);
-                            if (mOk && sOk) { ok = true; return (qint64(m) * 60 + sec) * 1000; }
-                        } else {
-                            const int sec = s.trimmed().toInt(&ok);
-                            if (ok) return qint64(sec) * 1000;
-                        }
-                        return 0;
-                    };
-                    const int dashIdx = query.indexOf('-');
-                    if (dashIdx > 0 && query.indexOf(':') >= 0) {
-                        bool okLo = false, okHi = false;
-                        const qint64 lo = parseMMSS(query.left(dashIdx).trimmed(), okLo);
-                        const qint64 hi = parseMMSS(query.mid(dashIdx + 1).trimmed(), okHi);
-                        if (okLo && okHi) match = (t.durationMs >= lo && t.durationMs <= hi);
-                    } else {
-                        bool ok = false;
-                        const qint64 target = parseMMSS(query, ok);
-                        if (ok) match = (std::abs(t.durationMs - target) < 30000); // ±30s
-                    }
-                    break;
-                }
-                default: // All Fields (mode 5 or fallback)
-                    match = t.displayName.toLower().contains(query)
-                         || t.artist.toLower().contains(query)
-                         || t.title.toLower().contains(query)
-                         || t.album.toLower().contains(query)
-                         || t.genre.toLower().contains(query)
-                         || t.bpm.toLower().contains(query)
-                         || t.musicalKey.toLower().contains(query)
-                         || t.camelotKey.toLower().contains(query);
-                    break;
-                }
-                if (!match) continue;
-            }
-            filtered.push_back(i);
-        }
-
-        // Sort
-        const int sortCol = sortCombo_ ? sortCombo_->currentData().toInt() : 0;
-        std::sort(filtered.begin(), filtered.end(), [&](int a, int b) {
-            const TrackInfo& ta = allTracks_[a];
-            const TrackInfo& tb = allTracks_[b];
-            switch (sortCol) {
-            case 1: return ta.artist.toLower() < tb.artist.toLower();
-            case 2: return ta.album.toLower()  < tb.album.toLower();
-            case 3: return ta.durationMs < tb.durationMs;
-            case 4: return ta.bpm.toDouble() < tb.bpm.toDouble();
-            case 5: return ta.musicalKey.toLower() < tb.musicalKey.toLower();
-            default: return ta.title.toLower() < tb.title.toLower();
-            }
-        });
-
-        for (int idx : filtered) {
-            const TrackInfo& t = allTracks_[idx];
-            auto* item = new QTreeWidgetItem(libraryTree_);
-            item->setText(0, t.displayName.isEmpty() ? QStringLiteral("Unknown") : t.displayName);
-            item->setText(1, t.artist.isEmpty() ? QStringLiteral("-") : t.artist);
-            item->setText(2, t.album.isEmpty() ? QStringLiteral("-") : t.album);
-            item->setText(3, t.durationStr.isEmpty() ? QStringLiteral("--:--") : t.durationStr);
-            item->setText(4, t.bpm.isEmpty() ? QStringLiteral("-") : t.bpm);
-            item->setText(5, t.musicalKey.isEmpty() ? QStringLiteral("-") : t.musicalKey);
-            item->setData(0, Qt::UserRole, idx);
-            ++visibleCount;
-        }
-
-        if (allTracks_.empty()) {
-            auto* emptyItem = new QTreeWidgetItem(libraryTree_);
-            emptyItem->setText(0, QStringLiteral("Click \"Import Folder\" to load music"));
-            emptyItem->setFlags(Qt::NoItemFlags);
-        } else if (visibleCount == 0) {
-            auto* emptyItem = new QTreeWidgetItem(libraryTree_);
-            if (activePlaylistIndex_ >= 0 && activePlaylistIndex_ < static_cast<int>(playlists_.size()))
-                emptyItem->setText(0, QStringLiteral("Playlist \"%1\" is empty").arg(playlists_[activePlaylistIndex_].name));
-            else
-                emptyItem->setText(0, QStringLiteral("No matches for \"%1\"").arg(searchQuery_));
-            emptyItem->setFlags(Qt::NoItemFlags);
-        }
-
-        // Restore selection if the previously-selected track is still visible
-        if (prevSelectedTrackIdx >= 0) {
-            bool reselected = false;
-            for (int i = 0; i < libraryTree_->topLevelItemCount(); ++i) {
-                if (libraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt() == prevSelectedTrackIdx) {
-                    libraryTree_->setCurrentItem(libraryTree_->topLevelItem(i));
-                    reselected = true;
-                    break;
-                }
-            }
-            if (!reselected) clearTrackDetail();
-        }
-        trackCountLabel_->setText(QStringLiteral("%1 tracks").arg(visibleCount));
-        qInfo().noquote() << QStringLiteral("LIBRARY_RENDERED=TRUE");
-        qInfo().noquote() << QStringLiteral("VISIBLE_TRACK_COUNT=%1").arg(visibleCount);
-        if (!query.isEmpty()) {
-            qInfo().noquote() << QStringLiteral("RESULT_COUNT=%1").arg(visibleCount);
-        }
+        libraryTree_->setPlaylistFilter(playlistPaths);
+        libraryTree_->refresh();
     }
 
     void updateTreeItemForTrack(int trackIndex)
     {
-        if (!libraryTree_) return;
         if (trackIndex < 0 || trackIndex >= static_cast<int>(allTracks_.size())) return;
-        for (int i = 0; i < libraryTree_->topLevelItemCount(); ++i) {
-            auto* item = libraryTree_->topLevelItem(i);
-            if (item->data(0, Qt::UserRole).toInt() == trackIndex) {
-                const TrackInfo& t = allTracks_[trackIndex];
-                item->setText(0, t.displayName.isEmpty() ? QStringLiteral("Unknown") : t.displayName);
-                item->setText(1, t.artist.isEmpty() ? QStringLiteral("-") : t.artist);
-                item->setText(2, t.album.isEmpty() ? QStringLiteral("-") : t.album);
-                item->setText(3, t.durationStr.isEmpty() ? QStringLiteral("--:--") : t.durationStr);
-                item->setText(4, t.bpm.isEmpty() ? QStringLiteral("-") : t.bpm);
-                item->setText(5, t.musicalKey.isEmpty() ? QStringLiteral("-") : t.musicalKey);
-                break;
-            }
-        }
-        // Also update detail panel if this track is selected
-        if (libraryTree_->currentItem()
-            && libraryTree_->currentItem()->data(0, Qt::UserRole).toInt() == trackIndex) {
+        djDb_.upsertTrack(static_cast<qint64>(trackIndex), allTracks_[trackIndex]);
+        // Re-apply filter so the updated row appears with fresh data
+        refreshLibraryList();
+        // If this track is currently selected in the detail panel, refresh the detail
+        if (libraryTree_ && libraryTree_->currentTrackId() == static_cast<qint64>(trackIndex))
             showTrackDetail(trackIndex);
-        }
     }
 
     void showTrackDetail(int trackIndex)
@@ -4096,14 +2104,14 @@ private:
     void playNextTrack()
     {
         if (allTracks_.empty() || !playerLibraryTree_) return;
-        const int count = playerLibraryTree_->topLevelItemCount();
+        const int count = playerLibraryTree_->totalFilteredCount();
         if (count == 0) return;
 
         if (playMode_ == PlayMode::Shuffle) {
             // Pure random from visible list
             std::uniform_int_distribution<int> dist(0, count - 1);
             const int ri = dist(shuffleRng_);
-            const int idx = playerLibraryTree_->topLevelItem(ri)->data(0, Qt::UserRole).toInt();
+            const int idx = (int)playerLibraryTree_->trackIdAt(ri);
             loadAndPlayTrack(idx);
             qInfo().noquote() << QStringLiteral("TRANSPORT_NEXT=SHUFFLE %1").arg(allTracks_[idx].displayName);
             return;
@@ -4115,13 +2123,7 @@ private:
         }
 
         // Linear modes: find current position, advance
-        int curPos = -1;
-        for (int i = 0; i < count; ++i) {
-            if (playerLibraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt() == currentTrackIndex_) {
-                curPos = i;
-                break;
-            }
-        }
+        int curPos = playerLibraryTree_->rowOfTrackId((qint64)currentTrackIndex_);
 
         int nextPos = curPos + 1;
         if (nextPos >= count) {
@@ -4135,7 +2137,7 @@ private:
             }
         }
 
-        const int nextIdx = playerLibraryTree_->topLevelItem(nextPos)->data(0, Qt::UserRole).toInt();
+        const int nextIdx = (int)playerLibraryTree_->trackIdAt(nextPos);
         if (nextIdx >= 0 && nextIdx < static_cast<int>(allTracks_.size())) {
             loadAndPlayTrack(nextIdx);
             qInfo().noquote() << QStringLiteral("TRANSPORT_NEXT=%1").arg(allTracks_[nextIdx].displayName);
@@ -4145,26 +2147,20 @@ private:
     void playPrevTrack()
     {
         if (allTracks_.empty() || !playerLibraryTree_) return;
-        const int count = playerLibraryTree_->topLevelItemCount();
+        const int count = playerLibraryTree_->totalFilteredCount();
         if (count == 0) return;
 
         if (playMode_ == PlayMode::Shuffle || playMode_ == PlayMode::SmartShuffle) {
             // In shuffle modes, prev picks random (no history)
             std::uniform_int_distribution<int> dist(0, count - 1);
             const int ri = dist(shuffleRng_);
-            const int idx = playerLibraryTree_->topLevelItem(ri)->data(0, Qt::UserRole).toInt();
+            const int idx = (int)playerLibraryTree_->trackIdAt(ri);
             loadAndPlayTrack(idx);
             qInfo().noquote() << QStringLiteral("TRANSPORT_PREV=SHUFFLE %1").arg(allTracks_[idx].displayName);
             return;
         }
 
-        int curPos = -1;
-        for (int i = 0; i < count; ++i) {
-            if (playerLibraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt() == currentTrackIndex_) {
-                curPos = i;
-                break;
-            }
-        }
+        int curPos = playerLibraryTree_->rowOfTrackId((qint64)currentTrackIndex_);
 
         int prevPos = curPos - 1;
         if (prevPos < 0) {
@@ -4175,7 +2171,7 @@ private:
             }
         }
 
-        const int prevIdx = playerLibraryTree_->topLevelItem(prevPos)->data(0, Qt::UserRole).toInt();
+        const int prevIdx = (int)playerLibraryTree_->trackIdAt(prevPos);
         if (prevIdx >= 0 && prevIdx < static_cast<int>(allTracks_.size())) {
             loadAndPlayTrack(prevIdx);
             qInfo().noquote() << QStringLiteral("TRANSPORT_PREV=%1").arg(allTracks_[prevIdx].displayName);
@@ -4229,7 +2225,7 @@ private:
     void updateUpNextLabel()
     {
         if (!upNextLabel_ || !playerLibraryTree_) return;
-        const int count = playerLibraryTree_->topLevelItemCount();
+        const int count = playerLibraryTree_->totalFilteredCount();
         if (count == 0 || currentTrackIndex_ < 0) {
             upNextLabel_->setText(QStringLiteral("Up Next: \u2014"));
             if (visualizer_) visualizer_->setUpNextText(QString());
@@ -4253,15 +2249,12 @@ private:
             }
         } else {
             // Linear modes: find next in visible list
-            for (int i = 0; i < count; ++i) {
-                int idx = playerLibraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt();
-                if (idx == currentTrackIndex_) {
-                    if (i + 1 < count) {
-                        nextIdx = playerLibraryTree_->topLevelItem(i + 1)->data(0, Qt::UserRole).toInt();
-                    } else if (playMode_ == PlayMode::RepeatAll) {
-                        nextIdx = playerLibraryTree_->topLevelItem(0)->data(0, Qt::UserRole).toInt();
-                    }
-                    break;
+            const int curPos = playerLibraryTree_->rowOfTrackId((qint64)currentTrackIndex_);
+            if (curPos >= 0) {
+                if (curPos + 1 < count) {
+                    nextIdx = (int)playerLibraryTree_->trackIdAt(curPos + 1);
+                } else if (playMode_ == PlayMode::RepeatAll) {
+                    nextIdx = (int)playerLibraryTree_->trackIdAt(0);
                 }
             }
         }
@@ -4282,11 +2275,11 @@ private:
     void rebuildSmartShufflePool()
     {
         if (!playerLibraryTree_) return;
-        const int count = playerLibraryTree_->topLevelItemCount();
+        const int count = playerLibraryTree_->totalFilteredCount();
         smartShufflePool_.clear();
         smartShufflePool_.reserve(count);
         for (int i = 0; i < count; ++i)
-            smartShufflePool_.push_back(playerLibraryTree_->topLevelItem(i)->data(0, Qt::UserRole).toInt());
+            smartShufflePool_.push_back((int)playerLibraryTree_->trackIdAt(i));
         std::shuffle(smartShufflePool_.begin(), smartShufflePool_.end(), shuffleRng_);
         smartShufflePos_ = 0;
         qInfo().noquote() << QStringLiteral("SMART_SHUFFLE_POOL_REBUILT=%1").arg(count);
@@ -4315,88 +2308,23 @@ private:
     void refreshPlayerLibrary()
     {
         if (!playerLibraryTree_) return;
-
-        const QString searchText = playerSearchBar_ ? playerSearchBar_->text().trimmed().toLower() : QString();
-        const int sortKey = playerSortCombo_ ? playerSortCombo_->currentIndex() : 0;
-
-        // Build filtered index list
-        std::vector<int> filtered;
-        filtered.reserve(allTracks_.size());
-        for (int i = 0; i < static_cast<int>(allTracks_.size()); ++i) {
-            if (searchText.isEmpty()) {
-                filtered.push_back(i);
-                continue;
-            }
-            const TrackInfo& t = allTracks_[i];
-            if (t.displayName.toLower().contains(searchText)
-                || t.artist.toLower().contains(searchText)
-                || t.album.toLower().contains(searchText)
-                || t.genre.toLower().contains(searchText)
-                || t.bpm.toLower().contains(searchText)
-                || t.musicalKey.toLower().contains(searchText)) {
-                filtered.push_back(i);
-            }
-        }
-
-        // Sort
-        std::sort(filtered.begin(), filtered.end(), [this, sortKey](int a, int b) {
-            const TrackInfo& ta = allTracks_[a];
-            const TrackInfo& tb = allTracks_[b];
-            switch (sortKey) {
-            case 1: return ta.artist.toLower() < tb.artist.toLower();
-            case 2: return ta.album.toLower() < tb.album.toLower();
-            case 3: return ta.durationMs < tb.durationMs;
-            case 4: return ta.bpm.toFloat() < tb.bpm.toFloat();
-            case 5: return ta.musicalKey.toLower() < tb.musicalKey.toLower();
-            default: return ta.displayName.toLower() < tb.displayName.toLower();
-            }
-        });
-
-        // Populate tree
-        {
-            QSignalBlocker blocker(playerLibraryTree_);
-            playerLibraryTree_->clear();
-            for (const int idx : filtered) {
-                const TrackInfo& t = allTracks_[idx];
-                auto* item = new QTreeWidgetItem(playerLibraryTree_);
-                item->setText(0, t.displayName.isEmpty() ? QStringLiteral("Unknown") : t.displayName);
-                item->setText(1, t.artist);
-                item->setText(2, t.album);
-                item->setText(3, t.durationStr);
-                item->setText(4, t.bpm);
-                item->setText(5, t.musicalKey);
-                item->setData(0, Qt::UserRole, idx);
-            }
-        }
-
-        highlightPlayerLibraryItem(currentTrackIndex_);
-
-        // Invalidate Smart Shuffle pool when visible list changes
-        if (playMode_ == PlayMode::SmartShuffle && !smartShufflePool_.empty()) {
-            rebuildSmartShufflePool();
-        }
-
+        const QString search = playerSearchBar_ ? playerSearchBar_->text().trimmed() : QString();
+        const int sortCol    = playerSortCombo_ ? playerSortCombo_->currentIndex() : 0;
+        playerLibraryTree_->applyFilter(search, 5, {}, sortCol);
+        const int count = playerLibraryTree_->totalFilteredCount();
         if (playerLibCountLabel_)
-            playerLibCountLabel_->setText(QStringLiteral("%1 tracks").arg(filtered.size()));
-
-        qInfo().noquote() << QStringLiteral("PLAYER_LIBRARY_REFRESHED=%1 SEARCH=%2 SORT=%3")
-            .arg(filtered.size()).arg(searchText.isEmpty() ? QStringLiteral("(none)") : searchText).arg(sortKey);
+            playerLibCountLabel_->setText(QStringLiteral("%1 tracks").arg(count));
+        highlightPlayerLibraryItem(currentTrackIndex_);
+        if (playMode_ == PlayMode::SmartShuffle && !smartShufflePool_.empty())
+            rebuildSmartShufflePool();
+        qInfo().noquote() << QStringLiteral("PLAYER_LIBRARY_REFRESHED=%1").arg(count);
     }
 
     void highlightPlayerLibraryItem(int trackIndex)
     {
-        if (!playerLibraryTree_) return;
-        for (int i = 0; i < playerLibraryTree_->topLevelItemCount(); ++i) {
-            auto* item = playerLibraryTree_->topLevelItem(i);
-            const bool isCurrent = (item->data(0, Qt::UserRole).toInt() == trackIndex);
-            item->setSelected(isCurrent);
-            QFont f = item->font(0);
-            f.setBold(isCurrent);
-            for (int c = 0; c < 6; ++c) item->setFont(c, f);
-            if (isCurrent) {
-                playerLibraryTree_->scrollToItem(item);
-            }
-        }
+        if (!playerLibraryTree_ || trackIndex < 0) return;
+        playerLibraryTree_->setCurrentTrackId(static_cast<qint64>(trackIndex));
+        playerLibraryTree_->scrollToTrackId(static_cast<qint64>(trackIndex));
     }
 
     void requestAudioProfilesRefresh(bool logMarker)
@@ -4763,10 +2691,7 @@ private:
     QTimer pollTimer_;
     DiagnosticsDialog* diagnosticsDialog_{nullptr};
     QStackedWidget* stack_{nullptr};
-    QTreeWidget* libraryTree_{nullptr};
-    QComboBox* sortCombo_{nullptr};
-    QComboBox* searchModeCombo_{nullptr};
-    QLineEdit* searchBar_{nullptr};
+    LibraryBrowserWidget* libraryTree_{nullptr};
     QLabel* trackCountLabel_{nullptr};
     // Detail panel labels
     QLabel* detailTitleLabel_{nullptr};
@@ -4797,16 +2722,16 @@ private:
     QPushButton* playPauseBtn_{nullptr};
     QPushButton* prevBtn_{nullptr};
     QPushButton* nextBtn_{nullptr};
-    QTreeWidget* playerLibraryTree_{nullptr};
+    DjLibraryWidget* playerLibraryTree_{nullptr};
     QLabel* playerLibCountLabel_{nullptr};
     QLineEdit* playerSearchBar_{nullptr};
     QComboBox* playerSortCombo_{nullptr};
+    DjLibraryDatabase djDb_;
     std::vector<TrackInfo> allTracks_;
     bool juceSimpleModeReady_{false};
     std::vector<Playlist> playlists_;
     int activePlaylistIndex_{-1}; // -1 = show all library
     QString importedFolderPath_;
-    QString searchQuery_;
     int currentTrackIndex_{-1};
     bool seekSliderPressed_{false};
     uint64_t uiTrackGen_{0};    // must match bridge_.currentLoadGen() for UI updates
@@ -5058,103 +2983,3 @@ int main(int argc, char* argv[])
     return app.exec();
 }
 
-QString detectQtBinFromPath(const QString& pathValue)
-{
-    const QStringList entries = pathValue.split(';', Qt::SkipEmptyParts);
-    for (const QString& entry : entries) {
-        const QString trimmed = entry.trimmed();
-        if (trimmed.contains(QStringLiteral("Qt"), Qt::CaseInsensitive)
-            && trimmed.contains(QStringLiteral("bin"), Qt::CaseInsensitive)) {
-            return trimmed;
-        }
-    }
-    return QStringLiteral("<unknown>");
-}
-
-bool writeDependencySnapshot(const QString& exePath,
-                             const QString& cwd,
-                             const QString& pathValue,
-                             const QStringList& pluginPaths)
-{
-    const std::filesystem::path depsPath = std::filesystem::path(gExeBaseDir) / "data" / "runtime" / "ui_deps.txt";
-    gDepsSnapshotPath = depsPath.string();
-
-    std::ofstream stream(gDepsSnapshotPath, std::ios::trunc);
-    if (!stream.is_open()) {
-        return false;
-    }
-
-    stream << "BuildStamp=" << NGKS_BUILD_STAMP << "\n";
-    stream << "GitSHA=" << NGKS_GIT_SHA << "\n";
-    stream << "ExePath=" << exePath.toStdString() << "\n";
-    stream << "ExeDir=" << QFileInfo(exePath).absolutePath().toStdString() << "\n";
-    stream << "Cwd=" << cwd.toStdString() << "\n";
-    stream << "QtBinUsed=" << gQtBinUsed.toStdString() << "\n";
-    stream << "PATH=" << truncateForLog(pathValue, 1024).toStdString() << "\n";
-    stream << "QT_DEBUG_PLUGINS=" << qEnvironmentVariable("QT_DEBUG_PLUGINS").toStdString() << "\n";
-    stream << "QT_LOGGING_RULES=" << qEnvironmentVariable("QT_LOGGING_RULES").toStdString() << "\n";
-    stream << "QT_PLUGIN_PATH=" << qEnvironmentVariable("QT_PLUGIN_PATH").toStdString() << "\n";
-    stream << "QtPluginPaths=" << pluginPaths.join(';').toStdString() << "\n";
-    stream << "DllProbeResults:\n";
-    for (const auto& entry : gDllProbeEntries) {
-        stream << "  " << entry.name.toStdString() << '=' << (entry.pass ? "PASS" : "FAIL") << "\n";
-    }
-    stream.flush();
-    return true;
-}
-
-void emitCrashCapture(const QString& triggerKind, const QString& codeText, const QString& details)
-{
-    if (gCrashCaptured.exchange(true)) {
-        return;
-    }
-
-    const QString line = QStringLiteral("CrashCapture=TRIGGERED kind=%1 code=%2 stack=not_available detail=%3")
-                             .arg(triggerKind, codeText, details);
-    writeLine(line);
-
-    QJsonObject payload;
-    payload.insert(QStringLiteral("kind"), triggerKind);
-    payload.insert(QStringLiteral("code"), codeText);
-    payload.insert(QStringLiteral("stack"), QStringLiteral("not_available"));
-    payload.insert(QStringLiteral("detail"), details);
-    writeJsonEvent(QStringLiteral("CRIT"), QStringLiteral("crash_capture"), payload);
-}
-
-void onTerminateHandler()
-{
-    emitCrashCapture(QStringLiteral("terminate"), QStringLiteral("n/a"), QStringLiteral("std::terminate"));
-    std::_Exit(3);
-}
-
-void onSignalHandler(int signalCode)
-{
-    emitCrashCapture(QStringLiteral("signal"), QString::number(signalCode), QStringLiteral("signal_handler"));
-    std::_Exit(128 + signalCode);
-}
-
-#ifdef _WIN32
-LONG WINAPI onUnhandledException(EXCEPTION_POINTERS* exceptionPointers)
-{
-    QString codeText = QStringLiteral("0x00000000");
-    if (exceptionPointers != nullptr && exceptionPointers->ExceptionRecord != nullptr) {
-        codeText = QStringLiteral("0x%1").arg(
-            static_cast<qulonglong>(exceptionPointers->ExceptionRecord->ExceptionCode),
-            8,
-            16,
-            QChar('0'));
-    }
-    emitCrashCapture(QStringLiteral("seh"), codeText, QStringLiteral("SetUnhandledExceptionFilter"));
-    return EXCEPTION_EXECUTE_HANDLER;
-}
-#endif
-
-void installCrashCaptureHandlers()
-{
-    std::set_terminate(onTerminateHandler);
-    std::signal(SIGABRT, onSignalHandler);
-    std::signal(SIGSEGV, onSignalHandler);
-#ifdef _WIN32
-    SetUnhandledExceptionFilter(onUnhandledException);
-#endif
-}
