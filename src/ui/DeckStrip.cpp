@@ -8,6 +8,7 @@
 #include <QFont>
 #include <QFrame>
 #include <QMimeData>
+#include <QUrl>
 #include <QHBoxLayout>
 #include <QLinearGradient>
 #include <QMouseEvent>
@@ -43,7 +44,7 @@ public:
     {
         setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         setFixedWidth(28);
-        setMinimumHeight(50);
+        setMinimumHeight(24);
     }
 
 protected:
@@ -111,7 +112,7 @@ public:
     {
         setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         setFixedWidth(24);
-        setMinimumHeight(50);
+        setMinimumHeight(24);
     }
 
 protected:
@@ -654,7 +655,7 @@ void DeckStrip::buildUi()
 
         // ── DJ Analysis Panel (custom-painted cards, NOT text labels) ──
         analysisDash_ = new DjAnalysisPanelWidget(QColor(accent_), trackBlock);
-        analysisDash_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        analysisDash_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         trackLayout->addWidget(analysisDash_);
         qInfo().noquote() << QStringLiteral("DJ_ANALYSIS_WIDGET class=DjAnalysisPanelWidget deck=%1")
             .arg(deckIndex_);
@@ -679,7 +680,7 @@ void DeckStrip::buildUi()
 
         waveformOverview_ = new WaveformOverview(accentColor, outerFrame);
         static_cast<WaveformOverview*>(waveformOverview_)->setDeckIndex(deckIndex_);
-        waveformOverview_->setMinimumHeight(48);
+        waveformOverview_->setMinimumHeight(24);
         waveformOverview_->setMaximumHeight(80);
         waveSection->addWidget(waveformOverview_, 1);
 
@@ -2002,7 +2003,7 @@ void DeckStrip::wireSignals()
 
 void DeckStrip::dragEnterEvent(QDragEnterEvent* e)
 {
-    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id")))
+    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id")) || e->mimeData()->hasUrls())
         e->acceptProposedAction();
     else
         QWidget::dragEnterEvent(e);
@@ -2010,17 +2011,27 @@ void DeckStrip::dragEnterEvent(QDragEnterEvent* e)
 
 void DeckStrip::dropEvent(QDropEvent* e)
 {
-    if (!e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id"))) {
-        QWidget::dropEvent(e);
+    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id"))) {
+        bool ok = false;
+        const qint64 tid = QString::fromUtf8(
+            e->mimeData()->data(QStringLiteral("application/x-ngks-track-id"))).toLongLong(&ok);
+        if (ok) {
+            e->acceptProposedAction();
+            emit loadTrackRequested(deckIndex_, tid);
+        }
+        return;
+    } else if (e->mimeData()->hasUrls()) {
+        QList<QUrl> urls = e->mimeData()->urls();
+        if (!urls.isEmpty()) {
+            QString path = urls.first().toLocalFile();
+            if (!path.isEmpty()) {
+                e->acceptProposedAction();
+                emit loadFileRequested(deckIndex_, path);
+            }
+        }
         return;
     }
-    bool ok = false;
-    const qint64 tid = QString::fromUtf8(
-        e->mimeData()->data(QStringLiteral("application/x-ngks-track-id"))).toLongLong(&ok);
-    if (ok) {
-        e->acceptProposedAction();
-        emit loadTrackRequested(deckIndex_, tid);
-    }
+    QWidget::dropEvent(e);
 }
 
 bool DeckStrip::eventFilter(QObject* obj, QEvent* event)

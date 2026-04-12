@@ -168,6 +168,7 @@ signals:
     void playheadMoved(int deckIndex, double seconds);
     /// Emitted when a track is dragged from the library and dropped on this deck.
     void loadTrackRequested(int deckIndex, qint64 trackId);
+    void loadFileRequested(int deckIndex, const QString& filePath);
 
 private:
     void buildUi();
