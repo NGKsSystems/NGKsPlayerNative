@@ -29,7 +29,7 @@ public:
     {
         setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         setFixedWidth(18);
-        setMinimumHeight(120);
+        setMinimumHeight(40);
     }
 
     void setLevel(float linear) {
@@ -135,7 +135,15 @@ public:
     int deckIndex() const { return deckIndex_; }
 
     /// Load a track file into this deck.
-    void loadTrack(const QString& filePath);
+void loadTrack(const QString& filePath);
+
+protected:
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dragMoveEvent(QDragMoveEvent* event) override;
+    void dragLeaveEvent(QDragLeaveEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
+
+public:
 
     /// Toggle stem energy overlay on the waveform.
     void toggleStemOverlay();
@@ -164,6 +172,8 @@ public slots:
 signals:
     /// Emitted when Load button is clicked (so DJ page can open picker).
     void loadRequested(int deckIndex);
+    /// Emitted when a track is dropped or requested from library
+    void loadTrackRequested(int deckIndex, qint64 trackId);
     /// Emitted on each playhead tick with current position in seconds.
     void playheadMoved(int deckIndex, double seconds);
     /// Emitted when a track is dragged from the library and dropped on this deck.

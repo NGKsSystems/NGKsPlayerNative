@@ -6,6 +6,7 @@
 #include <QPen>
 #include <QLinearGradient>
 #include <QWheelEvent>
+#include <QDebug>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -15,15 +16,10 @@
 #include "WaveformState.h"
 #include "engine/runtime/graph/DeckNode.h"
 
-// Forward-declared in case it's not available; the stem overlay
-// feature is gated on this flag at construction time.
 #ifndef NGKS_ENABLE_STEM_OVERLAY
 #define NGKS_ENABLE_STEM_OVERLAY true
 #endif
 
-// ═══════════════════════════════════════════════════════════════════
-// WaveformOverview — polished state-aware waveform display
-// ═══════════════════════════════════════════════════════════════════
 class WaveformOverview : public QWidget {
 public:
     explicit WaveformOverview(const QColor& accent, QWidget* parent = nullptr,
@@ -39,19 +35,25 @@ public:
 
     void setWaveformData(const std::vector<ngks::WaveMinMax>& data)
     {
-        auto tid = static_cast<size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+        qWarning().noquote()
+            << QString("WF_SET_DATA_CALLED deck=%1 bins=%2")
+                   .arg(deckIndex_ == 0 ? 'A' : 'B')
+                   .arg(data.size());
+
+        auto tid = static_cast<size_t>(
+            std::hash<std::thread::id>{}(std::this_thread::get_id()));
 
         if (waveformDataFrozen_) {
             std::fprintf(stderr,
-                "WAVE_DATA_MUTATION_BLOCKED deck=%d frozenBins=%zu "
-                "attemptedBins=%zu frozenHash=%zu tid=%zu\n",
+                "WAVE_DATA_REPLACED deck=%d oldBins=%zu "
+                "newBins=%zu oldHash=%zu tid=%zu\n",
                 deckIndex_, bins_.size(), data.size(), dataHash_, tid);
             std::fflush(stderr);
-            return;
         }
 
         bins_ = data;
         hasData_ = !bins_.empty();
+
         if (hasData_) {
             float absMax = 0.0f;
             for (const auto& b : bins_) {
@@ -75,6 +77,10 @@ public:
 
             waveformDataFrozen_ = true;
 
+            if (viewState_ == WaveViewState::EMPTY) {
+                setViewState(WaveViewState::STATIC_PLAY);
+            }
+
             std::fprintf(stderr,
                 "WAVE_DATA_CREATED deck=%d bins=%zu peakRef=%.4f "
                 "rmsAvg=%.4f hash=%zu FROZEN=true tid=%zu\n",
@@ -92,7 +98,9 @@ public:
             std::fflush(stderr);
         } else {
             peakRef_ = 1.0f;
+            waveformDataFrozen_ = false;
         }
+
         update();
     }
 
@@ -242,6 +250,15 @@ protected:
 
     void paintEvent(QPaintEvent*) override
     {
+        static int paintLogTicker[2] = {0,0};
+        int dIdx = deckIndex_ & 1;
+        bool doLog = (paintLogTicker[dIdx]++ % 30 == 0);
+
+        if (doLog) {
+            std::fprintf(stderr, "WF_WIDGET_STATE deck=%c state=%d\n", (deckIndex_==0?'A':'B'), (int)viewState_);
+            std::fprintf(stderr, "WF_WIDGET_PATH deck=%c path='...'\n", (deckIndex_==0?'A':'B'));
+        }
+
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing, false);
         const int w = width();
@@ -264,6 +281,10 @@ protected:
         }
 
         if (!hasData_ || bins_.empty()) {
+            if (doLog) {
+                std::fprintf(stderr, "WF_PAINT_EMPTY deck=%c reason='No data or empty bins'\n", (deckIndex_==0?'A':'B'));
+                std::fflush(stderr);
+            }
             QFont f = font();
             f.setPointSizeF(6.5);
             f.setBold(true);
@@ -275,7 +296,11 @@ protected:
             return;
         }
 
-        // ═══ Viewport window ═══
+        if (doLog) {
+            std::fprintf(stderr, "WF_PAINT_WAVE deck=%c bins=%zu\n", (deckIndex_==0?'A':'B'), bins_.size());
+            std::fflush(stderr);
+        }
+
         float viewStart = 0.0f;
         float viewEnd   = 1.0f;
 
@@ -312,12 +337,15 @@ protected:
             viewEnd   = std::min(1.0f, viewEnd);
             break;
         }
+        case WaveViewState::LOADING:
+            viewStart = 0.0f;
+            viewEnd   = 1.0f;
+            break;
         }
 
         const float viewSpan = viewEnd - viewStart;
         if (viewSpan < 0.001f) return;
 
-        // ═══ Grid ═══
         {
             const int gridCount = isZoomed ? 8 : 12;
             p.setPen(QPen(QColor(0x14, 0x18, 0x20), 1));
@@ -327,14 +355,12 @@ protected:
             }
         }
 
-        // Center line
         {
             QColor cl = accent_; cl.setAlpha(20);
             p.setPen(QPen(cl, 1));
             p.drawLine(1, cy, w - 2, cy);
         }
 
-        // ═══ Waveform bars ═══
         const int numBins = static_cast<int>(bins_.size());
         const float invRef = 1.0f / peakRef_;
         const int usableW = w - 2;
@@ -385,7 +411,6 @@ protected:
             const bool played = (x < playheadX);
             QColor barColor = played ? playedColor : aheadColor;
 
-            // Stem color tinting
             if (showBands && hasBandData_) {
                 const int bandNumBins = static_cast<int>(bandBins_.size());
                 const int bi = std::clamp(static_cast<int>(frac * bandNumBins), 0, bandNumBins - 1);
@@ -486,7 +511,6 @@ protected:
             }
         }
 
-        // ═══ Playhead ═══
         if (playheadVisible) {
             QColor phLine(0xff, 0xff, 0xff, 210);
             p.setPen(QPen(phLine, 2));
@@ -506,7 +530,6 @@ protected:
             p.drawPolygon(tri, 3);
         }
 
-        // ═══ State label ═══
         {
             QFont f = font();
             f.setPointSizeF(5.5);
@@ -529,6 +552,10 @@ protected:
                 label = "STATIC";
                 labelColor = QColor(accent_.red(), accent_.green(), accent_.blue(), 80);
                 break;
+            case WaveViewState::LOADING:
+                label = "LOADING";
+                labelColor = QColor(accent_.red(), accent_.green(), accent_.blue(), 100);
+                break;
             default:
                 break;
             }
@@ -539,7 +566,6 @@ protected:
             }
         }
 
-        // ═══ Stem overlay mode label ═══
         if (showBands) {
             QFont sf = font();
             sf.setPointSizeF(5.0);
@@ -551,7 +577,6 @@ protected:
             p.drawText(w - stw - 4, 18, QLatin1String("STEMS"));
         }
 
-        // ═══ Band-energy strip ═══
         if (showBands) {
             const int bandY = mainH;
             const int bandNumBins = static_cast<int>(bandBins_.size());
@@ -624,7 +649,6 @@ protected:
             p.drawLine(1, bandY, w - 2, bandY);
         }
 
-        // ═══ Overview strip ═══
         if (isZoomed && overviewH > 0) {
             const int oy = mainH + bandStripH;
             const int miniW = w - 2;
@@ -673,7 +697,6 @@ protected:
             p.drawLine(miniPhX, oy + 1, miniPhX, oy + overviewH - 2);
         }
 
-        // ═══ Logging (throttled) ═══
         if (++renderLogTick_ >= 120) {
             renderLogTick_ = 0;
             auto tid = static_cast<size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
