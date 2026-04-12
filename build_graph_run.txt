@@ -1,0 +1,30 @@
+**********************************************************************
+** Visual Studio 2026 Developer Command Prompt v18.3.2
+** Copyright (c) 2026 Microsoft Corporation
+**********************************************************************
+===================== [MSVC ENV OK] =====================
+VSCMD_VER=18.3.2
+WindowsSdkDir=C:\Program Files (x86)\Windows Kits\10\
+=========================================================
+BuildCore plan: C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\build_graph\release\ngksbuildcore_plan.json
+PASS
+PROOF_ZIP=C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\_proof\run_20260411_082123.zip
+FAIL
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/NGKsUiBridge/build_graph/release/qt/moc_DjController.obj path=obj/NGKsUiBridge/build_graph/release/qt/moc_DjController.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/NGKsUiBridge/build_graph/release/qt/moc_LibraryBrowserWidget.obj path=obj/NGKsUiBridge/build_graph/release/qt/moc_LibraryBrowserWidget.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/NGKsUiBridge/build_graph/release/qt/moc_VisualizerWidget.obj path=obj/NGKsUiBridge/build_graph/release/qt/moc_VisualizerWidget.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/audio/AudioProfileStore.obj path=obj/native/src/ui/audio/AudioProfileStore.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/diagnostics/DiagnosticsDialog.obj path=obj/native/src/ui/diagnostics/DiagnosticsDialog.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/diagnostics/RuntimeLogSupport.obj path=obj/native/src/ui/diagnostics/RuntimeLogSupport.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/library/DjLibraryDatabase.obj path=obj/native/src/ui/library/DjLibraryDatabase.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/library/DjLibraryModel.obj path=obj/native/src/ui/library/DjLibraryModel.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/library/DjLibraryWidget.obj path=obj/native/src/ui/library/DjLibraryWidget.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/library/LegacyLibraryImport.obj path=obj/native/src/ui/library/LegacyLibraryImport.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/library/LibraryBrowserWidget.obj path=obj/native/src/ui/library/LibraryBrowserWidget.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/library/LibraryPersistence.obj path=obj/native/src/ui/library/LibraryPersistence.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/library/LibraryScanner.obj path=obj/native/src/ui/library/LibraryScanner.obj hint=clean stale outputs or ensure graph includes all compiled units
+- ORPHAN_OBJECT: object exists on disk but not in graph plan: obj/native/src/ui/widgets/VisualizerWidget.obj path=obj/native/src/ui/widgets/VisualizerWidget.obj hint=clean stale outputs or ensure graph includes all compiled units
+- MISSING_OBJECT: planned object missing on disk: build_graph/release/obj/headless/tools/headless_main.obj target=headless path=build_graph/release/obj/headless/tools/headless_main.obj hint=run build or verify object path generation
+- MISSING_OBJECT: planned object missing on disk: build_graph/release/obj/smoke/tools/state_machine_smoke.obj target=smoke path=build_graph/release/obj/smoke/tools/state_machine_smoke.obj hint=run build or verify object path generation
+PROOF_ZIP=C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\_proof\run_20260411_082124.zip
+PROOF_ZIP=C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\_proof\run_20260411_082120.zip

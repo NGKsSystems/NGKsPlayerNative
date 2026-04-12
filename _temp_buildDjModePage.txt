@@ -1,0 +1,100 @@
+#include <QAction>
+#include <QApplication>
+#include <QComboBox>
+#include <QDialog>
+#include <QHBoxLayout>
+#include <QGridLayout>
+#include <QStackedLayout>
+#include <QLabel>
+#include <QMainWindow>
+#include <QMenu>
+#include <QMenuBar>
+#include <QMessageLogContext>
+#include <QMessageBox>
+#include <QMutex>
+#include <QMutexLocker>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
+#include <QShortcut>
+#include <QSignalBlocker>
+#include <QStringList>
+#include <QSysInfo>
+#include <QTimer>
+#include <QThread>
+#include <QVBoxLayout>
+#include <QDateTime>
+#include <QWidget>
+#include <QClipboard>
+#include <QDesktopServices>
+#include <QInputDialog>
+#include <QUrl>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QTreeWidget>
+#include <QHeaderView>
+#include <QSplitter>
+#include <QSlider>
+#include <QStackedWidget>
+#include <QPainter>
+#include <QPainterPath>
+#include <QPen>
+#include <QElapsedTimer>
+#include <QFileDialog>
+#include <QDirIterator>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+
+#include <algorithm>
+#include <array>
+#include <cstdlib>
+#include <csignal>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <atomic>
+#include <functional>
+#include <map>
+#include <random>
+#include <vector>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
+#include "ui/EngineBridge.h"
+#include "ui/EqPanel.h"
+#include "ui/DeckStrip.h"
+#include "engine/DiagLog.h"
+
+#ifndef NGKS_BUILD_STAMP
+#define NGKS_BUILD_STAMP "unknown"
+#endif
+
+#ifndef NGKS_GIT_SHA
+#define NGKS_GIT_SHA "unknown"
+#endif
+
+QString detectQtBinFromPath(const QString& pathValue);
+bool writeDependencySnapshot(const QString& exePath,
+                             const QString& cwd,
+                             const QString& pathValue,
+                             const QStringList& pluginPaths);
+void installCrashCaptureHandlers();
+
+namespace {
+
+QMutex gLogMutex;

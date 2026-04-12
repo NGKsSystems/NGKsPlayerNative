@@ -185,7 +185,108 @@ public:
                     }
                 }
 
-                djDb_.bulkInsert(allTracks_);
+                
+                  // Phase 3 Core DB Duration Patch: Load duration from dj_library_core.db directly
+                  {
+                      QString coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      }
+
+                      if (QFile::exists(coreDbPath)) {
+                          const QString connName = QStringLiteral("dj_core_duration_fix");
+                          {
+                              QSqlDatabase coreDb = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+                              coreDb.setDatabaseName(coreDbPath);
+                              coreDb.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+                              int matchCore = 0;
+                              if (coreDb.open()) {
+                                  std::map<QString, size_t> pathIndex;
+                                  for (size_t i = 0; i < allTracks_.size(); ++i) {
+                                      pathIndex[QDir::fromNativeSeparators(allTracks_[i].filePath).trimmed().toLower()] = i;
+                                  }
+                                  
+                                  QSqlQuery q(coreDb);
+                                  q.setForwardOnly(true);
+                                  if (q.exec(QStringLiteral("SELECT file_path, duration FROM tracks LIMIT 9999999"))) {
+                                      while (q.next()) {
+                                          QString fp = QDir::fromNativeSeparators(q.value(0).toString()).trimmed().toLower();
+                                          double dur = q.value(1).toDouble();
+                                          if (dur > 0) {
+                                              auto it = pathIndex.find(fp);
+                                              if (it != pathIndex.end()) {
+                                                  TrackInfo& t = allTracks_[it->second];
+                                                  if (t.durationMs <= 0 || t.durationStr == QStringLiteral("--:--") || t.durationStr.isEmpty()) {
+                                                      t.durationMs = static_cast<qint64>(dur * 1000.0);
+                                                      const int totalSec = static_cast<int>(dur);
+                                                      t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                                                      matchCore++;
+                                                  }
+                                              }
+                                          }
+                                      }
+                                      qInfo().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH matched=%1").arg(matchCore);
+                                  } else {
+                                      qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_QUERY ") << q.lastError().text();
+                                  }
+                                  coreDb.close();
+                              } else {
+                                  qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_OPEN ") << coreDb.lastError().text();
+                              }
+                          }
+                          QSqlDatabase::removeDatabase(connName);
+                      } else {
+                          qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH DB_NOT_FOUND ") << coreDbPath;
+                      }
+                  }
+                  
+
+                  // Fallback: For any tracks without duration, estimate it from MP3 filesize
+                  for (auto& t : allTracks_) {
+                      if (t.durationMs <= 0 && t.filePath.endsWith(QStringLiteral(".mp3"), Qt::CaseInsensitive)) {
+                          QFile fFallback(t.filePath);
+                          if (fFallback.open(QIODevice::ReadOnly)) {
+                              QByteArray hdr = fFallback.read(10);
+                              qint64 dataOff = 0;
+                              if (hdr.size() == 10 && hdr[0] == 'I' && hdr[1] == 'D' && hdr[2] == '3') {
+                                  dataOff = 10 + ((quint32(static_cast<unsigned char>(hdr[6])) << 21)
+                                               | (quint32(static_cast<unsigned char>(hdr[7])) << 14)
+                                               | (quint32(static_cast<unsigned char>(hdr[8])) << 7)
+                                               | quint32(static_cast<unsigned char>(hdr[9])));
+                              }
+                              fFallback.seek(dataOff);
+                              QByteArray buf = fFallback.read(8192);
+                              int bitrate = 0;
+                              for (int i = 0; i < buf.size() - 3; ++i) {
+                                  if ((static_cast<unsigned char>(buf[i]) == 0xFF) && ((static_cast<unsigned char>(buf[i+1]) & 0xE0) == 0xE0)) {
+                                      int bitrateIdx = (static_cast<unsigned char>(buf[i+2]) >> 4) & 0x0F;
+                                      int layer = (static_cast<unsigned char>(buf[i+1]) >> 1) & 0x03;
+                                      int ver = (static_cast<unsigned char>(buf[i+1]) >> 3) & 0x03;
+                                      static const int bitrates[2][3][16] = {
+                                          { {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,32,48,56,64,80,96,112,128,144,160,176,192,224,256,0} },
+                                          { {0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0}, {0,32,48,56,64,80,96,112,128,160,192,224,256,320,384,0}, {0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,0} }
+                                      };
+                                      int mpegIdx = (ver == 3) ? 1 : 0;
+                                      int layerIdx = (layer == 1) ? 0 : ((layer == 2) ? 1 : 2);
+                                      bitrate = bitrates[mpegIdx][layerIdx][bitrateIdx];
+                                      break;
+                                  }
+                              }
+                              if (bitrate <= 0) bitrate = 256;
+                              t.durationMs = static_cast<qint64>(((fFallback.size() - dataOff) * 8.0) / (bitrate * 1000.0) * 1000.0);
+                              int totalSec = static_cast<int>(t.durationMs / 1000);
+                              t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                          }
+                      }
+                  }
+
+djDb_.bulkInsert(allTracks_);
                 refreshLibraryList();
                 rebuildPlayerQueue();
                 qInfo().noquote() << QStringLiteral("LIBRARY_RESTORED=%1").arg(allTracks_.size());
@@ -455,9 +556,211 @@ private:
             qInfo().noquote() << QStringLiteral("FILES_FOUND=%1").arg(allTracks_.size());
             qInfo().noquote() << QStringLiteral("TRACKS_INDEXED=%1").arg(allTracks_.size());
 
-            djDb_.bulkInsert(allTracks_);
+            
+                  // Phase 3 Core DB Duration Patch: Load duration from dj_library_core.db directly
+                  {
+                      QString coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      }
 
-            djDb_.bulkInsert(allTracks_);
+                      if (QFile::exists(coreDbPath)) {
+                          const QString connName = QStringLiteral("dj_core_duration_fix");
+                          {
+                              QSqlDatabase coreDb = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+                              coreDb.setDatabaseName(coreDbPath);
+                              coreDb.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+                              int matchCore = 0;
+                              if (coreDb.open()) {
+                                  std::map<QString, size_t> pathIndex;
+                                  for (size_t i = 0; i < allTracks_.size(); ++i) {
+                                      pathIndex[QDir::fromNativeSeparators(allTracks_[i].filePath).trimmed().toLower()] = i;
+                                  }
+                                  
+                                  QSqlQuery q(coreDb);
+                                  q.setForwardOnly(true);
+                                  if (q.exec(QStringLiteral("SELECT file_path, duration FROM tracks LIMIT 9999999"))) {
+                                      while (q.next()) {
+                                          QString fp = QDir::fromNativeSeparators(q.value(0).toString()).trimmed().toLower();
+                                          double dur = q.value(1).toDouble();
+                                          if (dur > 0) {
+                                              auto it = pathIndex.find(fp);
+                                              if (it != pathIndex.end()) {
+                                                  TrackInfo& t = allTracks_[it->second];
+                                                  if (t.durationMs <= 0 || t.durationStr == QStringLiteral("--:--") || t.durationStr.isEmpty()) {
+                                                      t.durationMs = static_cast<qint64>(dur * 1000.0);
+                                                      const int totalSec = static_cast<int>(dur);
+                                                      t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                                                      matchCore++;
+                                                  }
+                                              }
+                                          }
+                                      }
+                                      qInfo().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH matched=%1").arg(matchCore);
+                                  } else {
+                                      qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_QUERY ") << q.lastError().text();
+                                  }
+                                  coreDb.close();
+                              } else {
+                                  qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_OPEN ") << coreDb.lastError().text();
+                              }
+                          }
+                          QSqlDatabase::removeDatabase(connName);
+                      } else {
+                          qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH DB_NOT_FOUND ") << coreDbPath;
+                      }
+                  }
+                  
+
+                  // Fallback: For any tracks without duration, estimate it from MP3 filesize
+                  for (auto& t : allTracks_) {
+                      if (t.durationMs <= 0 && t.filePath.endsWith(QStringLiteral(".mp3"), Qt::CaseInsensitive)) {
+                          QFile fFallback(t.filePath);
+                          if (fFallback.open(QIODevice::ReadOnly)) {
+                              QByteArray hdr = fFallback.read(10);
+                              qint64 dataOff = 0;
+                              if (hdr.size() == 10 && hdr[0] == 'I' && hdr[1] == 'D' && hdr[2] == '3') {
+                                  dataOff = 10 + ((quint32(static_cast<unsigned char>(hdr[6])) << 21)
+                                               | (quint32(static_cast<unsigned char>(hdr[7])) << 14)
+                                               | (quint32(static_cast<unsigned char>(hdr[8])) << 7)
+                                               | quint32(static_cast<unsigned char>(hdr[9])));
+                              }
+                              fFallback.seek(dataOff);
+                              QByteArray buf = fFallback.read(8192);
+                              int bitrate = 0;
+                              for (int i = 0; i < buf.size() - 3; ++i) {
+                                  if ((static_cast<unsigned char>(buf[i]) == 0xFF) && ((static_cast<unsigned char>(buf[i+1]) & 0xE0) == 0xE0)) {
+                                      int bitrateIdx = (static_cast<unsigned char>(buf[i+2]) >> 4) & 0x0F;
+                                      int layer = (static_cast<unsigned char>(buf[i+1]) >> 1) & 0x03;
+                                      int ver = (static_cast<unsigned char>(buf[i+1]) >> 3) & 0x03;
+                                      static const int bitrates[2][3][16] = {
+                                          { {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,32,48,56,64,80,96,112,128,144,160,176,192,224,256,0} },
+                                          { {0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0}, {0,32,48,56,64,80,96,112,128,160,192,224,256,320,384,0}, {0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,0} }
+                                      };
+                                      int mpegIdx = (ver == 3) ? 1 : 0;
+                                      int layerIdx = (layer == 1) ? 0 : ((layer == 2) ? 1 : 2);
+                                      bitrate = bitrates[mpegIdx][layerIdx][bitrateIdx];
+                                      break;
+                                  }
+                              }
+                              if (bitrate <= 0) bitrate = 256;
+                              t.durationMs = static_cast<qint64>(((fFallback.size() - dataOff) * 8.0) / (bitrate * 1000.0) * 1000.0);
+                              int totalSec = static_cast<int>(t.durationMs / 1000);
+                              t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                          }
+                      }
+                  }
+
+djDb_.bulkInsert(allTracks_);
+
+            
+                  // Phase 3 Core DB Duration Patch: Load duration from dj_library_core.db directly
+                  {
+                      QString coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      }
+
+                      if (QFile::exists(coreDbPath)) {
+                          const QString connName = QStringLiteral("dj_core_duration_fix");
+                          {
+                              QSqlDatabase coreDb = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+                              coreDb.setDatabaseName(coreDbPath);
+                              coreDb.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+                              int matchCore = 0;
+                              if (coreDb.open()) {
+                                  std::map<QString, size_t> pathIndex;
+                                  for (size_t i = 0; i < allTracks_.size(); ++i) {
+                                      pathIndex[QDir::fromNativeSeparators(allTracks_[i].filePath).trimmed().toLower()] = i;
+                                  }
+                                  
+                                  QSqlQuery q(coreDb);
+                                  q.setForwardOnly(true);
+                                  if (q.exec(QStringLiteral("SELECT file_path, duration FROM tracks LIMIT 9999999"))) {
+                                      while (q.next()) {
+                                          QString fp = QDir::fromNativeSeparators(q.value(0).toString()).trimmed().toLower();
+                                          double dur = q.value(1).toDouble();
+                                          if (dur > 0) {
+                                              auto it = pathIndex.find(fp);
+                                              if (it != pathIndex.end()) {
+                                                  TrackInfo& t = allTracks_[it->second];
+                                                  if (t.durationMs <= 0 || t.durationStr == QStringLiteral("--:--") || t.durationStr.isEmpty()) {
+                                                      t.durationMs = static_cast<qint64>(dur * 1000.0);
+                                                      const int totalSec = static_cast<int>(dur);
+                                                      t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                                                      matchCore++;
+                                                  }
+                                              }
+                                          }
+                                      }
+                                      qInfo().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH matched=%1").arg(matchCore);
+                                  } else {
+                                      qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_QUERY ") << q.lastError().text();
+                                  }
+                                  coreDb.close();
+                              } else {
+                                  qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_OPEN ") << coreDb.lastError().text();
+                              }
+                          }
+                          QSqlDatabase::removeDatabase(connName);
+                      } else {
+                          qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH DB_NOT_FOUND ") << coreDbPath;
+                      }
+                  }
+                  
+
+                  // Fallback: For any tracks without duration, estimate it from MP3 filesize
+                  for (auto& t : allTracks_) {
+                      if (t.durationMs <= 0 && t.filePath.endsWith(QStringLiteral(".mp3"), Qt::CaseInsensitive)) {
+                          QFile fFallback(t.filePath);
+                          if (fFallback.open(QIODevice::ReadOnly)) {
+                              QByteArray hdr = fFallback.read(10);
+                              qint64 dataOff = 0;
+                              if (hdr.size() == 10 && hdr[0] == 'I' && hdr[1] == 'D' && hdr[2] == '3') {
+                                  dataOff = 10 + ((quint32(static_cast<unsigned char>(hdr[6])) << 21)
+                                               | (quint32(static_cast<unsigned char>(hdr[7])) << 14)
+                                               | (quint32(static_cast<unsigned char>(hdr[8])) << 7)
+                                               | quint32(static_cast<unsigned char>(hdr[9])));
+                              }
+                              fFallback.seek(dataOff);
+                              QByteArray buf = fFallback.read(8192);
+                              int bitrate = 0;
+                              for (int i = 0; i < buf.size() - 3; ++i) {
+                                  if ((static_cast<unsigned char>(buf[i]) == 0xFF) && ((static_cast<unsigned char>(buf[i+1]) & 0xE0) == 0xE0)) {
+                                      int bitrateIdx = (static_cast<unsigned char>(buf[i+2]) >> 4) & 0x0F;
+                                      int layer = (static_cast<unsigned char>(buf[i+1]) >> 1) & 0x03;
+                                      int ver = (static_cast<unsigned char>(buf[i+1]) >> 3) & 0x03;
+                                      static const int bitrates[2][3][16] = {
+                                          { {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,32,48,56,64,80,96,112,128,144,160,176,192,224,256,0} },
+                                          { {0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0}, {0,32,48,56,64,80,96,112,128,160,192,224,256,320,384,0}, {0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,0} }
+                                      };
+                                      int mpegIdx = (ver == 3) ? 1 : 0;
+                                      int layerIdx = (layer == 1) ? 0 : ((layer == 2) ? 1 : 2);
+                                      bitrate = bitrates[mpegIdx][layerIdx][bitrateIdx];
+                                      break;
+                                  }
+                              }
+                              if (bitrate <= 0) bitrate = 256;
+                              t.durationMs = static_cast<qint64>(((fFallback.size() - dataOff) * 8.0) / (bitrate * 1000.0) * 1000.0);
+                              int totalSec = static_cast<int>(t.durationMs / 1000);
+                              t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                          }
+                      }
+                  }
+
+djDb_.bulkInsert(allTracks_);
 
             // Clear detail panel before rebuild
             clearTrackDetail();
@@ -486,7 +789,108 @@ private:
             qInfo().noquote() << QStringLiteral("LEGACY_DB_IMPORT_DONE matched=%1 unmatched=%2 total=%3")
                 .arg(res.matched).arg(res.unmatched).arg(res.totalDbRows);
 
-            djDb_.bulkInsert(allTracks_);
+            
+                  // Phase 3 Core DB Duration Patch: Load duration from dj_library_core.db directly
+                  {
+                      QString coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../data/dj_library_core.db");
+                      }
+                      if (!QFile::exists(coreDbPath)) {
+                          coreDbPath = QDir::currentPath() + QStringLiteral("/../../../data/dj_library_core.db");
+                      }
+
+                      if (QFile::exists(coreDbPath)) {
+                          const QString connName = QStringLiteral("dj_core_duration_fix");
+                          {
+                              QSqlDatabase coreDb = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+                              coreDb.setDatabaseName(coreDbPath);
+                              coreDb.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+                              int matchCore = 0;
+                              if (coreDb.open()) {
+                                  std::map<QString, size_t> pathIndex;
+                                  for (size_t i = 0; i < allTracks_.size(); ++i) {
+                                      pathIndex[QDir::fromNativeSeparators(allTracks_[i].filePath).trimmed().toLower()] = i;
+                                  }
+                                  
+                                  QSqlQuery q(coreDb);
+                                  q.setForwardOnly(true);
+                                  if (q.exec(QStringLiteral("SELECT file_path, duration FROM tracks LIMIT 9999999"))) {
+                                      while (q.next()) {
+                                          QString fp = QDir::fromNativeSeparators(q.value(0).toString()).trimmed().toLower();
+                                          double dur = q.value(1).toDouble();
+                                          if (dur > 0) {
+                                              auto it = pathIndex.find(fp);
+                                              if (it != pathIndex.end()) {
+                                                  TrackInfo& t = allTracks_[it->second];
+                                                  if (t.durationMs <= 0 || t.durationStr == QStringLiteral("--:--") || t.durationStr.isEmpty()) {
+                                                      t.durationMs = static_cast<qint64>(dur * 1000.0);
+                                                      const int totalSec = static_cast<int>(dur);
+                                                      t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                                                      matchCore++;
+                                                  }
+                                              }
+                                          }
+                                      }
+                                      qInfo().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH matched=%1").arg(matchCore);
+                                  } else {
+                                      qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_QUERY ") << q.lastError().text();
+                                  }
+                                  coreDb.close();
+                              } else {
+                                  qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_OPEN ") << coreDb.lastError().text();
+                              }
+                          }
+                          QSqlDatabase::removeDatabase(connName);
+                      } else {
+                          qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH DB_NOT_FOUND ") << coreDbPath;
+                      }
+                  }
+                  
+
+                  // Fallback: For any tracks without duration, estimate it from MP3 filesize
+                  for (auto& t : allTracks_) {
+                      if (t.durationMs <= 0 && t.filePath.endsWith(QStringLiteral(".mp3"), Qt::CaseInsensitive)) {
+                          QFile fFallback(t.filePath);
+                          if (fFallback.open(QIODevice::ReadOnly)) {
+                              QByteArray hdr = fFallback.read(10);
+                              qint64 dataOff = 0;
+                              if (hdr.size() == 10 && hdr[0] == 'I' && hdr[1] == 'D' && hdr[2] == '3') {
+                                  dataOff = 10 + ((quint32(static_cast<unsigned char>(hdr[6])) << 21)
+                                               | (quint32(static_cast<unsigned char>(hdr[7])) << 14)
+                                               | (quint32(static_cast<unsigned char>(hdr[8])) << 7)
+                                               | quint32(static_cast<unsigned char>(hdr[9])));
+                              }
+                              fFallback.seek(dataOff);
+                              QByteArray buf = fFallback.read(8192);
+                              int bitrate = 0;
+                              for (int i = 0; i < buf.size() - 3; ++i) {
+                                  if ((static_cast<unsigned char>(buf[i]) == 0xFF) && ((static_cast<unsigned char>(buf[i+1]) & 0xE0) == 0xE0)) {
+                                      int bitrateIdx = (static_cast<unsigned char>(buf[i+2]) >> 4) & 0x0F;
+                                      int layer = (static_cast<unsigned char>(buf[i+1]) >> 1) & 0x03;
+                                      int ver = (static_cast<unsigned char>(buf[i+1]) >> 3) & 0x03;
+                                      static const int bitrates[2][3][16] = {
+                                          { {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0}, {0,32,48,56,64,80,96,112,128,144,160,176,192,224,256,0} },
+                                          { {0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0}, {0,32,48,56,64,80,96,112,128,160,192,224,256,320,384,0}, {0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,0} }
+                                      };
+                                      int mpegIdx = (ver == 3) ? 1 : 0;
+                                      int layerIdx = (layer == 1) ? 0 : ((layer == 2) ? 1 : 2);
+                                      bitrate = bitrates[mpegIdx][layerIdx][bitrateIdx];
+                                      break;
+                                  }
+                              }
+                              if (bitrate <= 0) bitrate = 256;
+                              t.durationMs = static_cast<qint64>(((fFallback.size() - dataOff) * 8.0) / (bitrate * 1000.0) * 1000.0);
+                              int totalSec = static_cast<int>(t.durationMs / 1000);
+                              t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                          }
+                      }
+                  }
+
+djDb_.bulkInsert(allTracks_);
             refreshLibraryList();
             saveLibraryJson(allTracks_, importedFolderPath_);
             qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_LEGACY_IMPORT");

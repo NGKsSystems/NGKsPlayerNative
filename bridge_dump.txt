@@ -1,0 +1,25 @@
+bool EngineBridge::deckHasTrack(int deckIndex) const
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return false;
+    return engine.getSnapshot().decks[deckIndex].hasTrack != 0;
+}
+
+int EngineBridge::deckLifecycle(int deckIndex) const
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return 0;
+    return static_cast<int>(engine.getSnapshot().decks[deckIndex].lifecycle);
+}
+
+double EngineBridge::deckLengthSeconds(int deckIndex) const
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return 0.0;
+    return engine.getSnapshot().decks[deckIndex].lengthSeconds;
+}
+
+double EngineBridge::deckPlayhead(int deckIndex) const
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return 0.0;
+    return engine.getSnapshot().decks[deckIndex].playheadSeconds;
+}
+
+double EngineBridge::deckDuration(int deckIndex) const

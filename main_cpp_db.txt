@@ -1,0 +1,100 @@
+            f.setPointSize(14);
+            f.setBold(true);
+            title->setFont(f);
+        }
+        title->setStyleSheet(QStringLiteral("color: #e0e0e0; background: transparent;"));
+        title->setAlignment(Qt::AlignCenter);
+        headerRow->addWidget(title, 1);
+
+        headerRow->addSpacing(60);  // balance the back button
+        layout->addLayout(headerRow);
+
+        QObject::connect(backBtn, &QPushButton::clicked, this, [this]() {
+            bridge_.leaveDjMode();
+            stack_->setCurrentIndex(1);
+        });
+
+        // ── Per-deck columns: Deck + Library side by side ──
+        auto* deckRow = new QHBoxLayout();
+        deckRow->setSpacing(6);
+
+        // ── Deck A column: strip + library ──
+        auto* colA = new QVBoxLayout();
+        colA->setSpacing(4);
+        djDeckA_ = new DeckStrip(0, QStringLiteral("#e07020"), &bridge_, page);
+        colA->addWidget(djDeckA_, 1);
+
+        // ── DJ Library A placeholder (library not initialized) ──
+        auto* libPlaceholderA = new QLabel(QStringLiteral("DJ Library not initialized"), page);
+        libPlaceholderA->setAlignment(Qt::AlignCenter);
+        libPlaceholderA->setFixedHeight(100);
+        libPlaceholderA->setStyleSheet(QStringLiteral(
+            "color: #3a3a3a; background: #0a0c12; border: 1px solid #1a1e28;"
+            " font-size: 8pt; border-radius: 3px;"));
+        colA->addWidget(libPlaceholderA);
+        deckRow->addLayout(colA, 5);
+
+        // ── Master section column (center) ──
+        auto* masterCol = new QVBoxLayout();
+        masterCol->setSpacing(4);
+        masterCol->setContentsMargins(4, 0, 4, 0);
+
+        auto* masterLabel = new QLabel(QStringLiteral("MASTER"), page);
+        {
+            QFont f = masterLabel->font(); f.setPointSizeF(7.5); f.setBold(true);
+            masterLabel->setFont(f);
+        }
+        masterLabel->setAlignment(Qt::AlignCenter);
+        masterLabel->setStyleSheet(QStringLiteral(
+            "color: #e0e0e0; background: transparent; padding: 2px 0;"));
+        masterCol->addWidget(masterLabel);
+
+        // Master L/R meters
+        auto* masterMeterRow = new QHBoxLayout();
+        masterMeterRow->setSpacing(2);
+        masterMeterRow->addStretch();
+        djMasterMeterL_ = new LevelMeter(QColor(0xc0, 0xc0, 0xc0), page);
+        djMasterMeterR_ = new LevelMeter(QColor(0xc0, 0xc0, 0xc0), page);
+        masterMeterRow->addWidget(djMasterMeterL_);
+        masterMeterRow->addWidget(djMasterMeterR_);
+        masterMeterRow->addStretch();
+        masterCol->addLayout(masterMeterRow, 1);
+
+        // CUE MIX label + slider (horizontal)
+        auto* cueMixLabel = new QLabel(QStringLiteral("CUE MIX"), page);
+        {
+            QFont f = cueMixLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            cueMixLabel->setFont(f);
+        }
+        cueMixLabel->setAlignment(Qt::AlignCenter);
+        cueMixLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(cueMixLabel);
+
+        djCueMix_ = new QSlider(Qt::Horizontal, page);
+        djCueMix_->setRange(0, 1000);
+        djCueMix_->setValue(500);
+        djCueMix_->setFixedHeight(22);
+        djCueMix_->setStyleSheet(QStringLiteral(
+            "QSlider::groove:horizontal {"
+            "  background: #161616; height: 6px; border-radius: 3px;"
+            "  border: 1px solid #333; }"
+            "QSlider::handle:horizontal {"
+            "  background: #d0d0d0; width: 14px; height: 14px;"
+            "  margin: -5px 0; border-radius: 3px;"
+            "  border: 1px solid #666; }"
+            "QSlider::sub-page:horizontal {"
+            "  background: #4070a0; border-radius: 3px; }"
+            "QSlider::add-page:horizontal {"
+            "  background: #333; border-radius: 3px; }"));
+        masterCol->addWidget(djCueMix_);
+
+        // CUE VOL label + slider (horizontal)
+        auto* cueVolLabel = new QLabel(QStringLiteral("CUE VOL"), page);
+        {
+            QFont f = cueVolLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            cueVolLabel->setFont(f);
+        }
+        cueVolLabel->setAlignment(Qt::AlignCenter);
+        cueVolLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));

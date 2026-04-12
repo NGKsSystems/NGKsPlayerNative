@@ -14,9 +14,13 @@ QString normalizePath(const QString& raw)
 }
 
 // ── findLegacyDbPath ──────────────────────────────────────────────────────────
+#include <QCoreApplication>
 QString findLegacyDbPath()
 {
     const QStringList candidates = {
+        QCoreApplication::applicationDirPath() + QStringLiteral("/../../../data/dj_library_core.db"),
+        QDir::currentPath() + QStringLiteral("/data/dj_library_core.db"),
+        QCoreApplication::applicationDirPath() + QStringLiteral("/../data/dj_library_core.db"),
         QDir::homePath() + QStringLiteral("/AppData/Roaming/ngksplayer/library.db"),
         QDir::homePath() + QStringLiteral("/AppData/Roaming/proproductionsuite/library.db"),
         QDir::homePath() + QStringLiteral("/AppData/Roaming/proaudioclipper/library.db"),
@@ -51,14 +55,25 @@ LegacyImportResult importLegacyDb(std::vector<TrackInfo>& tracks, const QString&
 
         QSqlQuery q(db);
         q.setForwardOnly(true);
+        bool hasDuration = false;
+        
         if (!q.exec(QStringLiteral(
             "SELECT filePath, genre, bpm, key, camelotKey, energy, loudnessLUFS, loudnessRange, "
             "cueIn, cueOut, danceability, acousticness, instrumentalness, liveness, "
-            "year, rating, comments, album, artist, title "
+            "year, rating, comments, album, artist, title, duration "
             "FROM tracks"))) {
-            qWarning().noquote() << QStringLiteral("LEGACY_DB_QUERY_FAIL=%1").arg(q.lastError().text());
-            db.close();
-            return result;
+            // Fallback for older DB versions without 'duration'
+            if (!q.exec(QStringLiteral(
+                "SELECT filePath, genre, bpm, key, camelotKey, energy, loudnessLUFS, loudnessRange, "
+                "cueIn, cueOut, danceability, acousticness, instrumentalness, liveness, "
+                "year, rating, comments, album, artist, title "
+                "FROM tracks"))) {
+                qWarning().noquote() << QStringLiteral("LEGACY_DB_QUERY_FAIL=%1").arg(q.lastError().text());
+                db.close();
+                return result;
+            }
+        } else {
+            hasDuration = true;
         }
 
         while (q.next()) {
@@ -102,6 +117,15 @@ LegacyImportResult importLegacyDb(std::vector<TrackInfo>& tracks, const QString&
             if (t.album.isEmpty())    t.album    = q.value(17).toString().trimmed();
             if (t.artist.isEmpty())   t.artist   = q.value(18).toString().trimmed();
             if (t.title.isEmpty())    t.title    = q.value(19).toString().trimmed();
+            
+            if (hasDuration && t.durationMs <= 0) {
+                const double durSec = q.value(20).toDouble();
+                if (durSec > 0.0) {
+                    t.durationMs = static_cast<qint64>(durSec * 1000.0);
+                    const int totalSec = static_cast<int>(t.durationMs / 1000);
+                    t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                }
+            }
         }
         db.close();
     }
