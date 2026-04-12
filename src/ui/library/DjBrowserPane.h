@@ -1,0 +1,21 @@
+#pragma once
+#include <QWidget>
+#include <QFileSystemModel>
+#include <QTreeView>
+#include <QTableView>
+#include <QVBoxLayout>
+#include <QSplitter>
+#include <QLineEdit>
+
+class DjBrowserPane : public QWidget {
+    Q_OBJECT
+public:
+    explicit DjBrowserPane(QWidget* parent = nullptr);
+
+private:
+    QFileSystemModel* dirModel_;
+    QFileSystemModel* fileModel_;
+    QTreeView* dirView_;
+    QTableView* fileView_;
+    QLineEdit* searchBox_;
+};

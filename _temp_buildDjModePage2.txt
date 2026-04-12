@@ -1,0 +1,57 @@
+terCol->setSpacing(4);
+        masterCol->setContentsMargins(4, 0, 4, 0);
+
+        auto* masterLabel = new QLabel(QStringLiteral("MASTER"), page);
+        {
+            QFont f = masterLabel->font(); f.setPointSizeF(7.5); f.setBold(true);
+            masterLabel->setFont(f);
+        }
+        masterLabel->setAlignment(Qt::AlignCenter);
+        masterLabel->setStyleSheet(QStringLiteral(
+            "color: #e0e0e0; background: transparent; padding: 2px 0;"));
+        masterCol->addWidget(masterLabel);
+
+        // Master L/R meters
+        auto* masterMeterRow = new QHBoxLayout();
+        masterMeterRow->setSpacing(2);
+        masterMeterRow->addStretch();
+        djMasterMeterL_ = new LevelMeter(QColor(0xc0, 0xc0, 0xc0), page);
+        djMasterMeterR_ = new LevelMeter(QColor(0xc0, 0xc0, 0xc0), page);
+        masterMeterRow->addWidget(djMasterMeterL_);
+        masterMeterRow->addWidget(djMasterMeterR_);
+        masterMeterRow->addStretch();
+        masterCol->addLayout(masterMeterRow, 1);
+
+        // CUE MIX label + slider (horizontal)
+        auto* cueMixLabel = new QLabel(QStringLiteral("CUE MIX"), page);
+        {
+            QFont f = cueMixLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            cueMixLabel->setFont(f);
+        }
+        cueMixLabel->setAlignment(Qt::AlignCenter);
+        cueMixLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(cueMixLabel);
+
+        djCueMix_ = new QSlider(Qt::Horizontal, page);
+        djCueMix_->setRange(0, 1000);
+        djCueMix_->setValue(500);
+        djCueMix_->setFixedHeight(22);
+        djCueMix_->setStyleSheet(QStringLiteral(
+            "QSlider::groove:horizontal {"
+            "  background: #161616; height: 6px; border-radius: 3px;"
+            "  border: 1px solid #333; }"
+            "QSlider::handle:horizontal {"
+            "  background: #d0d0d0; width: 14px; height: 14px;"
+            "  margin: -5px 0; border-radius: 3px;"
+            "  border: 1px solid #666; }"
+            "QSlider::sub-page:horizontal {"
+            "  background: #4070a0; border-radius: 3px; }"
+            "QSlider::add-page:horizontal {"
+            "  background: #333; border-radius: 3px; }"));
+        masterCol->addWidget(djCueMix_);
+
+        // CUE VOL label + slider (horizontal)
+        auto* cueVolLabel = new QLabel(QStringLiteral("CUE VOL"), page);
+        {
+            QFont f = cueVolLabel->font(); f.setPointSizeF(6.5); f.se

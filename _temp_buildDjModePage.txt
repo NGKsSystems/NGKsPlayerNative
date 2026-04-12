@@ -1,100 +1,72 @@
-#include <QAction>
-#include <QApplication>
-#include <QComboBox>
-#include <QDialog>
-#include <QHBoxLayout>
-#include <QGridLayout>
-#include <QStackedLayout>
-#include <QLabel>
-#include <QMainWindow>
-#include <QMenu>
-#include <QMenuBar>
-#include <QMessageLogContext>
-#include <QMessageBox>
-#include <QMutex>
-#include <QMutexLocker>
-#include <QPlainTextEdit>
-#include <QPushButton>
-#include <QScrollArea>
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QGuiApplication>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QSaveFile>
-#include <QShortcut>
-#include <QSignalBlocker>
-#include <QStringList>
-#include <QSysInfo>
-#include <QTimer>
-#include <QThread>
-#include <QVBoxLayout>
-#include <QDateTime>
-#include <QWidget>
-#include <QClipboard>
-#include <QDesktopServices>
-#include <QInputDialog>
-#include <QUrl>
-#include <QLineEdit>
-#include <QListWidget>
-#include <QTreeWidget>
-#include <QHeaderView>
-#include <QSplitter>
-#include <QSlider>
-#include <QStackedWidget>
-#include <QPainter>
-#include <QPainterPath>
-#include <QPen>
-#include <QElapsedTimer>
-#include <QFileDialog>
-#include <QDirIterator>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QSqlError>
 
-#include <algorithm>
-#include <array>
-#include <cstdlib>
-#include <csignal>
-#include <exception>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <atomic>
-#include <functional>
-#include <map>
-#include <random>
-#include <vector>
+    {
+        auto* page = new QWidget();
+        page->setStyleSheet(QStringLiteral("background: #080b10;"));
+        auto* layout = new QVBoxLayout(page);
+        layout->setContentsMargins(8, 8, 8, 8);
+        layout->setSpacing(4);
 
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
+        // ── Header row: Back + title ──
+        auto* headerRow = new QHBoxLayout();
+        headerRow->setSpacing(6);
+        auto* backBtn = new QPushButton(QStringLiteral("\u2190 Back"), page);
+        backBtn->setCursor(Qt::PointingHandCursor);
+        backBtn->setStyleSheet(QStringLiteral(
+            "QPushButton { background: rgba(20,20,30,200); border: 1px solid #333;"
+            "  border-radius: 4px; color: #aaa; font-size: 9px; padding: 4px 10px; }"
+            "QPushButton:hover { background: rgba(40,40,60,220); color: #ddd; }"));
+        headerRow->addWidget(backBtn);
 
-#include "ui/EngineBridge.h"
-#include "ui/EqPanel.h"
-#include "ui/DeckStrip.h"
-#include "engine/DiagLog.h"
+        auto* title = new QLabel(QStringLiteral("DJ MIXER"), page);
+        {
+            QFont f = title->font();
+            f.setPointSize(14);
+            f.setBold(true);
+            title->setFont(f);
+        }
+        title->setStyleSheet(QStringLiteral("color: #e0e0e0; background: transparent;"));
+        title->setAlignment(Qt::AlignCenter);
+        headerRow->addWidget(title, 1);
 
-#ifndef NGKS_BUILD_STAMP
-#define NGKS_BUILD_STAMP "unknown"
-#endif
+        headerRow->addSpacing(60);  // balance the back button
+        layout->addLayout(headerRow);
 
-#ifndef NGKS_GIT_SHA
-#define NGKS_GIT_SHA "unknown"
-#endif
+        QObject::connect(backBtn, &QPushButton::clicked, this, [this]() {
+            bridge_.leaveDjMode();
+            stack_->setCurrentIndex(1);
+        });
 
-QString detectQtBinFromPath(const QString& pathValue);
-bool writeDependencySnapshot(const QString& exePath,
-                             const QString& cwd,
-                             const QString& pathValue,
-                             const QStringList& pluginPaths);
-void installCrashCaptureHandlers();
+        // ── Per-deck columns: Deck + Library side by side ──
+        auto* deckRow = new QHBoxLayout();
+        deckRow->setSpacing(6);
 
-namespace {
+        // ── Deck A column: strip + library ──
+        auto* colA = new QVBoxLayout();
+        colA->setSpacing(4);
+        djDeckA_ = new DeckStrip(0, QStringLiteral("#e07020"), &bridge_, page);
+        colA->addWidget(djDeckA_, 1);
 
-QMutex gLogMutex;
+        // ── DJ Library A placeholder (library not initialized) ──
+        auto* libPlaceholderA = new QLabel(QStringLiteral("DJ Library not initialized"), page);
+        libPlaceholderA->setAlignment(Qt::AlignCenter);
+        libPlaceholderA->setFixedHeight(100);
+        libPlaceholderA->setStyleSheet(QStringLiteral(
+            "color: #3a3a3a; background: #0a0c12; border: 1px solid #1a1e28;"
+            " font-size: 8pt; border-radius: 3px;"));
+        colA->addWidget(libPlaceholderA);
+        deckRow->addLayout(colA, 5);
+
+        // ── Master section column (center) ──
+        auto* masterCol = new QVBoxLayout();
+        masterCol->setSpacing(4);
+        masterCol->setContentsMargins(4, 0, 4, 0);
+
+        auto* masterLabel = new QLabel(QStringLiteral("MASTER"), page);
+        {
+            QFont f = masterLabel->font(); f.setPointSizeF(7.5); f.setBold(true);
+            masterLabel->setFont(f);
+        }
+        masterLabel->setAlignment(Qt::AlignCenter);
+        masterLabel->setStyleSheet(QStringLiteral(
+            "color: #e0e0e0; background: transparent; padding: 2px 0;"));
+        masterCol->addWidget(masterLa

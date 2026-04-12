@@ -1,0 +1,68 @@
+s: 3px;"
+            "  border: 1px solid #666; }"
+            "QSlider::sub-page:horizontal {"
+            "  background: #4070a0; border-radius: 3px; }"
+            "QSlider::add-page:horizontal {"
+            "  background: #333; border-radius: 3px; }"));
+        masterCol->addWidget(djCueMix_);
+
+        // CUE VOL label + slider (horizontal)
+        auto* cueVolLabel = new QLabel(QStringLiteral("CUE VOL"), page);
+        {
+            QFont f = cueVolLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            cueVolLabel->setFont(f);
+        }
+        cueVolLabel->setAlignment(Qt::AlignCenter);
+        cueVolLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(cueVolLabel);
+
+        djCueVol_ = new QSlider(Qt::Horizontal, page);
+        djCueVol_->setRange(0, 1000);
+        djCueVol_->setValue(1000);
+        djCueVol_->setFixedHeight(22);
+        djCueVol_->setStyleSheet(QStringLiteral(
+            "QSlider::groove:horizontal {"
+            "  background: #161616; height: 6px; border-radius: 3px;"
+            "  border: 1px solid #333; }"
+            "QSlider::handle:horizontal {"
+            "  background: #d0d0d0; width: 14px; height: 14px;"
+            "  margin: -5px 0; border-radius: 3px;"
+            "  border: 1px solid #666; }"
+            "QSlider::sub-page:horizontal {"
+            "  background: #4070a0; border-radius: 3px; }"
+            "QSlider::add-page:horizontal {"
+            "  background: #333; border-radius: 3px; }"));
+        masterCol->addWidget(djCueVol_);
+
+        // OUTPUT MODE label + toggle button
+        auto* outModeLabel = new QLabel(QStringLiteral("OUTPUT"), page);
+        {
+            QFont f = outModeLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            outModeLabel->setFont(f);
+        }
+        outModeLabel->setAlignment(Qt::AlignCenter);
+        outModeLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(outModeLabel);
+
+        djOutputModeBtn_ = new QPushButton(QStringLiteral("Stereo"), page);
+        djOutputModeBtn_->setCursor(Qt::PointingHandCursor);
+        djOutputModeBtn_->setCheckable(true);
+        djOutputModeBtn_->setChecked(false);
+        djOutputModeBtn_->setFixedHeight(24);
+        djOutputModeBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton { background: #1a1a2a; border: 1px solid #444;"
+            "  border-radius: 4px; color: #ccc; font-size: 8pt; font-weight: bold;"
+            "  padding: 2px 6px; }"
+            "QPushButton:checked { background: #2a4060; border: 1px solid #4090d0;"
+            "  color: #60c0ff; }"
+            "QPushButton:hover { background: #222240; }"));
+        masterCol->addWidget(djOutputModeBtn_);
+
+        masterCol->addStretch();
+        deckRow->addLayout(masterCol, 2);
+
+        // ── Deck B column: strip + library ──
+        auto* colB = new QVBoxLayout();
+      
