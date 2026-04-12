@@ -1,0 +1,69 @@
+           "  background: #333; border-radius: 3px; }"));
+        masterCol->addWidget(djCueVol_);
+
+        // OUTPUT MODE label + toggle button
+        auto* outModeLabel = new QLabel(QStringLiteral("OUTPUT"), page);
+        {
+            QFont f = outModeLabel->font(); f.setPointSizeF(6.5); f.setBold(true);
+            outModeLabel->setFont(f);
+        }
+        outModeLabel->setAlignment(Qt::AlignCenter);
+        outModeLabel->setStyleSheet(QStringLiteral(
+            "color: #aaa; background: transparent; padding: 1px 0;"));
+        masterCol->addWidget(outModeLabel);
+
+        djOutputModeBtn_ = new QPushButton(QStringLiteral("Stereo"), page);
+        djOutputModeBtn_->setCursor(Qt::PointingHandCursor);
+        djOutputModeBtn_->setCheckable(true);
+        djOutputModeBtn_->setChecked(false);
+        djOutputModeBtn_->setFixedHeight(24);
+        djOutputModeBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton { background: #1a1a2a; border: 1px solid #444;"
+            "  border-radius: 4px; color: #ccc; font-size: 8pt; font-weight: bold;"
+            "  padding: 2px 6px; }"
+            "QPushButton:checked { background: #2a4060; border: 1px solid #4090d0;"
+            "  color: #60c0ff; }"
+            "QPushButton:hover { background: #222240; }"));
+        masterCol->addWidget(djOutputModeBtn_);
+
+        masterCol->addStretch();
+        deckRow->addLayout(masterCol, 2);
+
+        // ── Deck B column: strip + library ──
+        auto* colB = new QVBoxLayout();
+        colB->setSpacing(4);
+        djDeckB_ = new DeckStrip(1, QStringLiteral("#2080e0"), &bridge_, page);
+        colB->addWidget(djDeckB_, 1);
+
+        // ── DJ Library B placeholder (library not initialized) ──
+        auto* libPlaceholderB = new QLabel(QStringLiteral("DJ Library not initialized"), page);
+        libPlaceholderB->setAlignment(Qt::AlignCenter);
+        libPlaceholderB->setFixedHeight(100);
+        libPlaceholderB->setStyleSheet(QStringLiteral(
+            "color: #3a3a3a; background: #0a0c12; border: 1px solid #1a1e28;"
+            " font-size: 8pt; border-radius: 3px;"));
+        colB->addWidget(libPlaceholderB);
+        deckRow->addLayout(colB, 5);
+
+        layout->addLayout(deckRow, 1);
+
+        // ── Crossfader row ──
+        auto* xfadeRow = new QHBoxLayout();
+        xfadeRow->setSpacing(4);
+        xfadeRow->setContentsMargins(0, 1, 0, 1);
+
+        auto* xfadeLabel = new QLabel(QStringLiteral("A"), page);
+        {
+            QFont f = xfadeLabel->font(); f.setPointSize(12); f.setBold(true);
+            xfadeLabel->setFont(f);
+        }
+        xfadeLabel->setStyleSheet(QStringLiteral(
+            "color: #e07020; background: transparent;"));
+        xfadeRow->addWidget(xfadeLabel);
+
+        djCrossfader_ = new QSlider(Qt::Horizontal, page);
+        djCrossfader_->setRange(0, 1000);
+        djCrossfader_->setValue(500);
+        djCrossfader_->setFixedHeight(32);
+        djCrossfader_->setStyleSheet(QStringLiteral(
+            "QSlider::groove:horizontal

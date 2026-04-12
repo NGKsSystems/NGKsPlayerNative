@@ -9,6 +9,7 @@
 #include <QFont>
 #include <QFrame>
 #include <QMimeData>
+#include <QUrl>
 #include <QHBoxLayout>
 #include <QLinearGradient>
 #include <QMouseEvent>
@@ -2004,7 +2005,7 @@ void DeckStrip::wireSignals()
 
 void DeckStrip::dragEnterEvent(QDragEnterEvent* e)
 {
-    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id")))
+    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id")) || e->mimeData()->hasUrls())
         e->acceptProposedAction();
     else
         QWidget::dragEnterEvent(e);
@@ -2012,17 +2013,27 @@ void DeckStrip::dragEnterEvent(QDragEnterEvent* e)
 
 void DeckStrip::dropEvent(QDropEvent* e)
 {
-    if (!e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id"))) {
-        QWidget::dropEvent(e);
+    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id"))) {
+        bool ok = false;
+        const qint64 tid = QString::fromUtf8(
+            e->mimeData()->data(QStringLiteral("application/x-ngks-track-id"))).toLongLong(&ok);
+        if (ok) {
+            e->acceptProposedAction();
+            emit loadTrackRequested(deckIndex_, tid);
+        }
+        return;
+    } else if (e->mimeData()->hasUrls()) {
+        QList<QUrl> urls = e->mimeData()->urls();
+        if (!urls.isEmpty()) {
+            QString path = urls.first().toLocalFile();
+            if (!path.isEmpty()) {
+                e->acceptProposedAction();
+                emit loadFileRequested(deckIndex_, path);
+            }
+        }
         return;
     }
-    bool ok = false;
-    const qint64 tid = QString::fromUtf8(
-        e->mimeData()->data(QStringLiteral("application/x-ngks-track-id"))).toLongLong(&ok);
-    if (ok) {
-        e->acceptProposedAction();
-        emit loadTrackRequested(deckIndex_, tid);
-    }
+    QWidget::dropEvent(e);
 }
 
 bool DeckStrip::eventFilter(QObject* obj, QEvent* event)

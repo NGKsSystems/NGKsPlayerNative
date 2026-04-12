@@ -1,5 +1,6 @@
 ﻿#include <QAction>
 #include <QApplication>
+#include "library/DjBrowserPane.h"
 #include <QComboBox>
 #include <QDialog>
 #include <QHBoxLayout>
@@ -1985,7 +1986,8 @@ djDb_.bulkInsert(allTracks_);
         libPlaceholderA->setStyleSheet(QStringLiteral(
             "color: #3a3a3a; background: #0a0c12; border: 1px solid #1a1e28;"
             " font-size: 8pt; border-radius: 3px;"));
-        colA->addWidget(libPlaceholderA);
+        /* colA->addWidget(libPlaceholderA); */
+        colA->addStretch();
         deckRow->addLayout(colA, 5);
 
         // ── Master section column (center) ──
@@ -2113,10 +2115,22 @@ djDb_.bulkInsert(allTracks_);
         libPlaceholderB->setStyleSheet(QStringLiteral(
             "color: #3a3a3a; background: #0a0c12; border: 1px solid #1a1e28;"
             " font-size: 8pt; border-radius: 3px;"));
-        colB->addWidget(libPlaceholderB);
+        /* colB->addWidget(libPlaceholderB); */
+        colB->addStretch();
         deckRow->addLayout(colB, 5);
 
-        layout->addLayout(deckRow, 1);
+        auto* deckSplitter = new QSplitter(Qt::Horizontal, page);
+        auto* djBrowser = new DjBrowserPane(page);
+        deckSplitter->addWidget(djBrowser);
+        
+        auto* deckWidget = new QWidget(page);
+        auto* deckRowLayout = new QVBoxLayout(deckWidget);
+        deckRowLayout->setContentsMargins(0,0,0,0);
+        deckRowLayout->addLayout(deckRow);
+        
+        deckSplitter->addWidget(deckWidget);
+        deckSplitter->setSizes({250, 1000});
+        layout->addWidget(deckSplitter, 1);
 
         // ── Crossfader row ──
         auto* xfadeRow = new QHBoxLayout();
@@ -2225,10 +2239,26 @@ djDb_.bulkInsert(allTracks_);
 
         // ── DeckStrip drag-to-deck: load track by track_id ──
         QObject::connect(djDeckA_, &DeckStrip::loadTrackRequested, this,
-            [this](int /*deckIndex*/, qint64 trackId) {
-            const int idx = static_cast<int>(trackId);
+            [this](int /*deckIndex*/, qint64 trackId) {   
+            const int idx = static_cast<int>(trackId);    
             if (idx >= 0 && idx < static_cast<int>(allTracks_.size()))
                 loadAndPlayTrack(idx);
+        });
+        QObject::connect(djDeckB_, &DeckStrip::loadTrackRequested, this,
+            [this](int /*deckIndex*/, qint64 trackId) {   
+            const int idx = static_cast<int>(trackId);    
+            if (idx >= 0 && idx < static_cast<int>(allTracks_.size()))
+                loadAndPlayTrack(idx);
+        });
+
+        // ── DeckStrip drag-to-deck: load file path ──
+        QObject::connect(djDeckA_, &DeckStrip::loadFileRequested, this,
+            [this](int deckIndex, const QString& path) {   
+            bridge_.loadTrackToDeck(deckIndex, path);
+        });
+        QObject::connect(djDeckB_, &DeckStrip::loadFileRequested, this,
+            [this](int deckIndex, const QString& path) {   
+            bridge_.loadTrackToDeck(deckIndex, path);
         });
         QObject::connect(djDeckB_, &DeckStrip::loadTrackRequested, this,
             [this](int /*deckIndex*/, qint64 trackId) {
