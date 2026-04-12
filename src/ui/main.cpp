@@ -1,5 +1,6 @@
 ﻿#include <QAction>
 #include <QApplication>
+#include "AnalysisBridge.h"
 #include "library/DjBrowserPane.h"
 #include <QComboBox>
 #include <QDialog>
@@ -116,6 +117,10 @@ public:
 
         // ── Stacked pages ──
         stack_ = new QStackedWidget(root);
+        djAnalysisA_ = new AnalysisBridge(this);
+        djAnalysisA_->start();
+        djAnalysisB_ = new AnalysisBridge(this);
+        djAnalysisB_->start();
         stack_->addWidget(buildSplashPage());    // 0
         stack_->addWidget(buildLandingPage());   // 1
         stack_->addWidget(buildPlayerPage());    // 2
@@ -1978,6 +1983,7 @@ djDb_.bulkInsert(allTracks_);
         colA->setSpacing(4);
         djDeckA_ = new DeckStrip(0, QStringLiteral("#e07020"), &bridge_, page);
         colA->addWidget(djDeckA_, 1);
+        QObject::connect(djAnalysisA_, &AnalysisBridge::panelStateChanged, djDeckA_, &DeckStrip::updateAnalysisPanel);
 
         // ── DJ Library A placeholder (library not initialized) ──
         auto* libPlaceholderA = new QLabel(QStringLiteral("DJ Library not initialized"), page);
@@ -2107,6 +2113,7 @@ djDb_.bulkInsert(allTracks_);
         colB->setSpacing(4);
         djDeckB_ = new DeckStrip(1, QStringLiteral("#2080e0"), &bridge_, page);
         colB->addWidget(djDeckB_, 1);
+        QObject::connect(djAnalysisB_, &AnalysisBridge::panelStateChanged, djDeckB_, &DeckStrip::updateAnalysisPanel);
 
         // ── DJ Library B placeholder (library not initialized) ──
         auto* libPlaceholderB = new QLabel(QStringLiteral("DJ Library not initialized"), page);
@@ -2273,6 +2280,26 @@ djDb_.bulkInsert(allTracks_);
             if (djDeckB_) djDeckB_->refreshFromSnapshot();
             if (djMasterMeterL_) djMasterMeterL_->setLevel(static_cast<float>(bridge_.masterPeakL()));
             if (djMasterMeterR_) djMasterMeterR_->setLevel(static_cast<float>(bridge_.masterPeakR()));
+
+            static QString lastPathA, lastPathB;
+            if (djAnalysisA_ && djAnalysisA_->isReady()) {
+                const QString pathA = bridge_.deckFilePath(0);
+                if (pathA != lastPathA) {
+                    lastPathA = pathA;
+                    if (pathA.isEmpty()) djAnalysisA_->unselectTrack();
+                    else djAnalysisA_->selectTrack(pathA);
+                }
+                if (!pathA.isEmpty()) djAnalysisA_->resolvePlayhead(bridge_.deckPlayhead(0));
+            }
+            if (djAnalysisB_ && djAnalysisB_->isReady()) {
+                const QString pathB = bridge_.deckFilePath(1);
+                if (pathB != lastPathB) {
+                    lastPathB = pathB;
+                    if (pathB.isEmpty()) djAnalysisB_->unselectTrack();
+                    else djAnalysisB_->selectTrack(pathB);
+                }
+                if (!pathB.isEmpty()) djAnalysisB_->resolvePlayhead(bridge_.deckPlayhead(1));
+            }
         });
 
         // ── Device-lost overlay banner + Recover Audio button ──
@@ -3195,6 +3222,8 @@ private:
 
     // DJ mode widgets
     DeckStrip* djDeckA_{nullptr};
+    AnalysisBridge* djAnalysisA_{nullptr};
+    AnalysisBridge* djAnalysisB_{nullptr};
     DeckStrip* djDeckB_{nullptr};
     QSlider* djCrossfader_{nullptr};
     // djLibTreeA_/B_ removed — library stripped for rebuild
