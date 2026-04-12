@@ -1,0 +1,335 @@
+void DeckStrip::refreshFromSnapshot()
+{
+    const double ph = bridge_->deckPlayhead(deckIndex_);
+    const double dur = bridge_->deckLengthSeconds(deckIndex_);
+    const bool playing = bridge_->deckIsPlaying(deckIndex_);
+    const QString label = bridge_->deckTrackLabel(deckIndex_);
+    const double peakL = bridge_->deckPeakL(deckIndex_);
+    const double peakR = bridge_->deckPeakR(deckIndex_);
+    const QString currentPath = bridge_->deckFilePath(deckIndex_);
+
+    const bool loaded = bridge_->deckHasTrack(deckIndex_);
+    const int lifecycle = bridge_->deckLifecycle(deckIndex_);
+
+    static uint8_t lastLoaded[4] = {2, 2, 2, 2};
+    if (static_cast<uint8_t>(loaded) != lastLoaded[deckIndex_]) {
+        lastLoaded[deckIndex_] = static_cast<uint8_t>(loaded);
+        qWarning().noquote() << QString("SNAPSHOT_DECKSTRIP deck=%1 hasTrack=%2 lifecycle=%3 duration=%4").arg(deckIndex_ == 0 ? 'A' : 'B').arg(loaded ? 1 : 0).arg(lifecycle).arg(dur);
+
+        if (!loaded || dur == 0.0) {
+            qWarning().noquote() << QString("DECK_UI_EMPTY_STATE deck=%1 empty=1 reason='hasTrack=%2, duration=%3'")
+                .arg(deckIndex_ == 0 ? 'A' : 'B').arg(loaded ? 1 : 0).arg(dur);
+        } else {
+            qWarning().noquote() << QString("DECK_UI_EMPTY_STATE deck=%1 empty=0 reason='Loaded'").arg(deckIndex_ == 0 ? 'A' : 'B');
+            qWarning().noquote() << QString("DECK_UI_DURATION deck=%1 duration=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(dur);
+        }
+    }
+
+    // ── Track loaded state transition ──
+    if (loaded && !trackLoaded_) {
+        trackLoaded_ = true;
+        waveformCtrl_.onTrackLoaded(dur);   // → CUE_FOCUS
+        trackTitleLabel_->setStyleSheet(QStringLiteral(
+            "color: #e8e8e8; background: transparent; border: none;"));
+        elapsedLabel_->setStyleSheet(QStringLiteral(
+            "color: %1; background: transparent; border: none;").arg(accent_));
+        remainLabel_->setStyleSheet(QStringLiteral(
+            "color: #bbb; background: transparent; border: none;"));
+        infoDurationLabel_->setStyleSheet(QStringLiteral(
+            "color: #999; background: transparent; border: none;"));
+        const QString glowBorder = accent_ + QStringLiteral("80");
+        displayPanel_->setStyleSheet(QStringLiteral(
+            "QFrame#deckDisplay%1 {"
+            "  background: #070a0f; border: 1px solid %2;"
+            "  border-radius: 3px; }")
+            .arg(deckIndex_).arg(glowBorder));
+    }
+
+    // ── Detect track change (new path loaded into this deck) ──
+    if (loaded && currentPath != waveformTrackPath_) {
+        qInfo().noquote() << QStringLiteral("DECK_LOAD_REQUEST deck=%1 file='%2'").arg(deckIndex_ == 0 ? 'A' : 'B').arg(currentPath);
+        qDebug().noquote() << QStringLiteral("DECK_SNAPSHOT_PATH deck=%1 path='%2'").arg(deckIndex_ == 0 ? 'A' : 'B').arg(currentPath);
+        waveformCtrl_.onTrackLoaded(dur);
+        waveformCtrl_.setState(WaveViewState::LOADING);
+        qWarning().noquote() << QString("WF_STATE_ON_LOAD deck=%1 state=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(waveViewStateName(waveformCtrl_.state()));
+        qInfo().noquote() << QStringLiteral("WAVEFORM_REQUEST deck=%1 path=%2")
+            .arg(deckIndex_).arg(currentPath);
+        waveformTrackPath_ = currentPath;
+        waveformFetchPending_ = true;
+        waveformFullyDecoded_ = false;
+        waveformFetchPolls_ = 0;
+        auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+        wf->clearWaveform();
+        qInfo().noquote() << QStringLiteral("WAVEFORM_CACHE_KEY deck=%1 key=%2")
+            .arg(deckIndex_).arg(currentPath);
+
+        // ── BPM track-change detection ──
+        const double engineBpm = bridge_->deckBpmFixed(deckIndex_);
+        qInfo().noquote() << QStringLiteral("BPM_DECK_MATCH deck=%1 metaBpm=%2 engineBpm=%3 path=%4")
+            .arg(deckIndex_)
+            .arg(metaBpm_.isEmpty() ? QStringLiteral("unknown") : metaBpm_)
+            .arg(engineBpm, 0, 'f', 1)
+            .arg(currentPath);
+    }
+
+    // ── Waveform data fetch (wait for FULL decode, not just preload) ──
+    if (waveformFetchPending_) {
+        const bool fullyDecoded = bridge_->isDeckFullyDecoded(deckIndex_);
+        qDebug().noquote() << QStringLiteral("DECK_DECODE_READY deck=%1 ready=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(fullyDecoded ? 1 : 0);
+        qWarning().noquote() << QStringLiteral("DS_DECODE_READY deck=%1 ready=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(fullyDecoded ? 1 : 0);
+        const QString nowPath = bridge_->deckFilePath(deckIndex_);
+
+        // Reject if track changed while we were waiting
+        if (nowPath != waveformTrackPath_) {
+            qInfo().noquote() << QStringLiteral("WAVEFORM_ATTACH_REJECT_STALE deck=%1 expected=%2 got=%3")
+                .arg(deckIndex_).arg(waveformTrackPath_).arg(nowPath);
+            waveformFetchPending_ = false;
+        } else if (fullyDecoded) {
+            auto t0 = std::chrono::steady_clock::now();
+            auto wfData = bridge_->getWaveformOverview(deckIndex_, 2048);
+            qWarning().noquote() << QStringLiteral("DS_WF_FETCH deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
+            qInfo().noquote() << QStringLiteral("DECK_WAVEFORM_FETCH deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
+            auto t1 = std::chrono::steady_clock::now();
+            const double genMs = std::chrono::duration<double, std::milli>(t1 - t0).count();
+            if (!wfData.empty()) {
+                auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+                qWarning().noquote() << QStringLiteral("DS_WF_WIDGET_VALID deck=%1 valid=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wf ? 1 : 0);
+                qWarning().noquote() << QStringLiteral("DS_WF_SET_CALLED deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
+                
+                // DEBUG PROOF LOG
+                qWarning().noquote() << QStringLiteral("WF_BIND_CALL deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
+                wf->setWaveformData(wfData);
+                qInfo().noquote() << QStringLiteral("DECK_WAVEFORM_BOUND deck=%1 success=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(!wfData.empty() ? 1 : 0);
+                waveformFetchPending_ = false;
+                waveformFullyDecoded_ = true;
+                std::fprintf(stderr,
+                    "WAVE_MINMAX_BUILD_END deck=%d bins=%zu genMs=%.1f path=%s\n",
+                    deckIndex_, wfData.size(), genMs,
+                    waveformTrackPath_.toUtf8().constData());
+                std::fflush(stderr);
+                qInfo().noquote() << QStringLiteral("WAVEFORM_ATTACH deck=%1 bins=%2 path=%3")
+                    .arg(deckIndex_).arg(wfData.size()).arg(waveformTrackPath_);
+                qInfo().noquote() << QStringLiteral("WAVEFORM_DECK_MATCH deck=%1 path=%2")
+                    .arg(deckIndex_).arg(waveformTrackPath_);
+
+                // ── Stem overlay: band-energy analysis ──
+                if (kEnableStemOverlay) {
+                    auto bt0 = std::chrono::steady_clock::now();
+                    auto bandData = bridge_->getBandEnergyOverview(deckIndex_, 2048);
+                    auto bt1 = std::chrono::steady_clock::now();
+                    const double bandMs = std::chrono::duration<double, std::milli>(bt1 - bt0).count();
+                    if (!bandData.empty()) {
+                        wf->setBandEnergyData(bandData);
+                        std::fprintf(stderr,
+                            "STEM_OVERLAY_ANALYSIS_END deck=%d bands=%zu genMs=%.1f path=%s\n",
+                            deckIndex_, bandData.size(), bandMs,
+                            waveformTrackPath_.toUtf8().constData());
+                        std::fflush(stderr);
+                    }
+                }
+            }
+        } else if (++waveformFetchPolls_ > 600) {
+            // Give up after ~10 seconds (600 polls × 16ms)
+            qInfo().noquote() << QStringLiteral("WAVEFORM_CACHE_MISS deck=%1 timeout path=%2")
+                .arg(deckIndex_).arg(waveformTrackPath_);
+            waveformFetchPending_ = false;
+        }
+    }
+
+    // Update track title — use metadata if available, else engine label
+    if (loaded) {
+        if (!metaTitle_.isEmpty())
+            trackTitleLabel_->setText(metaTitle_);
+        else
+            trackTitleLabel_->setText(label);
+
+        if (!metaArtist_.isEmpty())
+            trackArtistLabel_->setText(metaArtist_);
+    }
+
+    // Update info row — BPM with track identity validation
+    if (loaded && currentPath != bpmTrackPath_) {
+        // Track changed since BPM was bound — reject stale BPM
+        qInfo().noquote() << QStringLiteral("BPM_ATTACH_REJECT_STALE deck=%1 oldPath=%2 newPath=%3")
+            .arg(deckIndex_).arg(bpmTrackPath_, currentPath);
+        // setTrackMetadata should have been called for the new track;
+        // if not, show unknown
+        if (bpmTrackPath_.isEmpty() || bpmTrackPath_ != currentPath) {
+            if (metaBpm_.isEmpty()) {
+                infoBpmLabel_->setText(QStringLiteral("---"));
+                infoBpmLabel_->setStyleSheet(QStringLiteral("color: #555; background: transparent; border: none;"));
+            }
+            bpmTrackPath_ = currentPath;
+        }
+    }
+
+    if (!metaBpm_.isEmpty()) {
+        infoBpmLabel_->setText(metaBpm_);
+    } else if (loaded) {
+        infoBpmLabel_->setText(QStringLiteral("---"));
+    }
+
+    if (!metaKey_.isEmpty())
+        infoKeyLabel_->setText(metaKey_);
+    else if (loaded)
+        infoKeyLabel_->setText(QStringLiteral("---"));
+
+    meterL_->setLevel(static_cast<float>(peakL));
+    meterR_->setLevel(static_cast<float>(peakR));
+
+    // ── VU source logging (periodic) ──
+    {
+        static int vuLogTick[4]{};
+        if (++vuLogTick[deckIndex_] >= 120) { // ~every 2 seconds
+            vuLogTick[deckIndex_] = 0;
+            qInfo().noquote() << QStringLiteral("VU_SOURCE_LEVEL deck=%1 peakL=%2 peakR=%3 playing=%4")
+                .arg(deckIndex_)
+                .arg(peakL, 0, 'f', 4)
+                .arg(peakR, 0, 'f', 4)
+                .arg(playing ? QStringLiteral("true") : QStringLiteral("false"));
+            qInfo().noquote() << QStringLiteral("VU_UI_UPDATE deck=%1 meterL_level=%2 meterR_level=%3")
+                .arg(deckIndex_)
+                .arg(peakL, 0, 'f', 4)
+                .arg(peakR, 0, 'f', 4);
+        }
+    }
+
+    // ── Time display ──
+    if (loaded) {
+        elapsedLabel_->setText(formatTime(ph));
+        const double remain = dur - ph;
+        remainLabel_->setText(QStringLiteral("-%1").arg(formatTime(remain > 0 ? remain : 0)));
+        infoDurationLabel_->setText(formatTime(dur));
+
+        // ── Playhead on waveform ──
+        if (dur > 0.0) {
+            auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+            wf->setPlayheadFraction(static_cast<float>(ph / dur));
+            wf->setTrackDuration(static_cast<float>(dur));
+            waveformCtrl_.updatePlayhead(ph, dur);
+
+            // Push controller state into renderer
+            wf->setViewState(waveformCtrl_.state());
+            wf->setViewportAnchor(static_cast<float>(waveformCtrl_.viewportAnchor()));
+            wf->setCueFocusTarget(static_cast<float>(waveformCtrl_.cueFocusTarget()));
+        }
+
+        // ── Waveform state: transport edge detection ──
+        if (playing && !prevPlaying_) {
+            const char* oldState = waveViewStateName(waveformCtrl_.state());
+            waveformCtrl_.onPlay();   // → LIVE_SCROLL (always)
+            auto tid = static_cast<size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+            std::fprintf(stderr,
+                "WAVE_STYLE_PLAY_TRANSITION deck=%d old=%s new=%s "
+                "styleChange=NONE tid=%zu\n",
+                deckIndex_, oldState, waveViewStateName(waveformCtrl_.state()), tid);
+            std::fflush(stderr);
+        } else if (!playing && prevPlaying_) {
+            const char* oldState = waveViewStateName(waveformCtrl_.state());
+            // Distinguish stop (playhead ≈ 0) from pause
+            if (ph < 0.05) {
+                waveformCtrl_.onStop();   // → OVERVIEW
+            } else {
+                waveformCtrl_.onPause();  // hold current view
+            }
+            auto tid = static_cast<size_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+            std::fprintf(stderr,
+                "WAVE_STYLE_PLAY_TRANSITION deck=%d old=%s new=%s "
+                "styleChange=NONE tid=%zu\n",
+                deckIndex_, oldState, waveViewStateName(waveformCtrl_.state()), tid);
+            std::fflush(stderr);
+        }
+        prevPlaying_ = playing;
+    } else {
+        // ── Empty deck — clear waveform and metadata ──
+        if (trackLoaded_) {
+            trackLoaded_ = false;
+            waveformCtrl_.onTrackUnloaded();   // → EMPTY
+            auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+            wf->clearWaveform();
+            waveformFetchPending_ = false;
+            waveformTrackPath_.clear();
+            waveformFullyDecoded_ = false;
+
+            // ── Clear stale metadata ──
+            metaBpm_.clear();
+            metaKey_.clear();
+            metaTitle_.clear();
+            metaArtist_.clear();
+            bpmTrackPath_.clear();
+            infoBpmLabel_->setText(QStringLiteral("---"));
+            infoBpmLabel_->setStyleSheet(QStringLiteral("color: #555; background: transparent; border: none;"));
+            infoKeyLabel_->setText(QStringLiteral("---"));
+            infoKeyLabel_->setStyleSheet(QStringLiteral("color: #555; background: transparent; border: none;"));
+            trackTitleLabel_->setText(QStringLiteral("No Track Loaded"));
+            trackTitleLabel_->setStyleSheet(QStringLiteral("color: #444; background: transparent; border: none;"));
+            trackArtistLabel_->setText(QString());
+
+            qInfo().noquote() << QStringLiteral("BPM_FALLBACK_BLOCKED deck=%1 reason=deck_unloaded")
+                .arg(deckIndex_);
+        }
+    }
+
+    if (!seekDragging_ && dur > 0.0) {
+        const int pos = static_cast<int>((ph / dur) * 10000.0);
+        QSignalBlocker blocker(seekSlider_);
+        seekSlider_->setValue(std::clamp(pos, 0, 10000));
+    }
+
+    // ── CUE (PFL) / MUTE button state sync ──
+    {
+        const bool muted = bridge_->deckIsMuted(deckIndex_);
+        const bool cueMon = bridge_->deckCueEnabled(deckIndex_);
+        if (muteBtn_->isChecked() != muted) {
+            QSignalBlocker b(muteBtn_);
+            muteBtn_->setChecked(muted);
+        }
+        if (cueBtn_->isChecked() != cueMon) {
+            QSignalBlocker b(cueBtn_);
+            cueBtn_->setChecked(cueMon);
+        }
+    }
+
+    // ── Status label ──
+    if (!loaded) {
+        statusLabel_->setText(QStringLiteral("EMPTY"));
+        statusLabel_->setStyleSheet(QStringLiteral(
+            "color: #555; background: transparent; border: none;"));
+    } else if (playing) {
+        statusLabel_->setText(QStringLiteral("PLAYING"));
+        statusLabel_->setStyleSheet(QStringLiteral(
+            "color: %1; background: transparent; border: none;").arg(accent_));
+    } else {
+        statusLabel_->setText(QStringLiteral("PAUSED"));
+        statusLabel_->setStyleSheet(QStringLiteral(
+            "color: #999; background: transparent; border: none;"));
+    }
+
+    // ── Play button — accent fill when playing, text switches ──
+    const QColor ac(accent_);
+    if (playing) {
+        playBtn_->setText(QStringLiteral("PAUSE"));
+        playBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  background: %1; border: 1px solid %1;"
+            "  border-radius: 4px; color: #fff; padding: 2px 6px;"
+            "  min-height: 30px; font-weight: bold; }"
+            "QPushButton:hover { background: %1; }").arg(accent_));
+    } else {
+        playBtn_->setText(QStringLiteral("PLAY"));
+        playBtn_->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #1c2030, stop:1 #0e1018);"
+            "  border: 1px solid rgba(%1,%2,%3,100); border-radius: 4px;"
+            "  color: #e0e0e0; padding: 2px 6px;"
+            "  min-height: 30px; font-weight: bold; }"
+            "QPushButton:hover {"
+            "  background: rgba(%1,%2,%3,50); color: #fff;"
+            "  border: 1px solid rgba(%1,%2,%3,200); }"
+            "QPushButton:pressed {"
+            "  background: #060810; color: #fff; }")
+            .arg(ac.red()).arg(ac.green()).arg(ac.blue()));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════

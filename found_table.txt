@@ -1,0 +1,1 @@
+Found data() in src/ui/library\DjLibraryModel.cpp

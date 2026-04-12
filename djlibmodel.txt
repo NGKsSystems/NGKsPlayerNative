@@ -1,0 +1,8 @@
+int DjLibraryModel::columnCount(const QModelIndex& parent) const
+        switch (index.column()) {
+        case 3: return t.durationStr.isEmpty() ? QStringLiteral("--:--")   : t.durationStr;
+        // Right-align numeric columns
+        if (index.column() >= 3)
+    case 3: return QStringLiteral("Duration");
+void DjLibraryModel::setSortCol(int col)
+    sortCol_ = col;
