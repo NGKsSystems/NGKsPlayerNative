@@ -378,6 +378,24 @@ QString EngineBridge::activeAudioDeviceName() const
     return QString::fromStdString(engine.getActiveDeviceName());
 }
 
+bool EngineBridge::deckHasTrack(int deckIndex) const
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return false;
+    return engine.getSnapshot().decks[deckIndex].hasTrack != 0;
+}
+
+int EngineBridge::deckLifecycle(int deckIndex) const
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return 0;
+    return static_cast<int>(engine.getSnapshot().decks[deckIndex].lifecycle);
+}
+
+double EngineBridge::deckLengthSeconds(int deckIndex) const
+{
+    if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return 0.0;
+    return engine.getSnapshot().decks[deckIndex].lengthSeconds;
+}
+
 double EngineBridge::deckPlayhead(int deckIndex) const
 {
     if (deckIndex < 0 || deckIndex >= ngks::MAX_DECKS) return 0.0;
@@ -888,6 +906,18 @@ void EngineBridge::pollSnapshot()
     const auto& deckA = snapshot.decks[ngks::DECK_A];
     const auto& deckB = snapshot.decks[ngks::DECK_B];
     const auto& deckS = snapshot.decks[ngks::DECK_S];
+
+    static uint8_t lastHasTrackA = 2;
+    if (deckA.hasTrack != lastHasTrackA) {
+        lastHasTrackA = deckA.hasTrack;
+        qWarning().noquote() << QString("SNAPSHOT_BRIDGE deck=A hasTrack=%1 lifecycle=%2 duration=%3").arg(deckA.hasTrack).arg(static_cast<int>(deckA.lifecycle)).arg(deckA.lengthSeconds);
+    }
+    static uint8_t lastHasTrackB = 2;
+    if (deckB.hasTrack != lastHasTrackB) {
+        lastHasTrackB = deckB.hasTrack;
+        qWarning().noquote() << QString("SNAPSHOT_BRIDGE deck=B hasTrack=%1 lifecycle=%2 duration=%3").arg(deckB.hasTrack).arg(static_cast<int>(deckB.lifecycle)).arg(deckB.lengthSeconds);
+    }
+
     const double newL = std::clamp(static_cast<double>(deckS.peakL), 0.0, 1.0);
     const double newR = std::clamp(static_cast<double>(deckS.peakR), 0.0, 1.0);
     const auto transportA = deckA.transport;

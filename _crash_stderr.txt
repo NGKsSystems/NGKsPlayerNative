@@ -1,5 +1,135 @@
 [AUDIO_TRACE] Previous session ring dump found at C:\Users\suppo\Desktop\NGKsSystems\NGKsPlayerNative\build_graph\release\bin\data/runtime/trace_ring_dump.txt
-[AUDIO_TRACE ts=20:13:51.621 tid=33040] UI_HEARTBEAT beat=4
-[AUDIO_TRACE ts=20:13:53.629 tid=33040] UI_HEARTBEAT beat=8
-[AUDIO_TRACE ts=20:13:55.631 tid=33040] UI_HEARTBEAT beat=12
-[AUDIO_TRACE ts=20:13:57.629 tid=33040] UI_HEARTBEAT beat=16
+[AUDIO_TRACE ts=12:36:19.892 tid=29664] UI_HEARTBEAT beat=4
+[AUDIO_TRACE ts=12:36:21.886 tid=29664] UI_HEARTBEAT beat=8
+[AUDIO_TRACE ts=12:36:23.891 tid=29664] UI_HEARTBEAT beat=12
+[AUDIO_TRACE ts=12:36:25.891 tid=29664] UI_HEARTBEAT beat=16
+[AUDIO_TRACE ts=12:36:27.891 tid=29664] UI_HEARTBEAT beat=20
+[AUDIO_TRACE ts=12:36:29.908 tid=29664] UI_HEARTBEAT beat=24
+[AUDIO_TRACE ts=12:36:31.922 tid=29664] UI_HEARTBEAT beat=28
+[AUDIO_TRACE ts=12:36:33.939 tid=29664] UI_HEARTBEAT beat=32
+[AUDIO_TRACE ts=12:36:35.969 tid=29664] UI_HEARTBEAT beat=36
+[AUDIO_TRACE ts=12:36:37.965 tid=29664] UI_HEARTBEAT beat=40
+[AUDIO_TRACE ts=12:36:40.004 tid=29664] UI_HEARTBEAT beat=44
+[AUDIO_TRACE ts=12:36:42.004 tid=29664] UI_HEARTBEAT beat=48
+[AUDIO_TRACE ts=12:36:44.020 tid=29664] UI_HEARTBEAT beat=52
+[AUDIO_TRACE ts=12:36:46.018 tid=29664] UI_HEARTBEAT beat=56
+[AUDIO_TRACE ts=12:36:48.047 tid=29664] UI_HEARTBEAT beat=60
+[AUDIO_TRACE ts=12:36:50.068 tid=29664] UI_HEARTBEAT beat=64
+[AUDIO_TRACE ts=12:36:52.068 tid=29664] UI_HEARTBEAT beat=68
+[AUDIO_TRACE ts=12:36:54.062 tid=29664] UI_HEARTBEAT beat=72
+[AUDIO_TRACE ts=12:36:56.058 tid=29664] UI_HEARTBEAT beat=76
+[AUDIO_TRACE ts=12:36:58.059 tid=29664] UI_HEARTBEAT beat=80
+[AUDIO_TRACE ts=12:37:00.081 tid=29664] UI_HEARTBEAT beat=84
+[AUDIO_TRACE ts=12:37:02.096 tid=29664] UI_HEARTBEAT beat=88
+[AUDIO_TRACE ts=12:37:04.143 tid=29664] UI_HEARTBEAT beat=92
+[AUDIO_TRACE ts=12:37:06.140 tid=29664] UI_HEARTBEAT beat=96
+[AUDIO_TRACE ts=12:37:08.147 tid=29664] UI_HEARTBEAT beat=100
+[AUDIO_TRACE ts=12:37:10.147 tid=29664] UI_HEARTBEAT beat=104
+[AUDIO_TRACE ts=12:37:12.147 tid=29664] UI_HEARTBEAT beat=108
+[AUDIO_TRACE ts=12:37:14.171 tid=29664] UI_HEARTBEAT beat=112
+[AUDIO_TRACE ts=12:37:16.186 tid=29664] UI_HEARTBEAT beat=116
+[AUDIO_TRACE ts=12:37:17.347 tid=29664] BRIDGE_ENTER fn=enterDjMode
+[AUDIO_TRACE ts=12:37:17.348 tid=29664] DJ_MODE_SET enabled=1
+[AUDIO_TRACE ts=12:37:17.353 tid=7432] REOPEN_ENTER requested="" previous="" audioOpened=0 switchInFlight=0
+[AUDIO_TRACE ts=12:37:17.355 tid=7432] REOPEN_STEP1 deviceSwitchInFlight=true [t=2ms]
+[AUDIO_TRACE ts=12:37:17.356 tid=7432] REOPEN_CAPTURE_BEGIN [t=3ms]
+[AUDIO_TRACE ts=12:37:17.358 tid=7432] REOPEN_CAPTURE_END [t=5ms]
+[AUDIO_TRACE ts=12:37:17.360 tid=7432] MUTEX_WAIT mutex=controlMutex_ caller=reopenAudioControlled_step3
+[AUDIO_TRACE ts=12:37:17.362 tid=7432] MUTEX_ACQUIRED mutex=controlMutex_ caller=reopenAudioControlled_step3 waitMs=0
+[AUDIO_TRACE ts=12:37:17.363 tid=7432] REOPEN_STOP_BEGIN audioOpened=0 [t=10ms]
+[AUDIO_TRACE ts=12:37:17.365 tid=7432] STOP_ENTER callbackAdded=0 audioOpened=0
+[AUDIO_TRACE ts=12:37:17.367 tid=7432] STOP_CLOSE_BEGIN 
+[AUDIO_TRACE ts=12:37:17.368 tid=7432] STOP_CLOSE_END elapsedMs=0
+[AUDIO_TRACE ts=12:37:17.370 tid=7432] STOP_EXIT totalMs=4
+[AUDIO_TRACE ts=12:37:17.371 tid=7432] REOPEN_STOP_END stopMs=5 [t=17ms]
+[AUDIO_TRACE ts=12:37:17.372 tid=7432] REOPEN_OPEN_BEGIN [t=19ms]
+[AUDIO_TRACE ts=12:37:17.374 tid=7432] START_AUDIO_ENTER forceReopen=0 audioOpened=0 preferredName=""
+[AUDIO_TRACE ts=12:37:17.375 tid=7432] MUTEX_WAIT mutex=controlMutex_ caller=startAudioIfNeeded
+[AUDIO_TRACE ts=12:37:17.375 tid=7432] MUTEX_ACQUIRED mutex=controlMutex_ caller=startAudioIfNeeded waitMs=0
+[AUDIO_TRACE ts=12:37:17.376 tid=7432] START_ENTER prefId="" prefName="" sr=0 buf=128 ch=2
+[AUDIO_TRACE ts=12:37:17.379 tid=7432] START_INIT_BEGIN 
+[AUDIO_TRACE ts=12:37:18.186 tid=29664] UI_HEARTBEAT beat=120
+[AUDIO_TRACE ts=12:37:18.520 tid=7432] START_INIT_END elapsedMs=1139
+[AUDIO_TRACE ts=12:37:18.521 tid=7432] STALL_WARNING step=initialise elapsedMs=1139
+[AUDIO_TRACE ts=12:37:18.522 tid=7432] START_SETUP_BEGIN sr=48000 buf=128 dev="Speakers (Realtek(R) Audio)"
+[AUDIO_TRACE ts=12:37:18.622 tid=7432] START_SETUP_OK sr=48000 buf=128 elapsedMs=99
+[AUDIO_TRACE ts=12:37:18.624 tid=7432] ABOUT_TO_START device="Speakers (Realtek(R) Audio)" sr=48000 buf=480
+[AUDIO_TRACE ts=12:37:18.625 tid=7432] START_OK device="Speakers (Realtek(R) Audio)" sr=48000 buf=480 ch=2 totalMs=1248
+[AUDIO_TRACE ts=12:37:18.625 tid=7432] START_AUDIO_OPENED device="Speakers (Realtek(R) Audio)" sr=48000 buf=480
+[AUDIO_TRACE ts=12:37:18.626 tid=7432] START_AUDIO_EXIT ok=1 totalMs=1252
+[AUDIO_TRACE ts=12:37:18.626 tid=7432] STALL_WARNING step=startAudioIfNeeded totalMs=1252
+[AUDIO_TRACE ts=12:37:18.627 tid=7432] REOPEN_OPEN_END ok=1 openMs=1253 [t=1274ms]
+[AUDIO_TRACE ts=12:37:18.628 tid=7432] STALL_WARNING step=startAudioIfNeeded elapsedMs=1253
+[AUDIO_TRACE ts=12:37:18.628 tid=30480] CB_FIRST numSamples=480 numOutCh=2
+[AUDIO_TRACE ts=12:37:18.628 tid=7432] REOPEN_EXIT result=OK active="Speakers (Realtek(R) Audio)" rollback=N/A totalMs=1276
+[AUDIO_TRACE ts=12:37:18.648 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=2 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:18.958 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:19.262 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:19.560 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:19.864 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:20.174 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:20.191 tid=29664] UI_HEARTBEAT beat=124
+[AUDIO_TRACE ts=12:37:20.473 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:20.776 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:21.080 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:21.396 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:21.689 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:21.996 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:22.186 tid=29664] UI_HEARTBEAT beat=128
+[AUDIO_TRACE ts=12:37:22.296 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:22.610 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:22.909 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:23.209 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:23.512 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:23.816 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:24.123 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:24.184 tid=29664] UI_HEARTBEAT beat=132
+[AUDIO_TRACE ts=12:37:24.425 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:24.731 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:25.033 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:25.342 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:25.643 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:25.944 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:26.192 tid=29664] UI_HEARTBEAT beat=136
+[AUDIO_TRACE ts=12:37:26.247 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:26.559 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:26.859 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:27.160 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:27.464 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:27.775 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:28.071 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:28.187 tid=29664] UI_HEARTBEAT beat=140
+[AUDIO_TRACE ts=12:37:28.377 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:28.680 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:28.986 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:29.292 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:29.593 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:29.897 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:30.207 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:30.225 tid=29664] UI_HEARTBEAT beat=144
+[AUDIO_TRACE ts=12:37:30.505 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:30.808 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:31.113 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:31.421 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:31.731 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:32.039 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:32.202 tid=29664] UI_HEARTBEAT beat=148
+[AUDIO_TRACE ts=12:37:32.344 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:32.649 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:32.956 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:33.259 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=30 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:33.563 tid=29664] DJ_ENFORCER_CHECK active="Speakers (Realtek(R) Audio)" present=1 juceOpen=1 cbFlowing=1 cbDelta=31 anyPlaying=0 audioOpened=1 invalid=0 armed=0
+[AUDIO_TRACE ts=12:37:33.780 tid=29664] STOP_ENTER callbackAdded=1 audioOpened=1
+[AUDIO_TRACE ts=12:37:33.781 tid=29664] STOP_REMOVE_CB_BEGIN 
+[AUDIO_TRACE ts=12:37:33.782 tid=29664] DEVICE_STOPPED audioOpened=1 switchInFlight=0 recoveryInFlight=0 cbCount=1516 wasActive=1
+[AUDIO_TRACE ts=12:37:33.782 tid=29664] NOTIFY_STOPPED audioOpened=1 rtDeviceOpenOk=1 djMode=1
+[AUDIO_TRACE ts=12:37:33.783 tid=29664] DJ_DEVICE_LOST_CAPTURE saved rtDeviceName="Speakers (Realtek(R) Audio)" → preferredAudioDeviceName_
+[AUDIO_TRACE ts=12:37:33.786 tid=29664] DJ_DEVICE_LOST source=enforcer allDecksForceStop=1 expected="Speakers (Realtek(R) Audio)"
+[AUDIO_TRACE ts=12:37:33.786 tid=29664] STOP_REMOVE_CB_END elapsedMs=5
+[AUDIO_TRACE ts=12:37:33.787 tid=29664] STOP_CLOSE_BEGIN 
+[AUDIO_TRACE ts=12:37:33.824 tid=29664] STOP_CLOSE_END elapsedMs=36
+[AUDIO_TRACE ts=12:37:33.824 tid=29664] STOP_EXIT totalMs=45
+[AUDIO_TRACE ts=12:37:33.826 tid=29664] STOP_ENTER callbackAdded=0 audioOpened=0
+[AUDIO_TRACE ts=12:37:33.827 tid=29664] STOP_CLOSE_BEGIN 
+[AUDIO_TRACE ts=12:37:33.828 tid=29664] STOP_CLOSE_END elapsedMs=0
+[AUDIO_TRACE ts=12:37:33.828 tid=29664] STOP_EXIT totalMs=2

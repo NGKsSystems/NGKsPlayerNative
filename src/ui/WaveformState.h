@@ -17,6 +17,7 @@
 
 enum class WaveViewState : uint8_t {
     EMPTY,         // No track loaded
+    LOADING,       // Data requested but not received
     OVERVIEW,      // Full-track overview (only on stop)
     CUE_FOCUS,     // Centered on cue/start/hot cue position (~15% of track)
     STATIC_PLAY,   // DEPRECATED — kept for compile compat, never entered
@@ -30,6 +31,7 @@ enum class WaveUserMode : uint8_t {
 inline const char* waveViewStateName(WaveViewState s) {
     switch (s) {
         case WaveViewState::EMPTY:        return "EMPTY";
+        case WaveViewState::LOADING:      return "LOADING";
         case WaveViewState::OVERVIEW:     return "OVERVIEW";
         case WaveViewState::CUE_FOCUS:    return "CUE_FOCUS";
         case WaveViewState::STATIC_PLAY:  return "STATIC_PLAY";
@@ -95,8 +97,9 @@ public:
     /// Called every poll to update viewport anchor during playback
     void updatePlayhead(double playheadSeconds, double durationSeconds);
 
-private:
+public:
     void setState(WaveViewState newState);
+private:
     void log(const char* event, const char* extra = nullptr);
 
     int deckIndex_{0};

@@ -21,8 +21,8 @@ public:
         : QWidget(parent)
     {
         setObjectName(QStringLiteral("djAnalysisPanel"));
-        setFixedHeight(96);
-        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        setMinimumHeight(32);
+        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         setAttribute(Qt::WA_OpaquePaintEvent, true);
     }
 

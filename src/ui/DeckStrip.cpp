@@ -1,3 +1,4 @@
+#include <QDebug>
 #include "ui/DeckStrip.h"
 #include "ui/EngineBridge.h"
 #include "ui/EqPanel.h"
@@ -43,7 +44,7 @@ public:
     {
         setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         setFixedWidth(28);
-        setMinimumHeight(50);
+        setMinimumHeight(24);
     }
 
 protected:
@@ -111,7 +112,7 @@ public:
     {
         setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
         setFixedWidth(24);
-        setMinimumHeight(50);
+        setMinimumHeight(24);
     }
 
 protected:
@@ -444,6 +445,7 @@ DeckStrip::DeckStrip(int deckIndex, const QString& accentHex,
     : QWidget(parent), deckIndex_(deckIndex), accent_(accentHex), bridge_(bridge),
       waveformCtrl_(deckIndex)
 {
+    setAcceptDrops(true);
     buildUi();
     wireSignals();
     setAcceptDrops(true);
@@ -654,7 +656,7 @@ void DeckStrip::buildUi()
 
         // ── DJ Analysis Panel (custom-painted cards, NOT text labels) ──
         analysisDash_ = new DjAnalysisPanelWidget(QColor(accent_), trackBlock);
-        analysisDash_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        analysisDash_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         trackLayout->addWidget(analysisDash_);
         qInfo().noquote() << QStringLiteral("DJ_ANALYSIS_WIDGET class=DjAnalysisPanelWidget deck=%1")
             .arg(deckIndex_);
@@ -679,7 +681,7 @@ void DeckStrip::buildUi()
 
         waveformOverview_ = new WaveformOverview(accentColor, outerFrame);
         static_cast<WaveformOverview*>(waveformOverview_)->setDeckIndex(deckIndex_);
-        waveformOverview_->setMinimumHeight(48);
+        waveformOverview_->setMinimumHeight(24);
         waveformOverview_->setMaximumHeight(80);
         waveSection->addWidget(waveformOverview_, 1);
 
@@ -2055,6 +2057,7 @@ void DeckStrip::applyMixerDensity()
 
 void DeckStrip::loadTrack(const QString& filePath)
 {
+    qWarning().noquote() << QString("DECK_LOADTRACK_CALL deck=%1 file='%2'").arg(deckIndex_ == 0 ? 'A' : 'B').arg(filePath);
     bridge_->loadTrackToDeck(deckIndex_, filePath);
 }
 
@@ -2085,15 +2088,31 @@ void DeckStrip::cycleDebugBandSolo()
 void DeckStrip::refreshFromSnapshot()
 {
     const double ph = bridge_->deckPlayhead(deckIndex_);
-    const double dur = bridge_->deckDuration(deckIndex_);
+    const double dur = bridge_->deckLengthSeconds(deckIndex_);
     const bool playing = bridge_->deckIsPlaying(deckIndex_);
     const QString label = bridge_->deckTrackLabel(deckIndex_);
     const double peakL = bridge_->deckPeakL(deckIndex_);
     const double peakR = bridge_->deckPeakR(deckIndex_);
     const QString currentPath = bridge_->deckFilePath(deckIndex_);
 
+    const bool loaded = bridge_->deckHasTrack(deckIndex_);
+    const int lifecycle = bridge_->deckLifecycle(deckIndex_);
+
+    static uint8_t lastLoaded[4] = {2, 2, 2, 2};
+    if (static_cast<uint8_t>(loaded) != lastLoaded[deckIndex_]) {
+        lastLoaded[deckIndex_] = static_cast<uint8_t>(loaded);
+        qWarning().noquote() << QString("SNAPSHOT_DECKSTRIP deck=%1 hasTrack=%2 lifecycle=%3 duration=%4").arg(deckIndex_ == 0 ? 'A' : 'B').arg(loaded ? 1 : 0).arg(lifecycle).arg(dur);
+
+        if (!loaded || dur == 0.0) {
+            qWarning().noquote() << QString("DECK_UI_EMPTY_STATE deck=%1 empty=1 reason='hasTrack=%2, duration=%3'")
+                .arg(deckIndex_ == 0 ? 'A' : 'B').arg(loaded ? 1 : 0).arg(dur);
+        } else {
+            qWarning().noquote() << QString("DECK_UI_EMPTY_STATE deck=%1 empty=0 reason='Loaded'").arg(deckIndex_ == 0 ? 'A' : 'B');
+            qWarning().noquote() << QString("DECK_UI_DURATION deck=%1 duration=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(dur);
+        }
+    }
+
     // ── Track loaded state transition ──
-    const bool loaded = !label.isEmpty();
     if (loaded && !trackLoaded_) {
         trackLoaded_ = true;
         waveformCtrl_.onTrackLoaded(dur);   // → CUE_FOCUS
@@ -2114,7 +2133,12 @@ void DeckStrip::refreshFromSnapshot()
     }
 
     // ── Detect track change (new path loaded into this deck) ──
-    if (!currentPath.isEmpty() && currentPath != waveformTrackPath_) {
+    if (loaded && currentPath != waveformTrackPath_) {
+        qInfo().noquote() << QStringLiteral("DECK_LOAD_REQUEST deck=%1 file='%2'").arg(deckIndex_ == 0 ? 'A' : 'B').arg(currentPath);
+        qDebug().noquote() << QStringLiteral("DECK_SNAPSHOT_PATH deck=%1 path='%2'").arg(deckIndex_ == 0 ? 'A' : 'B').arg(currentPath);
+        waveformCtrl_.onTrackLoaded(dur);
+        waveformCtrl_.setState(WaveViewState::LOADING);
+        qWarning().noquote() << QString("WF_STATE_ON_LOAD deck=%1 state=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(waveViewStateName(waveformCtrl_.state()));
         qInfo().noquote() << QStringLiteral("WAVEFORM_REQUEST deck=%1 path=%2")
             .arg(deckIndex_).arg(currentPath);
         waveformTrackPath_ = currentPath;
@@ -2138,6 +2162,8 @@ void DeckStrip::refreshFromSnapshot()
     // ── Waveform data fetch (wait for FULL decode, not just preload) ──
     if (waveformFetchPending_) {
         const bool fullyDecoded = bridge_->isDeckFullyDecoded(deckIndex_);
+        qDebug().noquote() << QStringLiteral("DECK_DECODE_READY deck=%1 ready=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(fullyDecoded ? 1 : 0);
+        qWarning().noquote() << QStringLiteral("DS_DECODE_READY deck=%1 ready=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(fullyDecoded ? 1 : 0);
         const QString nowPath = bridge_->deckFilePath(deckIndex_);
 
         // Reject if track changed while we were waiting
@@ -2148,11 +2174,19 @@ void DeckStrip::refreshFromSnapshot()
         } else if (fullyDecoded) {
             auto t0 = std::chrono::steady_clock::now();
             auto wfData = bridge_->getWaveformOverview(deckIndex_, 2048);
+            qWarning().noquote() << QStringLiteral("DS_WF_FETCH deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
+            qInfo().noquote() << QStringLiteral("DECK_WAVEFORM_FETCH deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
             auto t1 = std::chrono::steady_clock::now();
             const double genMs = std::chrono::duration<double, std::milli>(t1 - t0).count();
             if (!wfData.empty()) {
                 auto* wf = static_cast<WaveformOverview*>(waveformOverview_);
+                qWarning().noquote() << QStringLiteral("DS_WF_WIDGET_VALID deck=%1 valid=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wf ? 1 : 0);
+                qWarning().noquote() << QStringLiteral("DS_WF_SET_CALLED deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
+                
+                // DEBUG PROOF LOG
+                qWarning().noquote() << QStringLiteral("WF_BIND_CALL deck=%1 bins=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(wfData.size());
                 wf->setWaveformData(wfData);
+                qInfo().noquote() << QStringLiteral("DECK_WAVEFORM_BOUND deck=%1 success=%2").arg(deckIndex_ == 0 ? 'A' : 'B').arg(!wfData.empty() ? 1 : 0);
                 waveformFetchPending_ = false;
                 waveformFullyDecoded_ = true;
                 std::fprintf(stderr,
@@ -2201,7 +2235,7 @@ void DeckStrip::refreshFromSnapshot()
     }
 
     // Update info row — BPM with track identity validation
-    if (!currentPath.isEmpty() && currentPath != bpmTrackPath_) {
+    if (loaded && currentPath != bpmTrackPath_) {
         // Track changed since BPM was bound — reject stale BPM
         qInfo().noquote() << QStringLiteral("BPM_ATTACH_REJECT_STALE deck=%1 oldPath=%2 newPath=%3")
             .arg(deckIndex_).arg(bpmTrackPath_, currentPath);
@@ -2485,4 +2519,98 @@ QString DeckStrip::formatTime(double seconds)
     const int m = totalSec / 60;
     const int s = totalSec % 60;
     return QStringLiteral("%1:%2").arg(m).arg(s, 2, 10, QLatin1Char('0'));
+}
+
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDragLeaveEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QMessageBox>
+
+void DeckStrip::dragEnterEvent(QDragEnterEvent* event) {
+    QString name = QString(kDeckNames[deckIndex_]);
+    bool valid = event->mimeData()->hasFormat("application/x-ngks-dj-track") || event->mimeData()->hasUrls() || event->mimeData()->hasText();
+    qInfo() << "DECK_DRAG_ENTER deck=" << name << " valid=" << (valid ? 1 : 0);
+    if (valid) {
+        event->setDropAction(Qt::CopyAction);
+        event->accept();
+        // Visual reaction
+        auto* df = findChild<QFrame*>(QStringLiteral("deckFrame%1").arg(deckIndex_));
+        if (df) {
+            if (!df->property("originalStyleSheet").isValid()) {
+                df->setProperty("originalStyleSheet", df->styleSheet());
+            }
+            df->setStyleSheet(df->property("originalStyleSheet").toString() + QStringLiteral("QFrame#deckFrame%1 { border: 2px solid #00FF00 !important; background: #224422; }").arg(deckIndex_));
+        }
+    }
+}
+
+void DeckStrip::dragMoveEvent(QDragMoveEvent* event) {
+    if (event->mimeData()->hasFormat("application/x-ngks-dj-track") || event->mimeData()->hasUrls() || event->mimeData()->hasText()) {
+        event->setDropAction(Qt::CopyAction);
+        event->accept();
+    } else {
+        event->ignore();
+    }
+}
+
+void DeckStrip::dragLeaveEvent(QDragLeaveEvent* event) {
+    auto* df = findChild<QFrame*>(QStringLiteral("deckFrame%1").arg(deckIndex_));
+    if (df) {
+        // Simple way to reset style is just remove the appended override or rebuild it,
+        // but rebuilding it exactly is tricky. Let's just repaint or rely on the base
+        // Or wait, since I'm appending a rule, maybe it's better to store original style.
+        // Actually, just calling buildUi or similar? No.
+        // A better approach is to change the object name or property and unpolish/polish.
+        df->setStyleSheet(df->property("originalStyleSheet").toString());
+    }
+    event->accept();
+}
+
+void DeckStrip::dropEvent(QDropEvent* event) {
+    // Revert visual
+    auto* df = findChild<QFrame*>(QStringLiteral("deckFrame%1").arg(deckIndex_));
+    if (df) {
+        df->setStyleSheet(df->property("originalStyleSheet").toString());
+    }
+    if (!event->mimeData()->hasFormat("application/x-ngks-dj-track") && !event->mimeData()->hasUrls() && !event->mimeData()->hasText()) return;
+
+    QString path;
+    QString title, artist, bpm, key, duration;
+    
+    if (event->mimeData()->hasFormat("application/x-ngks-dj-track")) {
+        path = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-track"));
+        title = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-title"));
+        artist = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-artist"));
+        bpm = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-bpm"));
+        key = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-key"));
+        duration = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-duration"));
+    } else if (event->mimeData()->hasUrls() && !event->mimeData()->urls().isEmpty()) {
+        path = event->mimeData()->urls().first().toLocalFile();
+    } else if (event->mimeData()->hasText()) {
+        path = event->mimeData()->text();
+    }
+    
+    qWarning().noquote() << QString("DECK_DROP_LOAD_REQUEST deck=%1 file='%2'").arg(deckIndex_ == 0 ? 'A' : 'B').arg(path);
+    qInfo() << "DECK_DROP deck=" << deckIndex_ << " file='" << path << "'";
+
+    if (bridge_->deckIsPlaying(deckIndex_)) {
+        qInfo() << "DECK_LOAD_BLOCKED_PLAYING deck=" << deckIndex_;
+        QMessageBox* box = new QMessageBox(QMessageBox::Warning, "Load Blocked", "Deck is currently playing", QMessageBox::Ok, this);
+        box->setAttribute(Qt::WA_DeleteOnClose);
+        box->open();
+        return;
+    }
+
+    qInfo() << "DECK_LOAD_ALLOWED deck=" << deckIndex_ << " title=" << title << " format=" << (event->mimeData()->hasFormat("application/x-ngks-dj-track") ? "INTERNAL" : "EXTERNAL");
+    event->setDropAction(Qt::CopyAction);
+    event->accept();
+    
+    // Apply metadata strictly before engine load starts fetching async
+    if (!title.isEmpty() || !artist.isEmpty() || !bpm.isEmpty()) {
+        setTrackMetadata(title, artist, bpm, key, duration);
+    }
+    
+    loadTrack(path);
 }

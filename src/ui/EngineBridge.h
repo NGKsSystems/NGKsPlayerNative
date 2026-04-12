@@ -159,6 +159,9 @@ public:
     Q_INVOKABLE double masterPeakR() const noexcept { return masterPeakRightValue_; }
     Q_INVOKABLE double cueMix() const noexcept { return cueMixValue_; }
     Q_INVOKABLE double cueVolume() const noexcept { return cueVolumeValue_; }
+    Q_INVOKABLE bool deckHasTrack(int deckIndex) const;
+    Q_INVOKABLE int deckLifecycle(int deckIndex) const;
+    Q_INVOKABLE double deckLengthSeconds(int deckIndex) const;
     Q_INVOKABLE double deckPlayhead(int deckIndex) const;
     Q_INVOKABLE double deckDuration(int deckIndex) const;
     Q_INVOKABLE bool deckIsPlaying(int deckIndex) const;
