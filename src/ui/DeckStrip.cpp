@@ -1,6 +1,7 @@
 #include <QDebug>
 #include "ui/DeckStrip.h"
 #include "ui/EngineBridge.h"
+#include "ui/AnalysisBridge.h"
 #include "ui/EqPanel.h"
 #include "ui/WaveformOverview.h"
 
@@ -656,6 +657,11 @@ void DeckStrip::buildUi()
         infoKeyLabel_->hide();
 
         // ── DJ Analysis Panel (custom-painted cards, NOT text labels) ──
+        
+        analysisBridge_ = new AnalysisBridge(this);
+        connect(analysisBridge_, &AnalysisBridge::panelStateChanged, this, &DeckStrip::updateAnalysisPanel);
+        QTimer::singleShot(0, analysisBridge_, &AnalysisBridge::start);
+
         analysisDash_ = new DjAnalysisPanelWidget(QColor(accent_), trackBlock);
         analysisDash_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         trackLayout->addWidget(analysisDash_);
@@ -2003,38 +2009,7 @@ void DeckStrip::wireSignals()
     });
 }
 
-void DeckStrip::dragEnterEvent(QDragEnterEvent* e)
-{
-    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id")) || e->mimeData()->hasUrls())
-        e->acceptProposedAction();
-    else
-        QWidget::dragEnterEvent(e);
-}
 
-void DeckStrip::dropEvent(QDropEvent* e)
-{
-    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id"))) {
-        bool ok = false;
-        const qint64 tid = QString::fromUtf8(
-            e->mimeData()->data(QStringLiteral("application/x-ngks-track-id"))).toLongLong(&ok);
-        if (ok) {
-            e->acceptProposedAction();
-            emit loadTrackRequested(deckIndex_, tid);
-        }
-        return;
-    } else if (e->mimeData()->hasUrls()) {
-        QList<QUrl> urls = e->mimeData()->urls();
-        if (!urls.isEmpty()) {
-            QString path = urls.first().toLocalFile();
-            if (!path.isEmpty()) {
-                e->acceptProposedAction();
-                emit loadFileRequested(deckIndex_, path);
-            }
-        }
-        return;
-    }
-    QWidget::dropEvent(e);
-}
 
 bool DeckStrip::eventFilter(QObject* obj, QEvent* event)
 {
@@ -2105,6 +2080,18 @@ void DeckStrip::refreshFromSnapshot()
     const double peakL = bridge_->deckPeakL(deckIndex_);
     const double peakR = bridge_->deckPeakR(deckIndex_);
     const QString currentPath = bridge_->deckFilePath(deckIndex_);
+
+    if (analysisBridge_ && analysisBridge_->isReady()) {
+        static QString lastPath[4];
+        if (currentPath != lastPath[deckIndex_]) {
+            lastPath[deckIndex_] = currentPath;
+            if (currentPath.isEmpty()) analysisBridge_->unselectTrack();
+            else analysisBridge_->selectTrack(currentPath);
+        }
+        if (!currentPath.isEmpty()) {
+            analysisBridge_->resolvePlayhead(ph);
+        }
+    }
 
     const bool loaded = bridge_->deckHasTrack(deckIndex_);
     const int lifecycle = bridge_->deckLifecycle(deckIndex_);

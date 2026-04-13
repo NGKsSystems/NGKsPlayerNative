@@ -18,4 +18,9 @@ private:
     QTreeView* dirView_;
     QTableView* fileView_;
     QLineEdit* searchBox_;
+
+signals:
+    void requestAnalyze(const QString& path, bool live);
+    void requestLoadDeck(const QString& path, int deck);
+    void requestEnqueue(const QString& path);
 };

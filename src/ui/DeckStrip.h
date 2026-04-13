@@ -16,6 +16,7 @@
 #include "DjAnalysisPanelWidget.h"
 
 class EngineBridge;
+class AnalysisBridge;
 class EqPanel;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -177,7 +178,6 @@ signals:
     /// Emitted on each playhead tick with current position in seconds.
     void playheadMoved(int deckIndex, double seconds);
     /// Emitted when a track is dragged from the library and dropped on this deck.
-    void loadTrackRequested(int deckIndex, qint64 trackId);
     void loadFileRequested(int deckIndex, const QString& filePath);
 
 private:
@@ -188,12 +188,10 @@ private:
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
-    void dragEnterEvent(QDragEnterEvent* e) override;
-    void dropEvent(QDropEvent* e) override;
-
     int deckIndex_{0};
     QString accent_;
     EngineBridge* bridge_{nullptr};
+    AnalysisBridge* analysisBridge_{nullptr};
 
     // Widgets — signal flow order
     QFrame* displayPanel_{nullptr};

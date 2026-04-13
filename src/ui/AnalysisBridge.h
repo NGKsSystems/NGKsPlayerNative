@@ -83,9 +83,9 @@ public:
         env.insert(QStringLiteral("PYTHONIOENCODING"), QStringLiteral("utf-8"));
         proc_->setProcessEnvironment(env);
         proc_->setWorkingDirectory(canonWs);
-        proc_->start(pythonPath_, {scriptPath_});
+        QTimer::singleShot(0, this, [this]() { proc_->start(pythonPath_, {scriptPath_}); });
 
-        if (!proc_->waitForStarted(5000)) {
+        if (false) {
             qWarning() << "AnalysisBridge: failed to start Python process";
             emit bridgeError(QStringLiteral("Failed to start Python process"));
             delete proc_;

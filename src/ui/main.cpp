@@ -1,4 +1,4 @@
-﻿#include <QAction>
+#include <QAction>
 #include <QApplication>
 #include "library/DjBrowserPane.h"
 #include <QComboBox>
@@ -2122,7 +2122,20 @@ djDb_.bulkInsert(allTracks_);
         auto* deckSplitter = new QSplitter(Qt::Horizontal, page);
         auto* djBrowser = new DjBrowserPane(page);
         deckSplitter->addWidget(djBrowser);
-        
+
+        QObject::connect(djBrowser, &DjBrowserPane::requestLoadDeck, this, [this](const QString& path, int deck) {
+            if (deck == 1 && djDeckA_) djDeckA_->loadTrack(path);
+            else if (deck == 2 && djDeckB_) djDeckB_->loadTrack(path);
+        });
+
+        QObject::connect(djBrowser, &DjBrowserPane::requestAnalyze, this, [](const QString& path, bool live) {
+            qInfo() << "Requested offline/Live analyze:" << path << live;
+        });
+
+        QObject::connect(djBrowser, &DjBrowserPane::requestEnqueue, this, [](const QString& path) {
+            qInfo() << "Enqueue requested (stub):" << path;
+        });
+
         auto* deckWidget = new QWidget(page);
         auto* deckRowLayout = new QVBoxLayout(deckWidget);
         deckRowLayout->setContentsMargins(0,0,0,0);
@@ -3416,4 +3429,5 @@ int main(int argc, char* argv[])
 
     return app.exec();
 }
+
 
