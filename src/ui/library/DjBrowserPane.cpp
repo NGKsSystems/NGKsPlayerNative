@@ -58,8 +58,15 @@ protected:
 #include <QMimeData>
 #include <QUrl>
 #include <QFileSystemModel>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QHash>
+#include <QDir>
+#include <QFileInfo>
 
 class FileViewProxyModel : public QSortFilterProxyModel {
+    mutable QHash<QString, QStringList> trackMetadataCache_;
+    
 public:
     FileViewProxyModel(QObject* parent = nullptr) : QSortFilterProxyModel(parent) {}
     
@@ -69,10 +76,60 @@ public:
     
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override {
         if (!index.isValid() || !sourceModel()) return QVariant();
-        if (index.column() >= sourceModel()->columnCount()) {
+        int srcCols = sourceModel()->columnCount();
+        if (index.column() >= srcCols) {
             if (role == Qt::DisplayRole) {
-                // Placeholder for future DB integration
+                auto* fsModel = qobject_cast<QFileSystemModel*>(sourceModel());
+                if (!fsModel) return QString("-");
+
+                QModelIndex baseIndex = QSortFilterProxyModel::index(index.row(), 0, index.parent());
+                QModelIndex srcIndex = mapToSource(baseIndex);
+                if (!srcIndex.isValid()) return QString("-");
+
+                QString path = fsModel->filePath(srcIndex);
+                if (path.isEmpty()) return QString("-");
+
+                if (!trackMetadataCache_.contains(path)) {
+                    QStringList metadata = { "-", "-", "-", "-" };
+                    QFileInfo fi(path);
+                    
+                    // Look for .analysis.json
+                    QString cacheFileName = fi.completeBaseName() + ".analysis.json";
+                    QString pwdCache = QDir::currentPath() + "/analysis_cache/" + cacheFileName;
+                    QString exeRelativeCache = QCoreApplication::applicationDirPath() + "/../../../analysis_cache/" + cacheFileName;
+                    
+                    QFile f(pwdCache);
+                    if (!f.exists()) f.setFileName(exeRelativeCache);
+                    if (!f.exists()) f.setFileName(fi.dir().path() + "/../analysis_cache/" + cacheFileName);
+                    
+                    if (f.exists() && f.open(QIODevice::ReadOnly)) {
+                        QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+                        if (obj.contains("final_bpm")) {
+                            metadata[0] = QString::number(qRound(obj["final_bpm"].toDouble()));
+                        }
+                        if (obj.contains("final_key_name")) {
+                            metadata[1] = obj["final_key_name"].toString();
+                        } else if (obj.contains("final_key")) {
+                            metadata[1] = obj["final_key"].toString();
+                        }
+                        if (obj.contains("lufs")) {
+                            metadata[2] = QString::number(obj["lufs"].toDouble(), 'f', 1);
+                        }
+                        if (obj.contains("genre")) {
+                            metadata[3] = obj["genre"].toString();
+                        }
+                    }
+                    trackMetadataCache_[path] = metadata;
+                }
+
+                int extraCol = index.column() - srcCols;
+                if (extraCol >= 0 && extraCol < 4) {
+                    return trackMetadataCache_[path][extraCol];
+                }
                 return QString("-");
+            }
+            if (role == Qt::TextAlignmentRole) {
+                return Qt::AlignCenter;
             }
             return QVariant(); // other roles
         }
