@@ -11,6 +11,7 @@ class DjBrowserPane : public QWidget {
     Q_OBJECT
 public:
     explicit DjBrowserPane(QWidget* parent = nullptr);
+    ~DjBrowserPane() override;
 
 private:
     QFileSystemModel* dirModel_;
@@ -19,6 +20,9 @@ private:
     QTableView* fileView_;
     QLineEdit* searchBox_;
 
+    void saveHeaderState();
+    void restoreHeaderState();
+    
 signals:
     void requestAnalyze(const QString& path, bool live);
     void requestLoadDeck(const QString& path, int deck);

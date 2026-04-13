@@ -1,7 +1,8 @@
+#include "DjBrowserPane.h"
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QFile>
-#include "DjBrowserPane.h"
+#include <QSettings>
 
 #include <QSortFilterProxyModel>
 #include <QDirIterator>
@@ -465,4 +466,22 @@ DjBrowserPane::DjBrowserPane(QWidget* parent) : QWidget(parent) {
         auto* fp = dynamic_cast<FileViewProxyModel*>(fileView_->model());
         fileView_->setRootIndex(fp ? fp->mapFromSource(srcIdx) : srcIdx);
     });
+
+    restoreHeaderState();
+}
+
+DjBrowserPane::~DjBrowserPane() {
+    saveHeaderState();
+}
+
+void DjBrowserPane::saveHeaderState() {
+    QSettings settings(QStringLiteral("NGKsSystems"), QStringLiteral("NGKsPlayerNative"));
+    settings.setValue(QStringLiteral("DjBrowserPane/headerState"), fileView_->horizontalHeader()->saveState());
+}
+
+void DjBrowserPane::restoreHeaderState() {
+    QSettings settings(QStringLiteral("NGKsSystems"), QStringLiteral("NGKsPlayerNative"));
+    if (settings.contains(QStringLiteral("DjBrowserPane/headerState"))) {
+        fileView_->horizontalHeader()->restoreState(settings.value(QStringLiteral("DjBrowserPane/headerState")).toByteArray());
+    }
 }
