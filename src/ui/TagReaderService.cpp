@@ -56,7 +56,7 @@ static QString decodeId3Text(const QByteArray& data, int offset, int length)
 }
 
 // ── Public API ─────────────────────────────────────────────────────
-TrackTagData TagReaderService::loadTagsForFile(const QString& filePath)
+TrackTagData TagReaderService::loadTagsForFile(const QString& filePath, bool skipAlbumArt)
 {
     TrackTagData data;
     data.sourceFilePath = filePath;
@@ -132,7 +132,7 @@ TrackTagData TagReaderService::loadTagsForFile(const QString& filePath)
             }
         }
         // ── APIC (album art) ──
-        else if (fid == "APIC" && !data.hasAlbumArt && fsz > 10) {
+        else if (fid == "APIC" && !data.hasAlbumArt && fsz > 10 && !skipAlbumArt) {
             int apos = pos;
             const int aend = pos + static_cast<int>(fsz);
             apos++; // skip encoding byte

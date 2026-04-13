@@ -63,6 +63,11 @@ protected:
 #include <QHash>
 #include <QDir>
 #include <QFileInfo>
+#include <QThreadPool>
+#include <QMetaObject>
+#include "../TagReaderService.h"
+
+#include <QPointer>
 
 class FileViewProxyModel : public QSortFilterProxyModel {
     mutable QHash<QString, QStringList> trackMetadataCache_;
@@ -90,36 +95,65 @@ public:
                 if (path.isEmpty()) return QString("-");
 
                 if (!trackMetadataCache_.contains(path)) {
-                    QStringList metadata = { "-", "-", "-", "-" };
-                    QFileInfo fi(path);
-                    
-                    // Look for .analysis.json
-                    QString cacheFileName = fi.completeBaseName() + ".analysis.json";
+                    // Pre-fill cache with "-" to stop re-submitting loading jobs while scrolling
+                    trackMetadataCache_.insert(path, { "-", "-", "-", "-" });
+
+                    // Run the expensive tag+JSON fetching off the UI thread
+                    QString cacheFileName = QFileInfo(path).completeBaseName() + ".analysis.json";
                     QString pwdCache = QDir::currentPath() + "/analysis_cache/" + cacheFileName;
                     QString exeRelativeCache = QCoreApplication::applicationDirPath() + "/../../../analysis_cache/" + cacheFileName;
+                    QString siblingCache = QFileInfo(path).dir().path() + "/../analysis_cache/" + cacheFileName;
                     
-                    QFile f(pwdCache);
-                    if (!f.exists()) f.setFileName(exeRelativeCache);
-                    if (!f.exists()) f.setFileName(fi.dir().path() + "/../analysis_cache/" + cacheFileName);
+                    // We must pass 'this' to the lambda safely, use a QPointer
+                    QPointer<const FileViewProxyModel> safeThis(this);
                     
-                    if (f.exists() && f.open(QIODevice::ReadOnly)) {
-                        QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
-                        if (obj.contains("final_bpm")) {
-                            metadata[0] = QString::number(qRound(obj["final_bpm"].toDouble()));
+                    QThreadPool::globalInstance()->start([safeThis, path, baseIndex, pwdCache, exeRelativeCache, siblingCache]() mutable {
+                        QStringList md = { "-", "-", "-", "-" };
+                        
+                        // 1) Read physical tags (BPM, Key, LUFS, Genre) WITHOUT album art
+                        TrackTagData tags = TagReaderService::loadTagsForFile(path, true);
+                        if (!tags.bpm.isEmpty()) md[0] = tags.bpm;
+                        if (!tags.musicalKey.isEmpty()) md[1] = tags.musicalKey;
+                        // For lufs, limit it to 1 decimal point format if it exists
+                        if (tags.loudnessLUFS != 0.0) md[2] = QString::number(tags.loudnessLUFS, 'f', 1);
+                        if (!tags.genre.isEmpty()) md[3] = tags.genre;
+
+                        // 2) Look for exact analysis json to override any stale tags with fresh ML numbers
+                        QFile f(pwdCache);
+                        if (!f.exists()) f.setFileName(exeRelativeCache);
+                        if (!f.exists()) f.setFileName(siblingCache);
+                        
+                        if (f.exists() && f.open(QIODevice::ReadOnly)) {
+                            QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+                            if (obj.contains("final_bpm")) {
+                                md[0] = QString::number(qRound(obj["final_bpm"].toDouble()));
+                            }
+                            if (obj.contains("final_key_name")) {
+                                md[1] = obj["final_key_name"].toString();
+                            } else if (obj.contains("final_key")) {
+                                md[1] = obj["final_key"].toString();
+                            }
+                            if (obj.contains("lufs")) {
+                                md[2] = QString::number(obj["lufs"].toDouble(), 'f', 1);
+                            }
+                            if (obj.contains("genre")) {
+                                md[3] = obj["genre"].toString();
+                            }
                         }
-                        if (obj.contains("final_key_name")) {
-                            metadata[1] = obj["final_key_name"].toString();
-                        } else if (obj.contains("final_key")) {
-                            metadata[1] = obj["final_key"].toString();
-                        }
-                        if (obj.contains("lufs")) {
-                            metadata[2] = QString::number(obj["lufs"].toDouble(), 'f', 1);
-                        }
-                        if (obj.contains("genre")) {
-                            metadata[3] = obj["genre"].toString();
-                        }
-                    }
-                    trackMetadataCache_[path] = metadata;
+
+                        // Jump back to UI thread to set cache and trigger UI repaint
+                        QMetaObject::invokeMethod(const_cast<FileViewProxyModel*>(safeThis.data()), [safeThis, path, baseIndex, md]() {
+                            if (safeThis) {
+                                auto* nonConstThis = const_cast<FileViewProxyModel*>(safeThis.data());
+                                nonConstThis->trackMetadataCache_[path] = md;
+                                // Emit dataChanged for all extra columns (-4 to -1 index.column())
+                                int cols = nonConstThis->columnCount();
+                                QModelIndex iLeft = nonConstThis->index(baseIndex.row(), cols - 4, baseIndex.parent());
+                                QModelIndex iRight = nonConstThis->index(baseIndex.row(), cols - 1, baseIndex.parent());
+                                emit nonConstThis->dataChanged(iLeft, iRight, QVector<int>{Qt::DisplayRole});
+                            }
+                        }, Qt::QueuedConnection);
+                    });
                 }
 
                 int extraCol = index.column() - srcCols;
