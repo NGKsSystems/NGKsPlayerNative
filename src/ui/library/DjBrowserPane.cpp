@@ -1,4 +1,6 @@
 #include "DjBrowserPane.h"
+#include "ui/library/DjLibraryDatabase.h"
+#include "ui/TagReaderService.h"
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QFile>
@@ -72,10 +74,17 @@ protected:
 
 class FileViewProxyModel : public QSortFilterProxyModel {
     mutable QHash<QString, QStringList> trackMetadataCache_;
-    
+    DjLibraryDatabase* db_{nullptr};
+
 public:
     FileViewProxyModel(QObject* parent = nullptr) : QSortFilterProxyModel(parent) {}
-    
+
+    void setDatabase(DjLibraryDatabase* db) {
+        db_ = db;
+        trackMetadataCache_.clear();
+        invalidate();
+    }
+
     int columnCount(const QModelIndex& parent = QModelIndex()) const override {
         return sourceModel() ? sourceModel()->columnCount(parent) + 4 : 0;
     }
@@ -96,6 +105,25 @@ public:
                 if (path.isEmpty()) return QString("-");
 
                 if (!trackMetadataCache_.contains(path)) {
+                    // Fast DB lookup on the main thread
+                    if (db_ && db_->isOpen()) {
+                        auto track = db_->trackByPath(path);
+                        if (track.has_value()) {
+                            QStringList md = { "-", "-", "-", "-" };
+                            if (!track->bpm.isEmpty()) md[0] = track->bpm;
+                            if (!track->musicalKey.isEmpty()) md[1] = track->musicalKey;
+                            if (track->loudnessLUFS != 0.0) md[2] = QString::number(track->loudnessLUFS, 'f', 1);
+                            if (!track->genre.isEmpty()) md[3] = track->genre;
+                            trackMetadataCache_.insert(path, md);
+
+                            int extraCol = index.column() - srcCols;
+                            if (extraCol >= 0 && extraCol < 4) {
+                                return md[extraCol];
+                            }
+                            return QString("-");
+                        }
+                    }
+
                     // Pre-fill cache with "-" to stop re-submitting loading jobs while scrolling
                     trackMetadataCache_.insert(path, { "-", "-", "-", "-" });
 
@@ -472,6 +500,13 @@ DjBrowserPane::DjBrowserPane(QWidget* parent) : QWidget(parent) {
 
 DjBrowserPane::~DjBrowserPane() {
     saveHeaderState();
+}
+
+void DjBrowserPane::setDatabase(DjLibraryDatabase* db) {
+    db_ = db;
+    if (auto* proxy = static_cast<FileViewProxyModel*>(fileView_->model())) {
+        proxy->setDatabase(db_);
+    }
 }
 
 void DjBrowserPane::saveHeaderState() {

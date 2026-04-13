@@ -2121,6 +2121,7 @@ djDb_.bulkInsert(allTracks_);
 
         auto* deckSplitter = new QSplitter(Qt::Horizontal, page);
         auto* djBrowser = new DjBrowserPane(page);
+        djBrowser->setDatabase(&djDb_);
         deckSplitter->addWidget(djBrowser);
 
         QObject::connect(djBrowser, &DjBrowserPane::requestLoadDeck, this, [this](const QString& path, int deck) {

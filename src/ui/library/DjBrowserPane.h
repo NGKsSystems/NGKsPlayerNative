@@ -7,11 +7,15 @@
 #include <QSplitter>
 #include <QLineEdit>
 
+class DjLibraryDatabase;
+
 class DjBrowserPane : public QWidget {
     Q_OBJECT
 public:
     explicit DjBrowserPane(QWidget* parent = nullptr);
     ~DjBrowserPane() override;
+
+    void setDatabase(DjLibraryDatabase* db);
 
 private:
     QFileSystemModel* dirModel_;
@@ -19,6 +23,7 @@ private:
     QTreeView* dirView_;
     QTableView* fileView_;
     QLineEdit* searchBox_;
+    DjLibraryDatabase* db_{nullptr};
 
     void saveHeaderState();
     void restoreHeaderState();
