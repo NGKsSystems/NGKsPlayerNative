@@ -6,10 +6,15 @@
 #include "ui/library/DjLibraryDatabase.h"
 #include "ui/library/TrackDragView.h"
 
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QDir>
+#include <QFormLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QString>
 #include <QStringList>
+#include <QVBoxLayout>
 #include <QWidget>
 
 #include <functional>
@@ -17,6 +22,12 @@
 namespace DjBrowserPaneActions {
 
 using FooterCallback = std::function<void(const QString&, const QString&)>;
+
+struct BulkReplaceRequest {
+    QString findText;
+    QString replaceText;
+    bool accepted{false};
+};
 
 inline void updateFooterMessage(QLabel* footerLabel, const QString& text, const QString& tone)
 {
@@ -59,6 +70,53 @@ inline bool renameVisibleFile(QWidget* parent,
     }
 
     return false;
+}
+
+inline BulkReplaceRequest promptBulkReplace(QWidget* parent,
+                                            const QString& initialFindText,
+                                            const QString& initialReplaceText)
+{
+    QDialog dialog(parent);
+    dialog.setModal(true);
+    dialog.setWindowTitle(QStringLiteral("Find and Replace File Names"));
+    dialog.setStyleSheet(DjBrowserUiFeedback::dialogStyleSheet());
+
+    auto* layout = new QVBoxLayout(&dialog);
+    auto* intro = new QLabel(
+        QStringLiteral("Rename files in the current folder by replacing matching text in each visible file name."),
+        &dialog);
+    intro->setWordWrap(true);
+    layout->addWidget(intro);
+
+    auto* form = new QFormLayout();
+    auto* findBox = new QLineEdit(&dialog);
+    auto* replaceBox = new QLineEdit(&dialog);
+    findBox->setPlaceholderText(QStringLiteral("Text to find"));
+    replaceBox->setPlaceholderText(QStringLiteral("Replacement text (can be empty)"));
+    findBox->setText(initialFindText);
+    replaceBox->setText(initialReplaceText);
+    DjBrowserUiFeedback::applyInputChrome(findBox);
+    DjBrowserUiFeedback::applyInputChrome(replaceBox);
+    form->addRow(QStringLiteral("Find"), findBox);
+    form->addRow(QStringLiteral("Replace"), replaceBox);
+    layout->addLayout(form);
+
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    layout->addWidget(buttons);
+
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    findBox->setFocus();
+    findBox->selectAll();
+
+    BulkReplaceRequest request;
+    if (dialog.exec() != QDialog::Accepted) return request;
+
+    request.findText = findBox->text();
+    request.replaceText = replaceBox->text();
+    request.accepted = true;
+    return request;
 }
 
 inline bool bulkReplaceFiles(QWidget* parent,

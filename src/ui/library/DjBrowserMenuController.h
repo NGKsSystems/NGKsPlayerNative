@@ -89,17 +89,13 @@ struct FileMenuContext {
     QString filePath;
     QString fileName;
     QString folderPath;
-    QString findText;
-    QString replaceText;
     QString* cutSourcePath{nullptr};
     std::function<void()> refreshFiles;
     std::function<bool(const QString&)> renameFile;
     std::function<void(int, const QString&)> loadToDeck;
     std::function<void(const QString&)> startRegularAnalysis;
     std::function<void(const QString&)> startBackgroundAnalysis;
-    std::function<bool(const QString&, const QString&)> bulkReplaceFiles;
-    std::function<void(const QString&, const QString&)> updateFooter;
-    std::function<void()> focusFindReplace;
+    std::function<void()> showBulkReplaceDialog;
 };
 
 inline FileMenuAction showFileContextMenu(QWidget* parent,
@@ -223,17 +219,7 @@ inline void handleFileMenuAction(FileMenuAction action, const FileMenuContext& c
         if (context.loadToDeck) context.loadToDeck(1, context.filePath);
         return;
     case FileMenuAction::BulkRename:
-        if (context.findText.trimmed().isEmpty()) {
-            if (context.focusFindReplace) context.focusFindReplace();
-            if (context.updateFooter) {
-                context.updateFooter(
-                    QStringLiteral("Enter Find above, then press Replace."),
-                    QStringLiteral("info"));
-            }
-            return;
-        }
-
-        if (context.bulkReplaceFiles) context.bulkReplaceFiles(context.findText, context.replaceText);
+        if (context.showBulkReplaceDialog) context.showBulkReplaceDialog();
         return;
     case FileMenuAction::None:
         return;

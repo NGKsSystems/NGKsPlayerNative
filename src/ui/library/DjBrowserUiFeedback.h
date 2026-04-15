@@ -1,17 +1,44 @@
 #pragma once
 
+#include <QColor>
+#include <QLineEdit>
 #include <QMessageBox>
+#include <QPalette>
 #include <QString>
 #include <QWidget>
 
 namespace DjBrowserUiFeedback {
+
+inline QString inputStyleSheet()
+{
+    return QStringLiteral(
+        "QLineEdit { background: #111826; color: #f4f7fb; border: 1px solid #355078; border-radius: 4px; padding: 6px 8px; selection-background-color: #f28c28; selection-color: #10141f; }"
+        "QLineEdit:focus { border-color: #f28c28; }");
+}
+
+inline void applyInputChrome(QLineEdit* lineEdit)
+{
+    if (!lineEdit) return;
+
+    QPalette palette = lineEdit->palette();
+    palette.setColor(QPalette::Base, QColor(QStringLiteral("#111826")));
+    palette.setColor(QPalette::Text, QColor(QStringLiteral("#f4f7fb")));
+    palette.setColor(QPalette::PlaceholderText, QColor(QStringLiteral("#8da3be")));
+    palette.setColor(QPalette::Highlight, QColor(QStringLiteral("#f28c28")));
+    palette.setColor(QPalette::HighlightedText, QColor(QStringLiteral("#10141f")));
+    lineEdit->setPalette(palette);
+    lineEdit->setAutoFillBackground(true);
+    lineEdit->setStyleSheet(inputStyleSheet());
+}
 
 inline QString dialogStyleSheet()
 {
     return QStringLiteral(
         "QDialog, QMessageBox, QInputDialog { background: #0b0f17; color: #e6edf7; }"
         "QLabel { color: #e6edf7; font-size: 12px; }"
-        "QLineEdit { background: #111826; color: #f4f7fb; border: 1px solid #355078; border-radius: 4px; padding: 6px 8px; selection-background-color: #f28c28; selection-color: #10141f; }"
+        )
+        + inputStyleSheet()
+        + QStringLiteral(
         "QPushButton { background: #16213e; color: #e6edf7; border: 1px solid #355078; border-radius: 4px; padding: 6px 14px; min-width: 72px; }"
         "QPushButton:hover { background: #1c2b4d; }"
         "QPushButton:pressed { background: #13213c; }"

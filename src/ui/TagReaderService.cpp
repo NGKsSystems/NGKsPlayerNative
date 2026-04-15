@@ -56,6 +56,11 @@ static QString decodeId3Text(const QByteArray& data, int offset, int length)
 }
 
 // ── Public API ─────────────────────────────────────────────────────
+TrackTagData TagReaderService::loadTagsForFile(const QString& filePath)
+{
+    return loadTagsForFile(filePath, false);
+}
+
 TrackTagData TagReaderService::loadTagsForFile(const QString& filePath, bool skipAlbumArt)
 {
     TrackTagData data;

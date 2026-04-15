@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ui/library/DjBrowserUiFeedback.h"
 #include "ui/library/DjBrowserTrackOps.h"
 #include "ui/library/DjLibraryDatabase.h"
 
@@ -400,6 +401,7 @@ public:
     {
         auto* editor = new QLineEdit(parent);
         editor->setFrame(false);
+        DjBrowserUiFeedback::applyInputChrome(editor);
         editor->selectAll();
         return editor;
     }

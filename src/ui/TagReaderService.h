@@ -4,5 +4,6 @@
 class TagReaderService
 {
 public:
-    static TrackTagData loadTagsForFile(const QString& filePath, bool skipAlbumArt = false);
+    static TrackTagData loadTagsForFile(const QString& filePath);
+    static TrackTagData loadTagsForFile(const QString& filePath, bool skipAlbumArt);
 };

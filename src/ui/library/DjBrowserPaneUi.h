@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/library/DjBrowserFileTableModel.h"
+#include "ui/library/DjBrowserUiFeedback.h"
 #include "ui/library/DjLibraryDatabase.h"
 #include "ui/library/TrackDragView.h"
 
@@ -11,7 +12,6 @@
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QSplitter>
 #include <QTreeView>
 #include <QVBoxLayout>
@@ -26,15 +26,11 @@ struct Widgets {
     QTreeView* dirView{};
     TrackDragView* fileView{};
     QLineEdit* filterBox{};
-    QLineEdit* findBox{};
-    QLineEdit* replaceBox{};
-    QPushButton* replaceButton{};
     QLabel* footerLabel{};
 };
 
 struct InteractionHandlers {
     std::function<void(const QString&)> setSearchText;
-    std::function<void()> triggerReplace;
     std::function<void(const QString&)> setFolderPath;
     std::function<void(const QModelIndex&)> beginRename;
     std::function<void(const QPoint&)> showHeaderMenu;
@@ -56,7 +52,7 @@ inline QLineEdit* createSearchBox(QWidget* parent, const QString& placeholder)
     auto* box = new QLineEdit(parent);
     box->setPlaceholderText(placeholder);
     box->setClearButtonEnabled(true);
-    box->setStyleSheet(QStringLiteral("background: #111; color: #ccc; border: 1px solid #333; padding: 4px; border-radius: 3px;"));
+    DjBrowserUiFeedback::applyInputChrome(box);
     return box;
 }
 
@@ -74,16 +70,6 @@ inline Widgets build(QWidget* parent, DjLibraryDatabase* db)
 
     widgets.filterBox = createSearchBox(parent, QStringLiteral("Search current folder..."));
     topBar->addWidget(widgets.filterBox, 1);
-
-    widgets.findBox = createSearchBox(parent, QStringLiteral("Find in file names..."));
-    topBar->addWidget(widgets.findBox, 1);
-
-    widgets.replaceBox = createSearchBox(parent, QStringLiteral("Replace in file names..."));
-    topBar->addWidget(widgets.replaceBox, 1);
-
-    widgets.replaceButton = new QPushButton(QStringLiteral("Replace"), parent);
-    widgets.replaceButton->setStyleSheet(QStringLiteral("QPushButton { background: #16213e; color: #e6edf7; border: 1px solid #355078; border-radius: 4px; padding: 4px 10px; min-width: 84px; } QPushButton:hover { background: #1c2b4d; }"));
-    topBar->addWidget(widgets.replaceButton);
 
     layout->addLayout(topBar);
 
@@ -152,18 +138,6 @@ inline void wireInteractions(QObject* owner, const Widgets& widgets, const Inter
 {
     QObject::connect(widgets.filterBox, &QLineEdit::textChanged, owner, [handlers](const QString& text) {
         if (handlers.setSearchText) handlers.setSearchText(text);
-    });
-
-    QObject::connect(widgets.replaceButton, &QPushButton::clicked, owner, [handlers]() {
-        if (handlers.triggerReplace) handlers.triggerReplace();
-    });
-
-    QObject::connect(widgets.replaceBox, &QLineEdit::returnPressed, owner, [handlers]() {
-        if (handlers.triggerReplace) handlers.triggerReplace();
-    });
-
-    QObject::connect(widgets.findBox, &QLineEdit::returnPressed, owner, [handlers]() {
-        if (handlers.triggerReplace) handlers.triggerReplace();
     });
 
     QObject::connect(widgets.dirView->selectionModel(), &QItemSelectionModel::currentChanged, owner,

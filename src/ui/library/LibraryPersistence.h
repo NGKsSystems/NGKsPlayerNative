@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QJsonObject>
 #include <QString>
 #include <QStringList>
@@ -52,3 +53,7 @@ bool loadLibraryJson(std::vector<TrackInfo>& outTracks, QString& outFolderPath);
 // ── Playlist persistence ──────────────────────────────────────────────────────
 bool savePlaylists(const std::vector<Playlist>& playlists);
 bool loadPlaylists(std::vector<Playlist>& out);
+
+// ── UI state persistence ──────────────────────────────────────────────────────
+bool saveUiStateBlob(const QString& key, const QByteArray& state);
+bool loadUiStateBlob(const QString& key, QByteArray& outState);

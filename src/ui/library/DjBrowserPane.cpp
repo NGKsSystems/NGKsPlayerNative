@@ -7,10 +7,18 @@
 #include "ui/library/DjBrowserPaneUi.h"
 #include "ui/library/DjLibraryDatabase.h"
 #include "ui/library/DjBrowserUiFeedback.h"
+#include "ui/library/LibraryPersistence.h"
 
 #include <QClipboard>
 #include <QFileInfo>
+#include <QHeaderView>
 #include <QMimeData>
+
+namespace {
+
+const QString kBrowserHeaderStateKey = QStringLiteral("dj_browser/file_header_state");
+
+}
 
 DjBrowserPane::DjBrowserPane(DjLibraryDatabase* db, QWidget* parent)
     : QWidget(parent)
@@ -19,10 +27,6 @@ DjBrowserPane::DjBrowserPane(DjLibraryDatabase* db, QWidget* parent)
     , fileModel_(nullptr)
     , dirView_(nullptr)
     , fileView_(nullptr)
-    , filterBox_(nullptr)
-    , findBox_(nullptr)
-    , replaceBox_(nullptr)
-    , replaceButton_(nullptr)
     , footerLabel_(nullptr)
     , analysisCoordinator_(nullptr)
 {
@@ -31,10 +35,6 @@ DjBrowserPane::DjBrowserPane(DjLibraryDatabase* db, QWidget* parent)
     fileModel_ = widgets.fileModel;
     dirView_ = widgets.dirView;
     fileView_ = widgets.fileView;
-    filterBox_ = widgets.filterBox;
-    findBox_ = widgets.findBox;
-    replaceBox_ = widgets.replaceBox;
-    replaceButton_ = widgets.replaceButton;
     footerLabel_ = widgets.footerLabel;
 
     footerLabel_->setStyleSheet(DjBrowserUiFeedback::footerStyleForTone(QStringLiteral("info")));
@@ -46,9 +46,15 @@ DjBrowserPane::DjBrowserPane(DjLibraryDatabase* db, QWidget* parent)
         fileModel_->refresh();
     });
 
+    restoreHeaderState();
+
+    auto* header = fileView_->horizontalHeader();
+    QObject::connect(header, &QHeaderView::sectionMoved, this, [this]() { persistHeaderState(); });
+    QObject::connect(header, &QHeaderView::sectionResized, this, [this]() { persistHeaderState(); });
+    QObject::connect(header, &QHeaderView::sortIndicatorChanged, this, [this]() { persistHeaderState(); });
+
     DjBrowserPaneUi::wireInteractions(this, widgets, {
         [this](const QString& text) { fileModel_->setSearchText(text); },
-        [this]() { bulkReplaceFiles(findBox_->text(), replaceBox_->text()); },
         [this](const QString& folderPath) { fileModel_->setFolderPath(folderPath); },
         [this](const QModelIndex& index) { fileView_->edit(index); },
         [this](const QPoint& pos) { showHeaderContextMenu(pos); },
@@ -86,6 +92,7 @@ void DjBrowserPane::showHeaderContextMenu(const QPoint& pos)
     if (currentlyVisible && visibleCount == 1) return;
 
     fileView_->setColumnHidden(action.column, currentlyVisible);
+    persistHeaderState();
 }
 
 void DjBrowserPane::showFileContextMenu(const QPoint& pos)
@@ -112,22 +119,13 @@ void DjBrowserPane::showFileContextMenu(const QPoint& pos)
     context.filePath = filePath;
     context.fileName = fileName;
     context.folderPath = fileModel_->folderPath();
-    context.findText = findBox_->text();
-    context.replaceText = replaceBox_->text();
     context.cutSourcePath = &cutSourcePath_;
     context.refreshFiles = [this]() { fileModel_->refresh(); };
     context.renameFile = [this](const QString& path) { return renameFile(path); };
     context.loadToDeck = [this](int deckIdx, const QString& path) { emit loadToDeckRequested(deckIdx, path); };
     context.startRegularAnalysis = [this](const QString& path) { startRegularAnalysis(path); };
     context.startBackgroundAnalysis = [this](const QString& path) { startBackgroundAnalysis(path); };
-    context.bulkReplaceFiles = [this](const QString& findText, const QString& replaceText) {
-        return bulkReplaceFiles(findText, replaceText);
-    };
-    context.updateFooter = [this](const QString& text, const QString& tone) { updateFooterMessage(text, tone); };
-    context.focusFindReplace = [this]() {
-        findBox_->setFocus();
-        findBox_->selectAll();
-    };
+    context.showBulkReplaceDialog = [this]() { promptBulkReplaceDialog(); };
 
     DjBrowserMenuController::handleFileMenuAction(action, context);
 }
@@ -140,6 +138,33 @@ bool DjBrowserPane::renameFile(const QString& filePath)
         fileView_,
         filePath,
         [this](const QString& text, const QString& tone) { updateFooterMessage(text, tone); });
+}
+
+void DjBrowserPane::promptBulkReplaceDialog()
+{
+    const auto request = DjBrowserPaneActions::promptBulkReplace(this, lastFindText_, lastReplaceText_);
+    if (!request.accepted) return;
+
+    lastFindText_ = request.findText;
+    lastReplaceText_ = request.replaceText;
+    bulkReplaceFiles(lastFindText_, lastReplaceText_);
+}
+
+void DjBrowserPane::restoreHeaderState()
+{
+    QByteArray state;
+    if (!loadUiStateBlob(kBrowserHeaderStateKey, state)) return;
+
+    auto* header = fileView_->horizontalHeader();
+    if (!header->restoreState(state)) {
+        updateFooterMessage(QStringLiteral("Browser column layout could not be restored."), QStringLiteral("error"));
+    }
+}
+
+void DjBrowserPane::persistHeaderState()
+{
+    auto* header = fileView_->horizontalHeader();
+    saveUiStateBlob(kBrowserHeaderStateKey, header->saveState());
 }
 
 bool DjBrowserPane::bulkReplaceFiles(const QString& findText, const QString& replaceText)

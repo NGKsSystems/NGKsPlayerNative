@@ -3,15 +3,12 @@
 #include <QFileSystemModel>
 #include <QTreeView>
 #include <QVBoxLayout>
-#include <QSplitter>
-#include <QLineEdit>
 #include "ui/library/TrackDragView.h"
 
 class DjBrowserAnalysisCoordinator;
 class DjBrowserFileTableModel;
 class DjLibraryDatabase;
 class QLabel;
-class QPushButton;
 
 class DjBrowserPane : public QWidget {
     Q_OBJECT
@@ -25,6 +22,9 @@ private:
     void showHeaderContextMenu(const QPoint& pos);
     void showFileContextMenu(const QPoint& pos);
     bool renameFile(const QString& filePath);
+    void promptBulkReplaceDialog();
+    void restoreHeaderState();
+    void persistHeaderState();
     bool bulkReplaceFiles(const QString& findText, const QString& replaceText);
     void updateFooterMessage(const QString& text, const QString& tone = QStringLiteral("info"));
     void startRegularAnalysis(const QString& filePath);
@@ -35,11 +35,9 @@ private:
     DjBrowserFileTableModel* fileModel_;
     QTreeView*        dirView_;
     TrackDragView*    fileView_;
-    QLineEdit*        filterBox_;
-    QLineEdit*        findBox_;
-    QLineEdit*        replaceBox_;
-    QPushButton*      replaceButton_;
     QLabel*           footerLabel_;
     DjBrowserAnalysisCoordinator* analysisCoordinator_;
     QString           cutSourcePath_;  // tracks pending cut operation
+    QString           lastFindText_;
+    QString           lastReplaceText_;
 };

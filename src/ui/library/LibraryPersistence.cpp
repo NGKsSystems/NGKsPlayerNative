@@ -4,8 +4,41 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QJsonParseError>
 #include <QSaveFile>
+
+namespace {
+
+QString uiStatePersistPath()
+{
+    return runtimePath("data/runtime/ui_state.json");
+}
+
+QJsonObject loadUiStateRoot()
+{
+    QFile file(uiStatePersistPath());
+    if (!file.exists() || !file.open(QIODevice::ReadOnly)) return {};
+
+    QJsonParseError parseErr{};
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseErr);
+    if (parseErr.error != QJsonParseError::NoError || !doc.isObject()) return {};
+    return doc.object();
+}
+
+bool saveUiStateRoot(const QJsonObject& root)
+{
+    QSaveFile file(uiStatePersistPath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
+    const QByteArray payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
+    if (file.write(payload) != payload.size()) {
+        file.cancelWriting();
+        return false;
+    }
+    return file.commit();
+}
+
+} // namespace
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 QString formatDurationMs(qint64 ms)
@@ -166,4 +199,26 @@ bool loadPlaylists(std::vector<Playlist>& out)
         out.push_back(std::move(pl));
     }
     return true;
+}
+
+bool saveUiStateBlob(const QString& key, const QByteArray& state)
+{
+    if (key.trimmed().isEmpty()) return false;
+
+    QJsonObject root = loadUiStateRoot();
+    root.insert(key, QString::fromLatin1(state.toBase64()));
+    return saveUiStateRoot(root);
+}
+
+bool loadUiStateBlob(const QString& key, QByteArray& outState)
+{
+    outState.clear();
+    if (key.trimmed().isEmpty()) return false;
+
+    const QJsonObject root = loadUiStateRoot();
+    const QString encoded = root.value(key).toString();
+    if (encoded.isEmpty()) return false;
+
+    outState = QByteArray::fromBase64(encoded.toLatin1());
+    return !outState.isEmpty();
 }

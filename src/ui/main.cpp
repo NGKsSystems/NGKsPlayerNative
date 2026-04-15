@@ -2,6 +2,8 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QDialog>
+#include <QDialogButtonBox>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QStackedLayout>
@@ -31,6 +33,7 @@
 #include <QTimer>
 #include <QThread>
 #include <QVBoxLayout>
+#include <QRandomGenerator>
 #include <QDateTime>
 #include <QWidget>
 #include <QClipboard>
@@ -106,6 +109,53 @@
 
 namespace {
 
+enum class DjIntroMode {
+    Always,
+    FirstLaunchOnly,
+    Off,
+};
+
+QString djIntroModeKey()
+{
+    return QStringLiteral("settings/dj_intro_mode");
+}
+
+QString djIntroSeenKey()
+{
+    return QStringLiteral("settings/dj_intro_seen");
+}
+
+QByteArray blobForText(const QString& text)
+{
+    return text.toUtf8();
+}
+
+QString textFromBlob(const QByteArray& blob)
+{
+    return QString::fromUtf8(blob).trimmed();
+}
+
+DjIntroMode djIntroModeFromString(const QString& value)
+{
+    const QString lower = value.trimmed().toLower();
+    if (lower == QStringLiteral("off")) return DjIntroMode::Off;
+    if (lower == QStringLiteral("first-launch-only")) return DjIntroMode::FirstLaunchOnly;
+    return DjIntroMode::Always;
+}
+
+QString djIntroModeToString(DjIntroMode mode)
+{
+    switch (mode) {
+    case DjIntroMode::Off:
+        return QStringLiteral("off");
+    case DjIntroMode::FirstLaunchOnly:
+        return QStringLiteral("first-launch-only");
+    case DjIntroMode::Always:
+    default:
+        return QStringLiteral("always");
+    }
+}
+
 class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(EngineBridge& engineBridge)
@@ -129,12 +179,15 @@ public:
         djModePage_->setTrackList(&allTracks_);
         stack_->addWidget(djModePage_);          // 3
         connect(djModePage_, &DjModePage::backRequested, this, [this]() {
+            if (djIntroOverlay_) djIntroOverlay_->stop();
             stack_->setCurrentIndex(1);
         });
-        djIntroOverlay_ = new DjIntroOverlay();
-        stack_->addWidget(djIntroOverlay_);      // 4
-        connect(djIntroOverlay_, &DjIntroOverlay::finished, this, [this]() {
-            stack_->setCurrentIndex(3);
+        djIntroOverlay_ = new DjIntroOverlay(stack_);
+        djIntroOverlay_->setGeometry(stack_->rect());
+        djIntroOverlay_->hide();
+        stack_->installEventFilter(this);
+        connect(&bridge_, &EngineBridge::audioHotReady, this, [this](bool ok) {
+            if (ok && djIntroOverlay_) djIntroOverlay_->duckForEngineReady();
         });
         stack_->setCurrentIndex(0);
         rootLayout->addWidget(stack_, 1);
@@ -181,6 +234,8 @@ public:
         selfTestAutorun_ = (autorun == QStringLiteral("1") || autorun == QStringLiteral("true") || autorun == QStringLiteral("yes"));
         const QString rtAutorun = qEnvironmentVariable("NGKS_RT_AUDIO_AUTORUN").trimmed().toLower();
         rtProbeAutorun_ = (rtAutorun == QStringLiteral("1") || rtAutorun == QStringLiteral("true") || rtAutorun == QStringLiteral("yes"));
+
+        loadDjIntroSettings();
 
         // ── Open SQLite library database ──
         djDb_.open(runtimePath("data/runtime/ngks_library.db"));
@@ -245,6 +300,16 @@ djDb_.bulkInsert(allTracks_);
     }
 
 private:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (watched == stack_ && djIntroOverlay_ &&
+            (event->type() == QEvent::Resize || event->type() == QEvent::Show)) {
+            djIntroOverlay_->setGeometry(stack_->rect());
+        }
+
+        return QMainWindow::eventFilter(watched, event);
+    }
+
     // ── Page builders ──
     QWidget* buildSplashPage()
     {
@@ -372,9 +437,11 @@ private:
 
         auto* settingsBtn = new QPushButton(QStringLiteral("Settings"), page);
         settingsBtn->setMinimumHeight(30);
-        settingsBtn->setEnabled(false);
-        settingsBtn->setToolTip(QStringLiteral("Application settings (coming soon)"));
+        settingsBtn->setToolTip(QStringLiteral("Application settings"));
         toolRow->addWidget(settingsBtn);
+        QObject::connect(settingsBtn, &QPushButton::clicked, this, [this]() {
+            showAppSettingsDialog();
+        });
 
         auto* normalizeBtn = new QPushButton(QStringLiteral("Normalize"), page);
         normalizeBtn->setMinimumHeight(30);
@@ -448,13 +515,13 @@ private:
             qInfo().noquote() << QStringLiteral("TRACKS_INDEXED=%1").arg(allTracks_.size());
 
             applyCoreDurationPatch(allTracks_);
-djDb_.bulkInsert(allTracks_);
+            djDb_.bulkInsert(allTracks_);
 
-            // Clear detail panel before rebuild
             clearTrackDetail();
             refreshLibraryList();
+            playerPage_->setTrackList(&allTracks_);
+            playerPage_->refreshLibrary();
 
-            // Save library to disk (metadata already extracted during scan)
             saveLibraryJson(allTracks_, importedFolderPath_);
             qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_SCAN");
         });
@@ -804,15 +871,129 @@ djDb_.bulkInsert(allTracks_);
             stack_->setCurrentIndex(2);
         });
         QObject::connect(djBtn, &QPushButton::clicked, this, [this]() {
+            if (djIntroOverlay_ && djIntroOverlay_->isActive()) {
+                djIntroOverlay_->skip();
+                return;
+            }
+
             bridge_.enterDjMode();
             djModePage_->refreshLibrary();
-            const QString intro = QCoreApplication::applicationDirPath()
-                                  + QStringLiteral("/../../../assets/Video Project 1.mp4");
-            djIntroOverlay_->play(intro);
-            stack_->setCurrentIndex(4);
+            stack_->setCurrentIndex(3);
+
+            if (shouldPlayDjIntro()) {
+                const QString intro = chooseRandomDjIntroVideo();
+                if (!intro.isEmpty()) {
+                    markDjIntroSeen();
+                    djIntroOverlay_->setGeometry(stack_->rect());
+                    djIntroOverlay_->play(intro);
+                }
+            }
         });
 
         return page;
+    }
+
+    void showAppSettingsDialog()
+    {
+        QDialog dialog(this);
+        dialog.setWindowTitle(QStringLiteral("Settings"));
+        dialog.setModal(true);
+        dialog.resize(360, 160);
+
+        auto* layout = new QVBoxLayout(&dialog);
+        auto* introLabel = new QLabel(
+            QStringLiteral("DJ mode intro video behavior:"),
+            &dialog);
+        layout->addWidget(introLabel);
+
+        auto* introModeCombo = new QComboBox(&dialog);
+        introModeCombo->addItem(QStringLiteral("Always"), static_cast<int>(DjIntroMode::Always));
+        introModeCombo->addItem(QStringLiteral("First Launch Only"), static_cast<int>(DjIntroMode::FirstLaunchOnly));
+        introModeCombo->addItem(QStringLiteral("Off"), static_cast<int>(DjIntroMode::Off));
+        introModeCombo->setCurrentIndex(introModeCombo->findData(static_cast<int>(djIntroMode_)));
+        layout->addWidget(introModeCombo);
+
+        auto* help = new QLabel(
+            QStringLiteral("Click the intro video or press Space, Enter, or Esc to skip it. Audio ducks automatically when DJ audio becomes ready."),
+            &dialog);
+        help->setWordWrap(true);
+        layout->addWidget(help);
+
+        auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+        layout->addWidget(buttons);
+        QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+        if (dialog.exec() != QDialog::Accepted) return;
+
+        djIntroMode_ = static_cast<DjIntroMode>(introModeCombo->currentData().toInt());
+        saveUiStateBlob(djIntroModeKey(), blobForText(djIntroModeToString(djIntroMode_)));
+    }
+
+    void loadDjIntroSettings()
+    {
+        QByteArray introModeBlob;
+        if (loadUiStateBlob(djIntroModeKey(), introModeBlob)) {
+            djIntroMode_ = djIntroModeFromString(textFromBlob(introModeBlob));
+        }
+
+        QByteArray introSeenBlob;
+        if (loadUiStateBlob(djIntroSeenKey(), introSeenBlob)) {
+            const QString text = textFromBlob(introSeenBlob).toLower();
+            djIntroSeen_ = (text == QStringLiteral("1") || text == QStringLiteral("true") || text == QStringLiteral("yes"));
+        }
+    }
+
+    bool shouldPlayDjIntro() const
+    {
+        switch (djIntroMode_) {
+        case DjIntroMode::Off:
+            return false;
+        case DjIntroMode::FirstLaunchOnly:
+            return !djIntroSeen_;
+        case DjIntroMode::Always:
+        default:
+            return true;
+        }
+    }
+
+    void markDjIntroSeen()
+    {
+        if (djIntroSeen_) return;
+        djIntroSeen_ = true;
+        saveUiStateBlob(djIntroSeenKey(), blobForText(QStringLiteral("1")));
+    }
+
+    QString chooseRandomDjIntroVideo()
+    {
+        const QString assetsPath = QCoreApplication::applicationDirPath()
+                                   + QStringLiteral("/../../../assets");
+        QDir assetsDir(assetsPath);
+        const QStringList names = assetsDir.entryList(
+            {QStringLiteral("*.mp4"), QStringLiteral("*.mov"), QStringLiteral("*.m4v"),
+             QStringLiteral("*.avi"), QStringLiteral("*.webm"), QStringLiteral("*.mkv")},
+            QDir::Files | QDir::Readable,
+            QDir::Name);
+        if (names.isEmpty()) return {};
+
+        QStringList candidates;
+        candidates.reserve(names.size());
+        for (const QString& name : names) {
+            candidates.push_back(assetsDir.absoluteFilePath(name));
+        }
+
+        if (candidates.size() > 1 && !lastDjIntroVideoPath_.isEmpty()) {
+            candidates.removeAll(lastDjIntroVideoPath_);
+            if (candidates.isEmpty()) {
+                for (const QString& name : names) {
+                    candidates.push_back(assetsDir.absoluteFilePath(name));
+                }
+            }
+        }
+
+        const int index = QRandomGenerator::global()->bounded(candidates.size());
+        lastDjIntroVideoPath_ = candidates.at(index);
+        return lastDjIntroVideoPath_;
     }
 
 
@@ -1093,6 +1274,9 @@ private:
     PlayerPage* playerPage_{nullptr};
     DjModePage* djModePage_{nullptr};
     DjIntroOverlay* djIntroOverlay_{nullptr};
+    QString lastDjIntroVideoPath_;
+    DjIntroMode djIntroMode_{DjIntroMode::Always};
+    bool djIntroSeen_{false};
     DjLibraryDatabase djDb_;
     std::vector<TrackInfo> allTracks_;
     std::vector<Playlist> playlists_;
