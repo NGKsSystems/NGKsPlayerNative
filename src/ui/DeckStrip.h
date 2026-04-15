@@ -16,7 +16,6 @@
 #include "DjAnalysisPanelWidget.h"
 
 class EngineBridge;
-class AnalysisBridge;
 class EqPanel;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -143,6 +142,7 @@ protected:
     void dragMoveEvent(QDragMoveEvent* event) override;
     void dragLeaveEvent(QDragLeaveEvent* event) override;
     void dropEvent(QDropEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
 
 public:
 
@@ -188,10 +188,12 @@ private:
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
+    // Removing duplicated dragEnterEvent and dropEvent
+
+
     int deckIndex_{0};
     QString accent_;
     EngineBridge* bridge_{nullptr};
-    AnalysisBridge* analysisBridge_{nullptr};
 
     // Widgets — signal flow order
     QFrame* displayPanel_{nullptr};
@@ -338,5 +340,11 @@ protected:
     QPushButton* waveModeBtn_{nullptr};
     bool prevPlaying_{false};  // edge detection for play/pause/stop transitions
 
+    // Drag-and-drop state
+    bool dropHovering_{false};  // mouse is over deck with valid drag
+    bool dropBlocked_{false};   // deck is playing — drop refused
+
     void applyMixerDensity();
 };
+
+

@@ -66,6 +66,9 @@ public:
     // Lookup by exact file path.
     std::optional<TrackInfo> trackByPath(const QString& path) const;
 
+    // Lookup the primary key by exact file path.
+    std::optional<qint64> trackIdByPath(const QString& path) const;
+
     // Total rows in the table (no filter).
     int totalCount() const;
 

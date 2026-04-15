@@ -1,3 +1,4 @@
+#include <QMenu>
 #include "ui/library/LibraryBrowserWidget.h"
 #include "ui/library/DjLibraryDatabase.h"
 
@@ -84,10 +85,35 @@ void LibraryBrowserWidget::buildMainPanel()
     view_->header()->resizeSection(0, 340);
     view_->header()->resizeSection(1, 140);
     view_->header()->resizeSection(2, 140);
-    view_->header()->resizeSection(3,  70);
-    view_->header()->resizeSection(4,  55);
-    view_->header()->resizeSection(5,  50);
+    view_->header()->resizeSection(3, 100); // Genre
+    view_->header()->resizeSection(4,  70); // Duration
+    view_->header()->resizeSection(5,  55); // BPM
+    view_->header()->resizeSection(6,  50); // Key
+    view_->header()->resizeSection(7,  60); // Camelot
+    view_->header()->resizeSection(8,  55); // LUFS
     root->addWidget(view_, 1);
+
+    // Column visibility context menu
+    view_->header()->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(view_->header(), &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+        QMenu menu(this);
+        menu.setStyleSheet(
+            "QMenu { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460; padding: 4px 0; }"
+            "QMenu::item { padding: 6px 24px; }"
+            "QMenu::item:selected { background: #533483; }"
+        );
+        for (int i = 1; i < view_->header()->count(); ++i) { // Skip Name (0)
+            QString colName = view_->header()->model()->headerData(i, Qt::Horizontal).toString();
+            QAction* a = menu.addAction(colName);
+            a->setCheckable(true);
+            a->setChecked(!view_->header()->isSectionHidden(i));
+            connect(a, &QAction::triggered, this, [this, i](bool checked) {
+                view_->header()->setSectionHidden(i, !checked);
+            });
+        }
+        menu.exec(view_->header()->mapToGlobal(pos));
+    });
+
 
     // ── Internal wiring (search/sort → filter) ──────────────────────────────
     connect(searchBar_, &QLineEdit::textChanged,
@@ -195,10 +221,35 @@ void LibraryBrowserWidget::buildPlayerPanel()
     view_->header()->resizeSection(0, 280);
     view_->header()->resizeSection(1, 140);
     view_->header()->resizeSection(2, 130);
-    view_->header()->resizeSection(3,  65);
-    view_->header()->resizeSection(4,  50);
-    view_->header()->resizeSection(5,  45);
+    view_->header()->resizeSection(3,  90); // Genre
+    view_->header()->resizeSection(4,  65); // Duration
+    view_->header()->resizeSection(5,  50); // BPM
+    view_->header()->resizeSection(6,  45); // Key
+    view_->header()->resizeSection(7,  55); // Camelot
+    view_->header()->resizeSection(8,  50); // LUFS
     root->addWidget(view_, 1);
+
+    // Column visibility context menu
+    view_->header()->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(view_->header(), &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+        QMenu menu(this);
+        menu.setStyleSheet(
+            "QMenu { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460; padding: 4px 0; }"
+            "QMenu::item { padding: 6px 24px; }"
+            "QMenu::item:selected { background: #533483; }"
+        );
+        for (int i = 1; i < view_->header()->count(); ++i) { // Skip Name (0)
+            QString colName = view_->header()->model()->headerData(i, Qt::Horizontal).toString();
+            QAction* a = menu.addAction(colName);
+            a->setCheckable(true);
+            a->setChecked(!view_->header()->isSectionHidden(i));
+            connect(a, &QAction::triggered, this, [this, i](bool checked) {
+                view_->header()->setSectionHidden(i, !checked);
+            });
+        }
+        menu.exec(view_->header()->mapToGlobal(pos));
+    });
+
 
     // ── Internal wiring ──────────────────────────────────────────────────────
     connect(searchBar_, &QLineEdit::textChanged,

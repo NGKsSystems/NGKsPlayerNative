@@ -444,6 +444,16 @@ std::optional<TrackInfo> DjLibraryDatabase::trackByPath(const QString& path) con
     return rowFromQuery(q).info;
 }
 
+std::optional<qint64> DjLibraryDatabase::trackIdByPath(const QString& path) const
+{
+    if (!open_) return std::nullopt;
+    QSqlQuery q(db_);
+    q.prepare(QStringLiteral("SELECT track_id FROM library_tracks WHERE file_path = :fp LIMIT 1;"));
+    q.bindValue(qs(":fp"), path);
+    if (!q.exec() || !q.next()) return std::nullopt;
+    return q.value(0).toLongLong();
+}
+
 int DjLibraryDatabase::totalCount() const
 {
     if (!open_) return 0;

@@ -37,16 +37,19 @@ QVariant DjLibraryModel::data(const QModelIndex& index, int role) const
         case 0: return t.displayName.isEmpty() ? QStringLiteral("Unknown") : t.displayName;
         case 1: return t.artist.isEmpty()      ? QStringLiteral("-")       : t.artist;
         case 2: return t.album.isEmpty()       ? QStringLiteral("-")       : t.album;
-        case 3: return t.durationStr.isEmpty() ? QStringLiteral("--:--")   : t.durationStr;
-        case 4: return t.bpm.isEmpty()         ? QStringLiteral("-")       : t.bpm;
-        case 5: return t.musicalKey.isEmpty()  ? QStringLiteral("-")       : t.musicalKey;
+        case 3: return t.genre.isEmpty()       ? QStringLiteral("-")       : t.genre;
+        case 4: return t.durationStr.isEmpty() ? QStringLiteral("--:--")   : t.durationStr;
+        case 5: return t.bpm.isEmpty()         ? QStringLiteral("-")       : t.bpm;
+        case 6: return t.musicalKey.isEmpty()  ? QStringLiteral("-")       : t.musicalKey;
+        case 7: return t.camelotKey.isEmpty()  ? QStringLiteral("-")       : t.camelotKey;
+        case 8: return (t.loudnessLUFS == 0.0) ? QStringLiteral("-")       : QString::number(t.loudnessLUFS, 'f', 1);
         default: return {};
         }
     }
 
     if (role == Qt::TextAlignmentRole) {
         // Right-align numeric columns
-        if (index.column() >= 3)
+        if (index.column() >= 4)
             return static_cast<int>(Qt::AlignRight | Qt::AlignVCenter);
         return static_cast<int>(Qt::AlignLeft | Qt::AlignVCenter);
     }
@@ -61,9 +64,12 @@ QVariant DjLibraryModel::headerData(int section, Qt::Orientation orientation, in
     case 0: return QStringLiteral("Name");
     case 1: return QStringLiteral("Artist");
     case 2: return QStringLiteral("Album");
-    case 3: return QStringLiteral("Duration");
-    case 4: return QStringLiteral("BPM");
-    case 5: return QStringLiteral("Key");
+    case 3: return QStringLiteral("Genre");
+    case 4: return QStringLiteral("Duration");
+    case 5: return QStringLiteral("BPM");
+    case 6: return QStringLiteral("Key");
+    case 7: return QStringLiteral("Camelot");
+    case 8: return QStringLiteral("LUFS");
     default: return {};
     }
 }

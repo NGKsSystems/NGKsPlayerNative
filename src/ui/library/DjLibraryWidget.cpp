@@ -12,7 +12,7 @@ DjLibraryWidget::DjLibraryWidget(QWidget* parent)
     lay->setContentsMargins(0, 0, 0, 0);
     lay->setSpacing(0);
 
-    view_ = new QTableView(this);
+    view_ = new TrackDragView(this);
     view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     view_->setSelectionMode(QAbstractItemView::SingleSelection);
     view_->setSelectionBehavior(QAbstractItemView::SelectRows);

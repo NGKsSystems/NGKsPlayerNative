@@ -1,2 +1,0 @@
-build_graph/release\bin\native.exe
-build_graph/release\bin\vc_redist.x64.exe

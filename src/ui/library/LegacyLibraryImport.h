@@ -19,3 +19,5 @@ struct LegacyImportResult {
 
 // ── Import a legacy SQLite library into a track list ─────────────────────────
 LegacyImportResult importLegacyDb(std::vector<TrackInfo>& tracks, const QString& dbPath);
+// ── Phase 3 Core DB Duration Patch ───────────────────────────────────
+void applyCoreDurationPatch(std::vector<TrackInfo>& tracks);

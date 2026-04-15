@@ -1,1 +1,0 @@
-PASS\ndj_page_height_px=850\ndj_library_region_height_px=600\ndj_library_table_viewport_height_px=560\nvisible_row_count_on_start=18

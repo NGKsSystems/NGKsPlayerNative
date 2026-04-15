@@ -132,3 +132,88 @@ LegacyImportResult importLegacyDb(std::vector<TrackInfo>& tracks, const QString&
     QSqlDatabase::removeDatabase(connName);
     return result;
 }
+
+void applyCoreDurationPatch(std::vector<TrackInfo>& allTracks_) {
+    // ── Load duration from dj_library_core.db directly ──
+    QString coreDbPath = QCoreApplication::applicationDirPath() + QStringLiteral("/../../../data/dj_library_core.db");
+    if (!QFile::exists(coreDbPath)) {
+        coreDbPath = QDir::currentPath() + QStringLiteral("/data/dj_library_core.db");
+    }
+
+    if (QFile::exists(coreDbPath)) {
+        const QString connName = QStringLiteral("dj_core_duration_fix");
+        {
+            QSqlDatabase coreDb = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+            coreDb.setDatabaseName(coreDbPath);
+            coreDb.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+            int matchCore = 0;
+            if (coreDb.open()) {
+                std::map<QString, size_t> pathIndex;
+                for (size_t i = 0; i < allTracks_.size(); ++i) {
+                    pathIndex[QDir::fromNativeSeparators(allTracks_[i].filePath).trimmed().toLower()] = i;
+                }
+
+                QSqlQuery q(coreDb);
+                q.setForwardOnly(true);
+                if (q.exec(QStringLiteral("SELECT file_path, duration FROM tracks LIMIT 9999999"))) {
+                    while (q.next()) {
+                        QString fp = QDir::fromNativeSeparators(q.value(0).toString()).trimmed().toLower();
+                        double dur = q.value(1).toDouble();
+                        if (dur > 0) {
+                            auto it = pathIndex.find(fp);
+                            if (it != pathIndex.end()) {
+                                TrackInfo& t = allTracks_[it->second];
+                                if (t.durationMs <= 0 || t.durationStr == QStringLiteral("--:--") || t.durationStr.isEmpty()) {
+                                    t.durationMs = static_cast<qint64>(dur * 1000.0);
+                                    const int totalSec = static_cast<int>(dur);
+                                    t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+                                    matchCore++;
+                                }
+                            }
+                        }
+                    }
+                    qInfo().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH matched=%1").arg(matchCore);
+                } else {
+                    qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_QUERY ") << q.lastError().text();
+                }
+                coreDb.close();
+            } else {
+                qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH FAILED_OPEN ") << coreDb.lastError().text();
+            }
+        }
+        QSqlDatabase::removeDatabase(connName);
+    } else {
+        qWarning().noquote() << QStringLiteral("CORE_DB_DURATION_PATCH DB_NOT_FOUND ") << coreDbPath;
+    }
+
+    // Fallback: For any tracks without duration, estimate it from MP3 filesize
+    for (auto& t : allTracks_) {
+        if (t.durationMs <= 0 && t.filePath.endsWith(QStringLiteral(".mp3"), Qt::CaseInsensitive)) {
+            QFile fFallback(t.filePath);
+            if (fFallback.open(QIODevice::ReadOnly)) {
+                QByteArray hdr = fFallback.read(10);
+                qint64 dataOff = 0;
+                if (hdr.size() == 10 && hdr[0] == 'I' && hdr[1] == 'D' && hdr[2] == '3') {
+                    int tagSize = ((hdr[6] & 0x7F) << 21) | ((hdr[7] & 0x7F) << 14) | ((hdr[8] & 0x7F) << 7) | (hdr[9] & 0x7F);
+                    dataOff = 10 + tagSize;
+                }
+                fFallback.seek(dataOff);
+                QByteArray frameHdr = fFallback.read(4);
+                int bitrate = 256;
+                if (frameHdr.size() == 4) {
+                    if ((frameHdr[0] & 0xFF) == 0xFF && (frameHdr[1] & 0xE0) == 0xE0) {
+                        int brIdx = (frameHdr[2] >> 4) & 0x0F;
+                        static const int brMap[] = { 0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0 };
+                        if (brIdx >= 0 && brIdx < 16 && brMap[brIdx] > 0) {
+                            bitrate = brMap[brIdx];
+                        }
+                    }
+                }
+                if (bitrate <= 0) bitrate = 256;
+                t.durationMs = static_cast<qint64>(((fFallback.size() - dataOff) * 8.0) / (bitrate * 1000.0) * 1000.0);
+                int totalSec = static_cast<int>(t.durationMs / 1000);
+                t.durationStr = QStringLiteral("%1:%2").arg(totalSec / 60).arg(totalSec % 60, 2, 10, QLatin1Char('0'));
+            }
+        }
+    }
+}

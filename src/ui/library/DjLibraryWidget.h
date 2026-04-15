@@ -9,7 +9,7 @@
 #include <optional>
 
 class QHeaderView;
-class QTableView;
+#include "ui/library/TrackDragView.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DjLibraryWidget
@@ -96,5 +96,5 @@ private slots:
 private:
     DjLibraryDatabase* db_{nullptr};
     DjLibraryModel*    model_{nullptr};
-    QTableView*        view_{nullptr};
+    TrackDragView*     view_{nullptr};
 };

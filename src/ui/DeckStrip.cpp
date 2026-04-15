@@ -1,11 +1,12 @@
 #include <QDebug>
 #include "ui/DeckStrip.h"
 #include "ui/EngineBridge.h"
-#include "ui/AnalysisBridge.h"
 #include "ui/EqPanel.h"
 #include "ui/WaveformOverview.h"
 
 #include <QDragEnterEvent>
+#include <QDragLeaveEvent>
+#include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QFont>
 #include <QFrame>
@@ -657,11 +658,6 @@ void DeckStrip::buildUi()
         infoKeyLabel_->hide();
 
         // ── DJ Analysis Panel (custom-painted cards, NOT text labels) ──
-        
-        analysisBridge_ = new AnalysisBridge(this);
-        connect(analysisBridge_, &AnalysisBridge::panelStateChanged, this, &DeckStrip::updateAnalysisPanel);
-        QTimer::singleShot(0, analysisBridge_, &AnalysisBridge::start);
-
         analysisDash_ = new DjAnalysisPanelWidget(QColor(accent_), trackBlock);
         analysisDash_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         trackLayout->addWidget(analysisDash_);
@@ -2009,7 +2005,110 @@ void DeckStrip::wireSignals()
     });
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// Drag-and-Drop  (self-contained module — handles enter / move / leave / drop
+//                and owns all visual feedback via paintEvent overlay)
+// ═════════════════════════════════════════════════════════════════════════════
 
+static bool dndMimeAcceptable(const QMimeData* mime)
+{
+    return mime->hasFormat(QStringLiteral("application/x-ngks-track-id"))
+        || mime->hasUrls();
+}
+
+void DeckStrip::dragEnterEvent(QDragEnterEvent* e)
+{
+    if (!dndMimeAcceptable(e->mimeData())) {
+        QWidget::dragEnterEvent(e);
+        return;
+    }
+    const bool playing = bridge_ && bridge_->deckIsPlaying(deckIndex_);
+    dropBlocked_   = playing;
+    dropHovering_  = true;
+    update();
+    if (playing)
+        e->ignore();
+    else
+        e->acceptProposedAction();
+}
+
+void DeckStrip::dragMoveEvent(QDragMoveEvent* e)
+{
+    if (!dndMimeAcceptable(e->mimeData())) {
+        e->ignore();
+        return;
+    }
+    const bool playing = bridge_ && bridge_->deckIsPlaying(deckIndex_);
+    dropBlocked_ = playing;
+    update();
+    if (playing)
+        e->ignore();
+    else
+        e->acceptProposedAction();
+}
+
+void DeckStrip::dragLeaveEvent(QDragLeaveEvent* e)
+{
+    dropHovering_ = false;
+    dropBlocked_  = false;
+    update();
+    QWidget::dragLeaveEvent(e);
+}
+
+void DeckStrip::dropEvent(QDropEvent* e)
+{
+    dropHovering_ = false;
+    dropBlocked_  = false;
+    update();
+
+    if (bridge_ && bridge_->deckIsPlaying(deckIndex_)) {
+        e->ignore();
+        return;
+    }
+    if (e->mimeData()->hasFormat(QStringLiteral("application/x-ngks-track-id"))) {
+        bool ok = false;
+        const qint64 tid = QString::fromUtf8(
+            e->mimeData()->data(QStringLiteral("application/x-ngks-track-id"))).toLongLong(&ok);
+        if (ok) {
+            e->acceptProposedAction();
+            emit loadTrackRequested(deckIndex_, tid);
+        }
+        return;
+    }
+    if (e->mimeData()->hasUrls()) {
+        const QList<QUrl> urls = e->mimeData()->urls();
+        if (!urls.isEmpty()) {
+            const QString path = urls.first().toLocalFile();
+            if (!path.isEmpty()) {
+                e->acceptProposedAction();
+                emit loadFileRequested(deckIndex_, path);
+            }
+        }
+        return;
+    }
+    QWidget::dropEvent(e);
+}
+
+void DeckStrip::paintEvent(QPaintEvent* e)
+{
+    QWidget::paintEvent(e);
+    if (!dropHovering_) return;
+
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing, false);
+    const QRect r = rect().adjusted(1, 1, -2, -2);
+    if (dropBlocked_) {
+        // Red border + semi-transparent red tint — deck is busy
+        p.fillRect(r, QColor(180, 0, 0, 35));
+        p.setPen(QPen(QColor(220, 40, 40), 3));
+    } else {
+        // Green border + semi-transparent green tint — ready to accept
+        p.fillRect(r, QColor(0, 180, 60, 35));
+        p.setPen(QPen(QColor(0, 220, 80), 3));
+    }
+    p.setBrush(Qt::NoBrush);
+    p.drawRect(r);
+}
 
 bool DeckStrip::eventFilter(QObject* obj, QEvent* event)
 {
@@ -2080,18 +2179,6 @@ void DeckStrip::refreshFromSnapshot()
     const double peakL = bridge_->deckPeakL(deckIndex_);
     const double peakR = bridge_->deckPeakR(deckIndex_);
     const QString currentPath = bridge_->deckFilePath(deckIndex_);
-
-    if (analysisBridge_ && analysisBridge_->isReady()) {
-        static QString lastPath[4];
-        if (currentPath != lastPath[deckIndex_]) {
-            lastPath[deckIndex_] = currentPath;
-            if (currentPath.isEmpty()) analysisBridge_->unselectTrack();
-            else analysisBridge_->selectTrack(currentPath);
-        }
-        if (!currentPath.isEmpty()) {
-            analysisBridge_->resolvePlayhead(ph);
-        }
-    }
 
     const bool loaded = bridge_->deckHasTrack(deckIndex_);
     const int lifecycle = bridge_->deckLifecycle(deckIndex_);
@@ -2519,96 +2606,3 @@ QString DeckStrip::formatTime(double seconds)
     return QStringLiteral("%1:%2").arg(m).arg(s, 2, 10, QLatin1Char('0'));
 }
 
-#include <QDragEnterEvent>
-#include <QDragMoveEvent>
-#include <QDragLeaveEvent>
-#include <QDropEvent>
-#include <QMimeData>
-#include <QMessageBox>
-
-void DeckStrip::dragEnterEvent(QDragEnterEvent* event) {
-    QString name = QString(kDeckNames[deckIndex_]);
-    bool valid = event->mimeData()->hasFormat("application/x-ngks-dj-track") || event->mimeData()->hasUrls() || event->mimeData()->hasText();
-    qInfo() << "DECK_DRAG_ENTER deck=" << name << " valid=" << (valid ? 1 : 0);
-    if (valid) {
-        event->setDropAction(Qt::CopyAction);
-        event->accept();
-        // Visual reaction
-        auto* df = findChild<QFrame*>(QStringLiteral("deckFrame%1").arg(deckIndex_));
-        if (df) {
-            if (!df->property("originalStyleSheet").isValid()) {
-                df->setProperty("originalStyleSheet", df->styleSheet());
-            }
-            df->setStyleSheet(df->property("originalStyleSheet").toString() + QStringLiteral("QFrame#deckFrame%1 { border: 2px solid #00FF00 !important; background: #224422; }").arg(deckIndex_));
-        }
-    }
-}
-
-void DeckStrip::dragMoveEvent(QDragMoveEvent* event) {
-    if (event->mimeData()->hasFormat("application/x-ngks-dj-track") || event->mimeData()->hasUrls() || event->mimeData()->hasText()) {
-        event->setDropAction(Qt::CopyAction);
-        event->accept();
-    } else {
-        event->ignore();
-    }
-}
-
-void DeckStrip::dragLeaveEvent(QDragLeaveEvent* event) {
-    auto* df = findChild<QFrame*>(QStringLiteral("deckFrame%1").arg(deckIndex_));
-    if (df) {
-        // Simple way to reset style is just remove the appended override or rebuild it,
-        // but rebuilding it exactly is tricky. Let's just repaint or rely on the base
-        // Or wait, since I'm appending a rule, maybe it's better to store original style.
-        // Actually, just calling buildUi or similar? No.
-        // A better approach is to change the object name or property and unpolish/polish.
-        df->setStyleSheet(df->property("originalStyleSheet").toString());
-    }
-    event->accept();
-}
-
-void DeckStrip::dropEvent(QDropEvent* event) {
-    // Revert visual
-    auto* df = findChild<QFrame*>(QStringLiteral("deckFrame%1").arg(deckIndex_));
-    if (df) {
-        df->setStyleSheet(df->property("originalStyleSheet").toString());
-    }
-    if (!event->mimeData()->hasFormat("application/x-ngks-dj-track") && !event->mimeData()->hasUrls() && !event->mimeData()->hasText()) return;
-
-    QString path;
-    QString title, artist, bpm, key, duration;
-    
-    if (event->mimeData()->hasFormat("application/x-ngks-dj-track")) {
-        path = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-track"));
-        title = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-title"));
-        artist = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-artist"));
-        bpm = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-bpm"));
-        key = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-key"));
-        duration = QString::fromUtf8(event->mimeData()->data("application/x-ngks-dj-duration"));
-    } else if (event->mimeData()->hasUrls() && !event->mimeData()->urls().isEmpty()) {
-        path = event->mimeData()->urls().first().toLocalFile();
-    } else if (event->mimeData()->hasText()) {
-        path = event->mimeData()->text();
-    }
-    
-    qWarning().noquote() << QString("DECK_DROP_LOAD_REQUEST deck=%1 file='%2'").arg(deckIndex_ == 0 ? 'A' : 'B').arg(path);
-    qInfo() << "DECK_DROP deck=" << deckIndex_ << " file='" << path << "'";
-
-    if (bridge_->deckIsPlaying(deckIndex_)) {
-        qInfo() << "DECK_LOAD_BLOCKED_PLAYING deck=" << deckIndex_;
-        QMessageBox* box = new QMessageBox(QMessageBox::Warning, "Load Blocked", "Deck is currently playing", QMessageBox::Ok, this);
-        box->setAttribute(Qt::WA_DeleteOnClose);
-        box->open();
-        return;
-    }
-
-    qInfo() << "DECK_LOAD_ALLOWED deck=" << deckIndex_ << " title=" << title << " format=" << (event->mimeData()->hasFormat("application/x-ngks-dj-track") ? "INTERNAL" : "EXTERNAL");
-    event->setDropAction(Qt::CopyAction);
-    event->accept();
-    
-    // Apply metadata strictly before engine load starts fetching async
-    if (!title.isEmpty() || !artist.isEmpty() || !bpm.isEmpty()) {
-        setTrackMetadata(title, artist, bpm, key, duration);
-    }
-    
-    loadTrack(path);
-}

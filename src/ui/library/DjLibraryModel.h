@@ -25,7 +25,7 @@ class DjLibraryModel : public QAbstractTableModel {
     Q_OBJECT
 public:
     static constexpr int kPageSize = 200;
-    static constexpr int kColumns  = 6;
+    static constexpr int kColumns  = 9; // Name, Artist, Album, Genre, Duration, BPM, Key, Camelot, LUFS
 
     static constexpr QLatin1String kMimeType    { "application/x-ngks-track-id" };
     static constexpr QLatin1String kMimeTypeUri  { "text/uri-list" };
