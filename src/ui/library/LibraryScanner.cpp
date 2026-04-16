@@ -1,9 +1,16 @@
 #include "ui/library/LibraryScanner.h"
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
 #include <QLoggingCategory>
+
+namespace {
+
+constexpr qint64 kFingerprintChunkSize = 64 * 1024;
+
+} // namespace
 
 // ── readId3Tags ───────────────────────────────────────────────────────────────
 void readId3Tags(TrackInfo& track)
@@ -96,14 +103,42 @@ void readId3Tags(TrackInfo& track)
 }
 
 // ── scanFolderForTracks ───────────────────────────────────────────────────────
-std::vector<TrackInfo> scanFolderForTracks(const QString& folderPath)
+QStringList supportedAudioFileFilters()
 {
-    std::vector<TrackInfo> tracks;
-    static const QStringList filters = {
+    return {
         QStringLiteral("*.mp3"), QStringLiteral("*.wav"), QStringLiteral("*.flac"),
         QStringLiteral("*.ogg"), QStringLiteral("*.aac"), QStringLiteral("*.m4a"),
         QStringLiteral("*.wma")
     };
+}
+
+QString computeTrackFingerprint(const QString& filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) return QString();
+
+    const qint64 fileSize = file.size();
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    hash.addData(QByteArray::number(fileSize));
+    hash.addData("|");
+
+    const QByteArray head = file.read(kFingerprintChunkSize);
+    hash.addData(head);
+
+    if (fileSize > kFingerprintChunkSize) {
+        const qint64 tailOffset = qMax<qint64>(0, fileSize - kFingerprintChunkSize);
+        if (file.seek(tailOffset)) {
+            hash.addData(file.read(kFingerprintChunkSize));
+        }
+    }
+
+    return QString::fromLatin1(hash.result().toHex());
+}
+
+std::vector<TrackInfo> scanFolderForTracks(const QString& folderPath)
+{
+    std::vector<TrackInfo> tracks;
+    const QStringList filters = supportedAudioFileFilters();
 
     QDirIterator it(folderPath, filters, QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
@@ -111,6 +146,7 @@ std::vector<TrackInfo> scanFolderForTracks(const QString& folderPath)
         TrackInfo info;
         info.filePath = it.filePath();
         info.fileSize = it.fileInfo().size();
+        info.fileFingerprint = computeTrackFingerprint(info.filePath);
         const QString baseName = it.fileInfo().completeBaseName();
 
         const int dashPos = baseName.indexOf(QStringLiteral(" - "));

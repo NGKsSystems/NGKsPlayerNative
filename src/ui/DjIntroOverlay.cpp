@@ -115,6 +115,7 @@ DjIntroOverlay::DjIntroOverlay(QWidget* parent)
 
 void DjIntroOverlay::play(const QString& videoPath)
 {
+    qInfo().noquote() << QStringLiteral("DJ_INTRO_PLAY path=%1").arg(videoPath);
     fadeAnimation_->stop();
     gainAnimation_->stop();
     player_->stop();
@@ -149,6 +150,9 @@ void DjIntroOverlay::play(const QString& videoPath)
 
 void DjIntroOverlay::stop()
 {
+    qInfo().noquote() << QStringLiteral("DJ_INTRO_STOP active=%1 finishing=%2")
+        .arg(isActive() ? 1 : 0)
+        .arg(finishing_ ? 1 : 0);
     fadeAnimation_->stop();
     gainAnimation_->stop();
     player_->stop();
@@ -167,12 +171,18 @@ void DjIntroOverlay::stop()
 
 void DjIntroOverlay::skip()
 {
+    qInfo().noquote() << QStringLiteral("DJ_INTRO_SKIP active=%1 finishing=%2")
+        .arg(isActive() ? 1 : 0)
+        .arg(finishing_ ? 1 : 0);
     if (!isActive()) return;
     beginFinish();
 }
 
 void DjIntroOverlay::duckForEngineReady()
 {
+    qInfo().noquote() << QStringLiteral("DJ_INTRO_DUCK active=%1 finishing=%2")
+        .arg(isActive() ? 1 : 0)
+        .arg(finishing_ ? 1 : 0);
     if (!isActive() || finishing_) return;
     gainAnimation_->stop();
     gainAnimation_->setStartValue(introGain_);
@@ -241,6 +251,11 @@ void DjIntroOverlay::resizeEvent(QResizeEvent* event)
 
 void DjIntroOverlay::beginFinish()
 {
+    qInfo().noquote() << QStringLiteral("DJ_INTRO_BEGIN_FINISH active=%1 finishing=%2 opacity=%3 gain=%4")
+        .arg(isActive() ? 1 : 0)
+        .arg(finishing_ ? 1 : 0)
+        .arg(opacityEffect_ ? opacityEffect_->opacity() : -1.0, 0, 'f', 3)
+        .arg(introGain_, 0, 'f', 3);
     if (finishing_) return;
     finishing_ = true;
 
@@ -256,6 +271,8 @@ void DjIntroOverlay::beginFinish()
 
 void DjIntroOverlay::completeFinish()
 {
+    qInfo().noquote() << QStringLiteral("DJ_INTRO_COMPLETE_FINISH active=%1")
+        .arg(isActive() ? 1 : 0);
     player_->stop();
     hide();
     opacityEffect_->setOpacity(1.0);

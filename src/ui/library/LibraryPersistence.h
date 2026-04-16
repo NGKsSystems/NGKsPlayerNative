@@ -8,6 +8,8 @@
 
 // ── TrackInfo ─────────────────────────────────────────────────────────────────
 struct TrackInfo {
+    qint64  mediaId{0};
+    QString fileFingerprint;
     QString filePath;
     QString title;
     QString artist;
@@ -34,6 +36,10 @@ struct TrackInfo {
     int     rating{0};
     QString comments;
     bool    legacyImported{false};
+    QString regularAnalysisState;
+    QString regularAnalysisJson;
+    QString liveAnalysisState;
+    QString liveAnalysisJson;
 };
 
 // ── Playlist ──────────────────────────────────────────────────────────────────

@@ -152,23 +152,21 @@ private:
 
 
 // ═══════════════════════════════════════════════════════════════════
-// JogWheel — circular jog surface for seek/scratch interaction
+// JogWheel — concentric jog surface with inner platter + fine outer ring
 // ═══════════════════════════════════════════════════════════════════
 class JogWheel : public QWidget {
 public:
-    enum Role { Primary = 0, Secondary = 1 };
+    enum DragZone { NoZone = 0, PrimaryZone = 1, FineZone = 2 };
 
     explicit JogWheel(const QColor& accent, int diameter = 300,
-                      Role role = Primary, QWidget* parent = nullptr)
-        : QWidget(parent), accent_(accent), role_(role)
+                      QWidget* parent = nullptr)
+        : QWidget(parent), accent_(accent)
     {
         setFixedSize(diameter, diameter);
         setCursor(Qt::OpenHandCursor);
     }
 
-    /// Set album art for the primary jog. Ignored on secondary.
     void setAlbumArt(const QPixmap& art) {
-        if (role_ != Primary) return;
         coverArt_ = art;
         coverScaled_ = QPixmap();  // invalidate cache
         update();
@@ -181,7 +179,8 @@ public:
         update();
     }
 
-    std::function<void(double, Qt::KeyboardModifiers)> onJogTurn;
+    std::function<void(double, Qt::KeyboardModifiers)> onPrimaryTurn;
+    std::function<void(double, Qt::KeyboardModifiers)> onFineTurn;
 
 protected:
     void paintEvent(QPaintEvent*) override {
@@ -192,40 +191,51 @@ protected:
         const int h = height();
         const int sz = std::min(w, h) - 4;
         const int cx = w / 2, cy = h / 2;
-        const bool isPrimary = (role_ == Primary);
+        const int outerRadius = sz / 2;
+        const int fineRingOuterRadius = outerRadius - 6;
+        const int fineRingThickness = std::max(18, sz / 12);
+        const int fineRingInnerRadius = fineRingOuterRadius - fineRingThickness;
+        const int platterGap = std::max(5, sz / 32);
+        const int platterOuterRadius = fineRingInnerRadius - platterGap;
+        const int platterDiameter = platterOuterRadius * 2;
 
         // ── Outer shadow/glow halo ──
         for (int i = 3; i >= 1; --i) {
             QColor halo = accent_;
-            halo.setAlpha(isPrimary ? (10 * i) : (5 * i));
+            halo.setAlpha(10 * i);
             p.setPen(QPen(halo, 1.5));
             p.setBrush(Qt::NoBrush);
             p.drawEllipse(cx - sz / 2 - i, cy - sz / 2 - i, sz + 2 * i, sz + 2 * i);
         }
 
-        // ── Outer ring ──
-        const int outerRingW = isPrimary ? 3 : 1;
+        // ── Fine outer ring ──
         {
             QRadialGradient rg(cx, cy, sz / 2);
-            rg.setColorAt(0.0, QColor(0x14, 0x18, 0x22));
+            rg.setColorAt(0.0, QColor(0x18, 0x1c, 0x26));
+            rg.setColorAt(0.65, QColor(0x11, 0x14, 0x1d));
             rg.setColorAt(1.0, QColor(0x08, 0x0a, 0x10));
             p.setBrush(rg);
         }
         QColor ringColor = accent_;
-        ringColor.setAlpha(isPrimary ? 140 : 50);
-        p.setPen(QPen(ringColor, outerRingW));
+        ringColor.setAlpha(105);
+        p.setPen(QPen(ringColor, 2.0));
         p.drawEllipse(cx - sz / 2, cy - sz / 2, sz, sz);
 
-        // ── Tick marks ──
+        p.setPen(QPen(QColor(0x24, 0x29, 0x36), 1.0));
+        p.setBrush(Qt::NoBrush);
+        p.drawEllipse(cx - fineRingInnerRadius, cy - fineRingInnerRadius,
+                      fineRingInnerRadius * 2, fineRingInnerRadius * 2);
+
+        // ── Fine-ring tick marks ──
         {
-            const int tickCount = isPrimary ? 40 : 24;
-            const int tickOuterR = sz / 2 - 2;
-            const int tickInnerR = tickOuterR - (isPrimary ? 8 : 5);
+            const int tickCount = 48;
+            const int tickOuterR = fineRingOuterRadius;
+            const int tickInnerR = fineRingInnerRadius + 2;
             for (int i = 0; i < tickCount; ++i) {
                 const double a = (2.0 * 3.14159265358979 * i) / tickCount;
-                const bool major = (i % (isPrimary ? 5 : 4)) == 0;
-                QColor tc = major ? QColor(0x66, 0x6a, 0x70) : QColor(0x33, 0x36, 0x3a);
-                p.setPen(QPen(tc, major ? 1.5 : 0.8));
+                const bool major = (i % 6) == 0;
+                QColor tc = major ? QColor(0x74, 0x7a, 0x88) : QColor(0x34, 0x38, 0x42);
+                p.setPen(QPen(tc, major ? 1.3 : 0.8));
                 const double sa = std::sin(a), ca = std::cos(a);
                 p.drawLine(
                     cx + static_cast<int>(sa * tickInnerR),
@@ -235,13 +245,10 @@ protected:
             }
         }
 
-        // ── Inner platter ──
-        const int innerSz = sz - 24;
-
-        if (isPrimary && !coverArt_.isNull()) {
-            // ═══ PRIMARY WITH ALBUM ART ═══
+        // ── Inner scratch platter ──
+        if (!coverArt_.isNull()) {
             // Clip to inner circle and paint album art
-            const int artSz = innerSz - 2;
+            const int artSz = platterDiameter - 2;
             p.save();
             QPainterPath clipPath;
             clipPath.addEllipse(cx - artSz / 2, cy - artSz / 2, artSz, artSz);
@@ -275,133 +282,121 @@ protected:
             p.setBrush(Qt::NoBrush);
             p.drawEllipse(cx - artSz / 2, cy - artSz / 2, artSz, artSz);
 
-            // (no center label — album art fills the platter)
-
-        } else if (isPrimary) {
-            // ═══ PRIMARY, NO ALBUM ART — rich fallback ═══
+        } else {
             {
-                QRadialGradient pg(cx, cy, innerSz / 2);
+                QRadialGradient pg(cx, cy, platterDiameter / 2);
                 pg.setColorAt(0.0, QColor(0x18, 0x1c, 0x28));
                 pg.setColorAt(0.5, QColor(0x12, 0x15, 0x1e));
                 pg.setColorAt(1.0, QColor(0x0a, 0x0d, 0x14));
                 p.setBrush(pg);
             }
             p.setPen(QPen(QColor(0x2a, 0x2e, 0x38), 1));
-            p.drawEllipse(cx - innerSz / 2, cy - innerSz / 2, innerSz, innerSz);
+            p.drawEllipse(cx - platterOuterRadius, cy - platterOuterRadius,
+                          platterDiameter, platterDiameter);
 
             // Vinyl grooves
             p.setBrush(Qt::NoBrush);
             for (int i = 1; i <= 6; ++i) {
-                const int gr = innerSz / 2 - i * (innerSz / 14);
+                const int gr = platterOuterRadius - i * (platterDiameter / 14);
                 p.setPen(QPen(QColor(0x1e, 0x22, 0x2c, 70), 0.5));
                 p.drawEllipse(cx - gr, cy - gr, gr * 2, gr * 2);
             }
+        }
 
-        } else {
-            // ═══ SECONDARY — fine-tune precision wheel ═══
-            // Darker, tighter platter with concentric precision rings
-            {
-                QRadialGradient pg(cx, cy, innerSz / 2);
-                pg.setColorAt(0.0, QColor(0x10, 0x13, 0x1a));
-                pg.setColorAt(0.6, QColor(0x0c, 0x0e, 0x15));
-                pg.setColorAt(1.0, QColor(0x08, 0x0a, 0x10));
-                p.setBrush(pg);
-            }
-            p.setPen(QPen(QColor(0x1e, 0x22, 0x2c), 1));
-            p.drawEllipse(cx - innerSz / 2, cy - innerSz / 2, innerSz, innerSz);
+        // Fine ring texture + label
+        p.setBrush(Qt::NoBrush);
+        const int ringTextureCount = 4;
+        for (int i = 0; i < ringTextureCount; ++i) {
+            const int rr = fineRingInnerRadius + 4 + i * ((fineRingOuterRadius - fineRingInnerRadius - 8) / std::max(1, ringTextureCount - 1));
+            p.setPen(QPen(QColor(0x20, 0x24, 0x30, i == 0 || i == ringTextureCount - 1 ? 28 : 18), 0.5));
+            p.drawEllipse(cx - rr, cy - rr, rr * 2, rr * 2);
+        }
 
-            // Fine graduated rings — precision encoder look
-            p.setBrush(Qt::NoBrush);
-            const int ringCount = 8;
-            for (int i = 1; i <= ringCount; ++i) {
-                const int gr = innerSz / 2 - i * (innerSz / (ringCount * 2 + 2));
-                const int alpha = (i <= 2 || i >= ringCount - 1) ? 30 : 18;
-                p.setPen(QPen(QColor(0x20, 0x24, 0x30, alpha), 0.5));
-                p.drawEllipse(cx - gr, cy - gr, gr * 2, gr * 2);
-            }
-
-            // Fine-tune crosshair — thin etched lines through center
-            {
-                const int chLen = innerSz / 5;
-                p.setPen(QPen(QColor(0x2a, 0x2e, 0x3a, 50), 0.5));
-                p.drawLine(cx - chLen, cy, cx + chLen, cy);
-                p.drawLine(cx, cy - chLen, cx, cy + chLen);
-            }
-
-            // "FINE" label — small text near bottom of platter
-            {
-                QFont f = font();
-                f.setPointSize(6);
-                f.setBold(true);
-                f.setLetterSpacing(QFont::AbsoluteSpacing, 3.0);
-                p.setFont(f);
-                p.setPen(QColor(0x3a, 0x3e, 0x50));
-                p.drawText(QRect(cx - innerSz / 3, cy + innerSz / 5,
-                                  innerSz * 2 / 3, innerSz / 6),
-                            Qt::AlignHCenter | Qt::AlignTop,
-                            QStringLiteral("FINE"));
-            }
+        {
+            QFont f = font();
+            f.setPointSize(6);
+            f.setBold(true);
+            f.setLetterSpacing(QFont::AbsoluteSpacing, 2.5);
+            p.setFont(f);
+            p.setPen(QColor(0x5c, 0x63, 0x73));
+            p.drawText(QRect(cx - fineRingOuterRadius, cy + platterOuterRadius - 6,
+                             fineRingOuterRadius * 2, fineRingOuterRadius - platterOuterRadius + 10),
+                       Qt::AlignHCenter | Qt::AlignVCenter,
+                       QStringLiteral("FINE"));
         }
 
         // ── Center dot ──
         p.setPen(Qt::NoPen);
-        if (isPrimary) {
-            // Primary — accent hub dot
-            QRadialGradient dg(cx, cy, 7);
-            QColor bright = accent_; bright.setAlpha(255);
-            QColor dim = accent_; dim.setAlpha(120);
-            dg.setColorAt(0.0, bright);
-            dg.setColorAt(1.0, dim);
-            p.setBrush(dg);
-            p.drawEllipse(cx - 6, cy - 6, 12, 12);
-        } else {
-            // Secondary — small precision crosshair dot (no glow)
-            p.setBrush(QColor(accent_.red(), accent_.green(), accent_.blue(), 180));
-            p.drawEllipse(cx - 3, cy - 3, 6, 6);
-            // Thin ring around center
-            p.setBrush(Qt::NoBrush);
-            p.setPen(QPen(QColor(accent_.red(), accent_.green(), accent_.blue(), 60), 0.75));
-            p.drawEllipse(cx - 7, cy - 7, 14, 14);
-        }
+        QRadialGradient dg(cx, cy, 7);
+        QColor bright = accent_; bright.setAlpha(255);
+        QColor dim = accent_; dim.setAlpha(120);
+        dg.setColorAt(0.0, bright);
+        dg.setColorAt(1.0, dim);
+        p.setBrush(dg);
+        p.drawEllipse(cx - 6, cy - 6, 12, 12);
 
-        // ── Position indicator line ──
-        const double rad = angle_ * 3.14159265358979 / 180.0;
-        const int lineStart = isPrimary ? 0 : innerSz / 6;
-        const int lineLen = innerSz / 2 - (isPrimary ? 10 : 14);
-        const int lsx = cx + static_cast<int>(std::sin(rad) * lineStart);
-        const int lsy = cy - static_cast<int>(std::cos(rad) * lineStart);
-        const int lx = cx + static_cast<int>(std::sin(rad) * lineLen);
-        const int ly = cy - static_cast<int>(std::cos(rad) * lineLen);
+        // ── Fine-ring indicator ──
+        const double fineRad = fineAngle_ * 3.14159265358979 / 180.0;
+        const int fineStart = fineRingInnerRadius + 3;
+        const int fineEnd = fineRingOuterRadius - 5;
+        const int fxs = cx + static_cast<int>(std::sin(fineRad) * fineStart);
+        const int fys = cy - static_cast<int>(std::cos(fineRad) * fineStart);
+        const int fx = cx + static_cast<int>(std::sin(fineRad) * fineEnd);
+        const int fy = cy - static_cast<int>(std::cos(fineRad) * fineEnd);
         {
             QColor lglow = accent_;
-            lglow.setAlpha(isPrimary ? 50 : 20);
-            p.setPen(QPen(lglow, isPrimary ? 6 : 3));
+            lglow.setAlpha(28);
+            p.setPen(QPen(lglow, 4));
+            p.drawLine(fxs, fys, fx, fy);
+        }
+        QColor fineColor = accent_;
+        fineColor.setAlpha(170);
+        p.setPen(QPen(fineColor, 1.2));
+        p.drawLine(fxs, fys, fx, fy);
+
+        // ── Primary platter indicator line ──
+        const double primaryRad = primaryAngle_ * 3.14159265358979 / 180.0;
+        const int lineStart = 0;
+        const int lineLen = platterOuterRadius - 12;
+        const int lsx = cx + static_cast<int>(std::sin(primaryRad) * lineStart);
+        const int lsy = cy - static_cast<int>(std::cos(primaryRad) * lineStart);
+        const int lx = cx + static_cast<int>(std::sin(primaryRad) * lineLen);
+        const int ly = cy - static_cast<int>(std::cos(primaryRad) * lineLen);
+        {
+            QColor lglow = accent_;
+            lglow.setAlpha(50);
+            p.setPen(QPen(lglow, 6));
             p.drawLine(lsx, lsy, lx, ly);
         }
         QColor lineColor = accent_;
-        lineColor.setAlpha(isPrimary ? 255 : 180);
-        p.setPen(QPen(lineColor, isPrimary ? 2.5 : 1.2));
+        lineColor.setAlpha(255);
+        p.setPen(QPen(lineColor, 2.5));
         p.drawLine(lsx, lsy, lx, ly);
 
         // ── Accent ring glow ──
         QColor glowColor = accent_;
-        glowColor.setAlpha(isPrimary ? 70 : 30);
-        p.setPen(QPen(glowColor, isPrimary ? 4 : 2));
+        glowColor.setAlpha(70);
+        p.setPen(QPen(glowColor, 4));
         p.setBrush(Qt::NoBrush);
         p.drawEllipse(cx - sz / 2 + 3, cy - sz / 2 + 3, sz - 6, sz - 6);
     }
 
     void mousePressEvent(QMouseEvent* e) override {
+        activeZone_ = zoneForPoint(e->position());
+        if (activeZone_ == NoZone) {
+            e->ignore();
+            return;
+        }
         dragging_ = true;
-        lastPos_ = e->position().toPoint();
+        lastPos_ = e->position();
         setCursor(Qt::ClosedHandCursor);
     }
 
     void mouseMoveEvent(QMouseEvent* e) override {
         if (!dragging_) return;
-        const int cx = width() / 2;
-        const int cy = height() / 2;
-        const QPoint pos = e->position().toPoint();
+        const qreal cx = width() / 2.0;
+        const qreal cy = height() / 2.0;
+        const QPointF pos = e->position();
 
         const double prevAngle = std::atan2(
             static_cast<double>(lastPos_.x() - cx),
@@ -414,27 +409,60 @@ protected:
         if (delta > 180.0) delta -= 360.0;
         if (delta < -180.0) delta += 360.0;
 
-        angle_ += delta;
-        while (angle_ > 360.0) angle_ -= 360.0;
-        while (angle_ < 0.0) angle_ += 360.0;
+        if (activeZone_ == FineZone) {
+            fineAngle_ += delta;
+            while (fineAngle_ > 360.0) fineAngle_ -= 360.0;
+            while (fineAngle_ < 0.0) fineAngle_ += 360.0;
+        } else {
+            primaryAngle_ += delta;
+            while (primaryAngle_ > 360.0) primaryAngle_ -= 360.0;
+            while (primaryAngle_ < 0.0) primaryAngle_ += 360.0;
+        }
 
         lastPos_ = pos;
         update();
 
-        if (onJogTurn) onJogTurn(delta, e->modifiers());
+        if (activeZone_ == FineZone) {
+            if (onFineTurn) onFineTurn(delta, e->modifiers());
+        } else {
+            if (onPrimaryTurn) onPrimaryTurn(delta, e->modifiers());
+        }
     }
 
     void mouseReleaseEvent(QMouseEvent*) override {
         dragging_ = false;
+        activeZone_ = NoZone;
         setCursor(Qt::OpenHandCursor);
     }
 
 private:
+    DragZone zoneForPoint(const QPointF& point) const
+    {
+        const qreal cx = width() / 2.0;
+        const qreal cy = height() / 2.0;
+        const qreal dx = point.x() - cx;
+        const qreal dy = point.y() - cy;
+        const qreal distance = std::sqrt(dx * dx + dy * dy);
+
+        const int sz = std::min(width(), height()) - 4;
+        const qreal outerRadius = sz / 2.0;
+        const qreal fineRingOuterRadius = outerRadius - 6.0;
+        const qreal fineRingThickness = std::max(18, sz / 12);
+        const qreal fineRingInnerRadius = fineRingOuterRadius - fineRingThickness;
+        const qreal platterGap = std::max(5, sz / 32);
+        const qreal platterOuterRadius = fineRingInnerRadius - platterGap;
+        const qreal zoneThreshold = (platterOuterRadius + fineRingInnerRadius) * 0.5;
+
+        if (distance > outerRadius || distance < 10.0) return NoZone;
+        return distance >= zoneThreshold ? FineZone : PrimaryZone;
+    }
+
     QColor accent_;
-    Role role_{Primary};
-    double angle_{0.0};
-    QPoint lastPos_;
+    double primaryAngle_{0.0};
+    double fineAngle_{0.0};
+    QPointF lastPos_;
     bool dragging_{false};
+    DragZone activeZone_{NoZone};
     QPixmap coverArt_;
     QPixmap coverScaled_;
 };
@@ -797,7 +825,7 @@ void DeckStrip::buildUi()
         jogLayout->setContentsMargins(0, 1, 0, 1);
 
         // Primary jog wheel
-        jogWheel_ = new JogWheel(accentColor, 230, JogWheel::Primary, jogPanel_);
+        jogWheel_ = new JogWheel(accentColor, 230, jogPanel_);
         jogLayout->addWidget(jogWheel_, 0, Qt::AlignHCenter);
 
         // Mode toggles + label
@@ -833,30 +861,15 @@ void DeckStrip::buildUi()
         jogPanel_->setVisible(true);
         jogVisible_ = true;
 
-        // ── Secondary jog panel (equal size) ──
-        jogPanelSecondary_ = new QFrame(outerFrame);
-        jogPanelSecondary_->setObjectName(QStringLiteral("jogPanelSec%1").arg(deckIndex_));
-        jogPanelSecondary_->setStyleSheet(QStringLiteral(
-            "QFrame#jogPanelSec%1 {"
-            "  background: transparent; border: none; }")
-            .arg(deckIndex_));
-
-        auto* jogSecLayout = new QVBoxLayout(jogPanelSecondary_);
-        jogSecLayout->setSpacing(1);
-        jogSecLayout->setContentsMargins(0, 1, 0, 1);
-
-        jogWheelSecondary_ = new JogWheel(accentColor, 230, JogWheel::Secondary, jogPanelSecondary_);
-        jogSecLayout->addWidget(jogWheelSecondary_, 0, Qt::AlignHCenter);
-
-        auto* secLabel = new QLabel(QStringLiteral("FINE"), jogPanelSecondary_);
-        secLabel->setAlignment(Qt::AlignHCenter);
-        { QFont f = secLabel->font(); f.setPointSizeF(6.0); f.setBold(true); secLabel->setFont(f); }
-        secLabel->setStyleSheet(QStringLiteral(
-            "color: #888; background: transparent; border: none;"));
-        jogSecLayout->addWidget(secLabel);
-
-        jogPanelSecondary_->setVisible(true);
     }
+
+    auto* deckControlRow = new QHBoxLayout();
+    deckControlRow->setSpacing(10);
+    deckControlRow->setContentsMargins(4, 4, 4, 2);
+
+    auto* controlColumn = new QVBoxLayout();
+    controlColumn->setSpacing(4);
+    controlColumn->setContentsMargins(0, 0, 0, 0);
 
     // ═══ ZONE 3: COMPACT TRANSPORT ═══
     {
@@ -974,7 +987,7 @@ void DeckStrip::buildUi()
         stopBtn_ = new QPushButton(outerFrame); stopBtn_->hide();
         loopBtn_ = new QPushButton(outerFrame); loopBtn_->hide();
 
-        mainLayout->addWidget(transportPanel);
+        controlColumn->addWidget(transportPanel);
     }
 
     // ═══ ZONE 4: DUAL-JOG CONTROL SURFACE (mirrored per deck) ═══
@@ -989,18 +1002,10 @@ void DeckStrip::buildUi()
 
     jogCenterRow_ = new QHBoxLayout(jogContainer_);
     jogCenterRow_->setSpacing(2);
-    // Center both jogs horizontally with equal stretch on each side.
-    jogCenterRow_->setContentsMargins(2, 3, 2, 3);
-    jogCenterRow_->addStretch(1);
-    if (deckIndex_ == 0) {
-        jogCenterRow_->addWidget(jogPanel_, 0, Qt::AlignTop);
-        jogCenterRow_->addWidget(jogPanelSecondary_, 0, Qt::AlignTop);
-    } else {
-        jogCenterRow_->addWidget(jogPanel_, 0, Qt::AlignTop);
-        jogCenterRow_->addWidget(jogPanelSecondary_, 0, Qt::AlignTop);
-    }
-    jogCenterRow_->addStretch(1);
-    mainLayout->addWidget(jogContainer_);
+    // Jog cluster is now left-anchored so the control column can live on the right.
+    jogCenterRow_->setContentsMargins(0, 0, 0, 0);
+    jogCenterRow_->addWidget(jogPanel_, 0, Qt::AlignTop);
+    deckControlRow->addWidget(jogContainer_, 0, Qt::AlignTop | Qt::AlignLeft);
 
     // ═══ ZONE 5+6: COLLAPSIBLE PERFORMANCE + CUE EDIT ═══
     {
@@ -1040,7 +1045,7 @@ void DeckStrip::buildUi()
         { QFont f = cueEditToggleBtn_->font(); f.setPointSizeF(7.0); f.setBold(true); cueEditToggleBtn_->setFont(f); }
         panelToggleRow->addWidget(cueEditToggleBtn_, 1);
 
-        mainLayout->addLayout(panelToggleRow);
+        controlColumn->addLayout(panelToggleRow);
     }
 
     // ── PERFORMANCE panel (collapsed by default) ──
@@ -1214,7 +1219,7 @@ void DeckStrip::buildUi()
 
         perfPanel_->setVisible(false);  // collapsed by default
         perfVisible_ = false;
-        mainLayout->addWidget(perfPanel_);
+        controlColumn->addWidget(perfPanel_);
     }
 
     // ── CUE EDIT panel (collapsed by default) ──
@@ -1278,7 +1283,7 @@ void DeckStrip::buildUi()
 
         cueEditPanel_->setVisible(false);  // collapsed by default
         cueEditVisible_ = false;
-        mainLayout->addWidget(cueEditPanel_);
+        controlColumn->addWidget(cueEditPanel_);
     }
 
     // ═══ ZONE 7: MIXER CONTROLS (horizontal strip below jog) ═══
@@ -1321,11 +1326,27 @@ void DeckStrip::buildUi()
             return cell;
         };
 
-        // ── PITCH fader + range → under jog wheel (inside jogPanel_) ──
+        // ── PITCH fader + range → right-side control column ──
         {
-            auto* jogLayout = qobject_cast<QVBoxLayout*>(jogPanel_->layout());
+            auto* pitchPanel = new QFrame(outerFrame);
+            pitchPanel->setObjectName(QStringLiteral("pitchPanel%1").arg(deckIndex_));
+            pitchPanel->setStyleSheet(QStringLiteral(
+                "QFrame#pitchPanel%1 {"
+                "  background: #0a0d14; border: 1px solid rgba(%2,%3,%4,28);"
+                "  border-radius: 4px; }")
+                .arg(deckIndex_)
+                .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
 
-            pitchFader_ = new QSlider(Qt::Horizontal, jogPanel_);
+            auto* pitchLayout = new QVBoxLayout(pitchPanel);
+            pitchLayout->setSpacing(2);
+            pitchLayout->setContentsMargins(6, 5, 6, 5);
+
+            auto* pitchLabel = new QLabel(QStringLiteral("PITCH"), pitchPanel);
+            pitchLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            pitchLabel->setStyleSheet(sectionLabelStyle);
+            pitchLayout->addWidget(pitchLabel);
+
+            pitchFader_ = new QSlider(Qt::Horizontal, pitchPanel);
             pitchFader_->setRange(-1000, 1000);
             pitchFader_->setValue(0);
             pitchFader_->setFixedHeight(20);
@@ -1342,15 +1363,15 @@ void DeckStrip::buildUi()
                 "QSlider::add-page:horizontal { background: transparent; }")
                 .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue()));
             pitchFader_->installEventFilter(this);
-            jogLayout->addWidget(pitchFader_);
+            pitchLayout->addWidget(pitchFader_);
 
-            pitchFaderReadout_ = new QLabel(QStringLiteral("+0.0%"), jogPanel_);
+            pitchFaderReadout_ = new QLabel(QStringLiteral("+0.0%"), pitchPanel);
             pitchFaderReadout_->setAlignment(Qt::AlignHCenter);
             { QFont f = pitchFaderReadout_->font(); f.setPointSizeF(5.5); pitchFaderReadout_->setFont(f); }
             pitchFaderReadout_->setStyleSheet(QStringLiteral(
                 "color: #666; background: transparent; border: none;"));
             pitchFaderReadout_->setFixedHeight(14);
-            jogLayout->addWidget(pitchFaderReadout_);
+            pitchLayout->addWidget(pitchFaderReadout_);
 
             auto* pitchRangeRow = new QHBoxLayout();
             pitchRangeRow->setSpacing(2);
@@ -1370,25 +1391,25 @@ void DeckStrip::buildUi()
                 "QPushButton:pressed { background: #060810; color: #ddd; }")
                 .arg(accentColor.red()).arg(accentColor.green()).arg(accentColor.blue());
 
-            pitchRange6Btn_ = new QPushButton(QStringLiteral("\u00B16"), jogPanel_);
+            pitchRange6Btn_ = new QPushButton(QStringLiteral("\u00B16"), pitchPanel);
             pitchRange6Btn_->setCheckable(true); pitchRange6Btn_->setChecked(true);
             pitchRange6Btn_->setStyleSheet(btnMicro); pitchRange6Btn_->setCursor(Qt::PointingHandCursor);
             { QFont f = pitchRange6Btn_->font(); f.setPointSizeF(5.5); f.setBold(true); pitchRange6Btn_->setFont(f); }
             pitchRangeRow->addWidget(pitchRange6Btn_);
 
-            pitchRange10Btn_ = new QPushButton(QStringLiteral("\u00B110"), jogPanel_);
+            pitchRange10Btn_ = new QPushButton(QStringLiteral("\u00B110"), pitchPanel);
             pitchRange10Btn_->setCheckable(true); pitchRange10Btn_->setChecked(false);
             pitchRange10Btn_->setStyleSheet(btnMicro); pitchRange10Btn_->setCursor(Qt::PointingHandCursor);
             { QFont f = pitchRange10Btn_->font(); f.setPointSizeF(5.5); f.setBold(true); pitchRange10Btn_->setFont(f); }
             pitchRangeRow->addWidget(pitchRange10Btn_);
 
-            pitchRange16Btn_ = new QPushButton(QStringLiteral("\u00B116"), jogPanel_);
+            pitchRange16Btn_ = new QPushButton(QStringLiteral("\u00B116"), pitchPanel);
             pitchRange16Btn_->setCheckable(true); pitchRange16Btn_->setChecked(false);
             pitchRange16Btn_->setStyleSheet(btnMicro); pitchRange16Btn_->setCursor(Qt::PointingHandCursor);
             { QFont f = pitchRange16Btn_->font(); f.setPointSizeF(5.5); f.setBold(true); pitchRange16Btn_->setFont(f); }
             pitchRangeRow->addWidget(pitchRange16Btn_);
 
-            keyLockBtn_ = new QPushButton(QStringLiteral("KEY"), jogPanel_);
+            keyLockBtn_ = new QPushButton(QStringLiteral("KEY"), pitchPanel);
             keyLockBtn_->setCheckable(true); keyLockBtn_->setChecked(false);
             keyLockBtn_->setCursor(Qt::PointingHandCursor);
             keyLockBtn_->setToolTip(QStringLiteral("Lock musical key"));
@@ -1403,7 +1424,8 @@ void DeckStrip::buildUi()
             pitchRangeRow->addWidget(keyLockBtn_);
 
             pitchRangeRow->addStretch();
-            jogLayout->addLayout(pitchRangeRow);
+            pitchLayout->addLayout(pitchRangeRow);
+            controlColumn->addWidget(pitchPanel);
 
             // Hidden for API compat
             pitchKnob_ = new RotaryKnob(outerFrame);
@@ -1411,6 +1433,8 @@ void DeckStrip::buildUi()
             pitchValueLabel_ = new QLabel(QString(), outerFrame);
             pitchValueLabel_->setVisible(false);
         }
+
+        controlColumn->addStretch(1);
 
         // ── Horizontal knob strip: GAIN | REV | FILTER | FLG | FX | MUTE | meters ──
         auto* knobStrip = new QHBoxLayout();
@@ -1530,6 +1554,9 @@ void DeckStrip::buildUi()
         mixerFrame_ = new QFrame(outerFrame);
         mixerFrame_->setVisible(false);
 
+
+    deckControlRow->addLayout(controlColumn, 1);
+    mainLayout->addLayout(deckControlRow);
         // Density buttons (hidden, kept for API)
         mixerDensityUpBtn_ = new QPushButton(outerFrame); mixerDensityUpBtn_->hide();
         mixerDensityDownBtn_ = new QPushButton(outerFrame); mixerDensityDownBtn_->hide();
@@ -1823,7 +1850,7 @@ void DeckStrip::wireSignals()
         std::fflush(stderr);
     });
 
-    static_cast<JogWheel*>(jogWheel_)->onJogTurn = [this](double deltaDeg, Qt::KeyboardModifiers mods) {
+    static_cast<JogWheel*>(jogWheel_)->onPrimaryTurn = [this](double deltaDeg, Qt::KeyboardModifiers mods) {
         // CTRL held: reduce sensitivity 3× for semi-precision
         const double sensitivity = (mods & Qt::ControlModifier) ? (1.0 / 3.0) : 1.0;
         const char* modLabel = (mods & Qt::ControlModifier) ? " [CTRL]" : "";
@@ -1847,8 +1874,8 @@ void DeckStrip::wireSignals()
         }
     };
 
-    // ═══ SECONDARY JOG: context-driven precision control ═══
-    static_cast<JogWheel*>(jogWheelSecondary_)->onJogTurn = [this](double deltaDeg, Qt::KeyboardModifiers mods) {
+    // ═══ OUTER FINE RING: context-driven precision control ═══
+    static_cast<JogWheel*>(jogWheel_)->onFineTurn = [this](double deltaDeg, Qt::KeyboardModifiers mods) {
         // SHIFT held: ultra-fine 4× reduction
         const double shiftMul = (mods & Qt::ShiftModifier) ? 0.25 : 1.0;
         const char* shiftTag = (mods & Qt::ShiftModifier) ? " [SHIFT]" : "";

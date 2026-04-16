@@ -265,8 +265,6 @@ protected:
     QPushButton* jogToggleBtn_{nullptr};
     QFrame* jogPanel_{nullptr};
     QWidget* jogWheel_{nullptr};
-    QFrame* jogPanelSecondary_{nullptr};
-    QWidget* jogWheelSecondary_{nullptr};
     QPushButton* jogScratchBtn_{nullptr};
     QPushButton* jogSeekBtn_{nullptr};
     QLabel* jogModeLabel_{nullptr};

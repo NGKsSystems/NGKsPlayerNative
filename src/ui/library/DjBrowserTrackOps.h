@@ -8,6 +8,9 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
 #include <QStringList>
 
@@ -70,6 +73,101 @@ inline QString formatStoredBpm(double bpm)
     return text;
 }
 
+inline QString compactJson(const QJsonObject& object)
+{
+    return QString::fromUtf8(QJsonDocument(object).toJson(QJsonDocument::Compact));
+}
+
+inline QJsonObject serializeAnalysisResult(const AnalysisResult& result)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("valid"), result.valid);
+    object.insert(QStringLiteral("errorMsg"), result.errorMsg);
+    object.insert(QStringLiteral("bpm"), result.bpm);
+    object.insert(QStringLiteral("loudnessLUFS"), result.loudnessLUFS);
+    object.insert(QStringLiteral("peakDBFS"), result.peakDBFS);
+    object.insert(QStringLiteral("energy"), result.energy);
+    object.insert(QStringLiteral("rawBpm"), result.rawBpm);
+    object.insert(QStringLiteral("resolvedBpm"), result.resolvedBpm);
+    object.insert(QStringLiteral("bpmConfidence"), result.bpmConfidence);
+    object.insert(QStringLiteral("bpmFamily"), result.bpmFamily);
+    object.insert(QStringLiteral("onsetDensity"), result.onsetDensity);
+    object.insert(QStringLiteral("hfPercussiveScore"), result.hfPercussiveScore);
+    object.insert(QStringLiteral("cueInSeconds"), result.cueInSeconds);
+    object.insert(QStringLiteral("cueOutSeconds"), result.cueOutSeconds);
+    object.insert(QStringLiteral("dynamicRangeLU"), result.dynamicRangeLU);
+    object.insert(QStringLiteral("danceability"), result.danceability);
+    object.insert(QStringLiteral("acousticness"), result.acousticness);
+    object.insert(QStringLiteral("instrumentalness"), result.instrumentalness);
+    object.insert(QStringLiteral("liveness"), result.liveness);
+    object.insert(QStringLiteral("camelotKey"), result.camelotKey);
+    object.insert(QStringLiteral("lra"), result.lra);
+    object.insert(QStringLiteral("transitionDifficulty"), result.transitionDifficulty);
+    object.insert(QStringLiteral("keyConfidence"), result.keyConfidence);
+    object.insert(QStringLiteral("keyAmbiguous"), result.keyAmbiguous);
+    object.insert(QStringLiteral("keyRunnerUp"), result.keyRunnerUp);
+    object.insert(QStringLiteral("keyCorrectionReason"), result.keyCorrectionReason);
+    object.insert(QStringLiteral("beatGridConfidence"), result.beatGridConfidence);
+    object.insert(QStringLiteral("spectralCentroid"), result.spectralCentroid);
+    object.insert(QStringLiteral("introDuration"), result.introDuration);
+    object.insert(QStringLiteral("outroDuration"), result.outroDuration);
+    object.insert(QStringLiteral("durationSeconds"), result.durationSeconds);
+    object.insert(QStringLiteral("sampleRate"), result.sampleRate);
+
+    QJsonArray candidates;
+    for (const BpmCandidate& candidate : result.bpmCandidates) {
+        QJsonObject item;
+        item.insert(QStringLiteral("bpm"), candidate.bpm);
+        item.insert(QStringLiteral("family"), candidate.family);
+        item.insert(QStringLiteral("score"), candidate.score);
+        item.insert(QStringLiteral("reason"), candidate.reason);
+        candidates.append(item);
+    }
+    object.insert(QStringLiteral("bpmCandidates"), candidates);
+    return object;
+}
+
+inline TrackInfo ensureTrackRecord(DjLibraryDatabase* db, const QString& filePath)
+{
+    TrackInfo track = db ? db->trackByPath(filePath).value_or(TrackInfo{}) : TrackInfo{};
+    const QFileInfo fileInfo(filePath);
+    track.filePath = filePath;
+    if (track.displayName.isEmpty()) track.displayName = fileInfo.completeBaseName();
+    if (track.title.isEmpty()) track.title = fileInfo.completeBaseName();
+    if (track.fileSize <= 0) track.fileSize = fileInfo.size();
+    return track;
+}
+
+inline bool persistRegularAnalysisState(DjLibraryDatabase* db,
+                                        const QString& filePath,
+                                        const QString& state,
+                                        const QJsonObject& payload)
+{
+    if (!db || !db->isOpen()) return false;
+
+    TrackInfo track = ensureTrackRecord(db, filePath);
+    track.regularAnalysisState = state;
+    track.regularAnalysisJson = compactJson(payload);
+    const qint64 trackId = db->trackIdByPath(filePath)
+        .value_or(QDateTime::currentMSecsSinceEpoch());
+    return db->upsertTrack(trackId, track);
+}
+
+inline bool persistLiveAnalysisPanel(DjLibraryDatabase* db,
+                                     const QString& filePath,
+                                     const QJsonObject& panel)
+{
+    if (!db || !db->isOpen()) return false;
+
+    TrackInfo track = ensureTrackRecord(db, filePath);
+    track.liveAnalysisState = panel.value(QStringLiteral("state")).toString(
+        panel.value(QStringLiteral("panel_state")).toString());
+    track.liveAnalysisJson = compactJson(panel);
+    const qint64 trackId = db->trackIdByPath(filePath)
+        .value_or(QDateTime::currentMSecsSinceEpoch());
+    return db->upsertTrack(trackId, track);
+}
+
 inline void syncTrackPathChange(DjLibraryDatabase* db, const QString& oldPath, const QString& newPath)
 {
     if (!db) return;
@@ -123,11 +221,18 @@ inline bool persistAnalysisResult(DjLibraryDatabase* db, const QString& filePath
     if (!db || !db->isOpen()) return false;
 
     const QFileInfo fileInfo(filePath);
-    TrackInfo track = db->trackByPath(filePath).value_or(TrackInfo{});
-    track.filePath = filePath;
-    if (track.displayName.isEmpty()) track.displayName = fileInfo.completeBaseName();
-    if (track.title.isEmpty()) track.title = fileInfo.completeBaseName();
-    if (track.fileSize <= 0) track.fileSize = fileInfo.size();
+    TrackInfo track = ensureTrackRecord(db, filePath);
+
+    track.regularAnalysisState = result.valid
+        ? QStringLiteral("ANALYSIS_COMPLETE")
+        : QStringLiteral("ANALYSIS_FAILED");
+    track.regularAnalysisJson = compactJson(serializeAnalysisResult(result));
+
+    if (!result.valid) {
+        const qint64 trackId = db->trackIdByPath(filePath)
+            .value_or(QDateTime::currentMSecsSinceEpoch());
+        return db->upsertTrack(trackId, track);
+    }
 
     if (result.durationSeconds > 0.0) {
         track.durationMs = static_cast<qint64>(result.durationSeconds * 1000.0);

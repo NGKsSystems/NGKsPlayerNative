@@ -1,5 +1,7 @@
 #include "ui/library/DjLibraryDatabase.h"
 
+#include <QDir>
+#include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -11,6 +13,48 @@
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 static inline QString qs(const char* s) { return QLatin1String(s); }
+
+static QString normalizeLibraryPath(const QString& path)
+{
+    if (path.trimmed().isEmpty()) return QString();
+
+    QFileInfo info(path);
+    QString normalized = info.exists()
+        ? info.absoluteFilePath()
+        : QDir(path).absolutePath();
+    normalized = QDir::cleanPath(QDir::fromNativeSeparators(normalized));
+#ifdef Q_OS_WIN
+    normalized = normalized.toLower();
+#endif
+    return normalized;
+}
+
+static bool ensureColumnExists(QSqlDatabase& db,
+                               const QString& tableName,
+                               const QString& columnName,
+                               const QString& definition)
+{
+    QSqlQuery pragma(db);
+    if (!pragma.exec(QStringLiteral("PRAGMA table_info(%1);").arg(tableName))) {
+        qWarning().noquote() << qs("DjLibraryDatabase: PRAGMA table_info failed") << pragma.lastError().text();
+        return false;
+    }
+
+    while (pragma.next()) {
+        if (pragma.value(1).toString().compare(columnName, Qt::CaseInsensitive) == 0) {
+            return true;
+        }
+    }
+
+    QSqlQuery alter(db);
+    const QString sql = QStringLiteral("ALTER TABLE %1 ADD COLUMN %2 %3;")
+        .arg(tableName, columnName, definition);
+    if (!alter.exec(sql)) {
+        qWarning().noquote() << qs("DjLibraryDatabase: ALTER TABLE failed") << alter.lastError().text();
+        return false;
+    }
+    return true;
+}
 
 DjLibraryDatabase::~DjLibraryDatabase()
 {
@@ -58,6 +102,8 @@ bool DjLibraryDatabase::createSchema()
     const bool ok = q.exec(qs(
         "CREATE TABLE IF NOT EXISTS library_tracks ("
         "  track_id      INTEGER PRIMARY KEY,"
+        "  media_id      INTEGER NOT NULL DEFAULT 0,"
+        "  file_fingerprint TEXT NOT NULL DEFAULT '',"
         "  file_path     TEXT    NOT NULL,"
         "  display_name  TEXT    NOT NULL DEFAULT '',"
         "  title         TEXT    NOT NULL DEFAULT '',"
@@ -78,7 +124,11 @@ bool DjLibraryDatabase::createSchema()
         "  year_tag      INTEGER NOT NULL DEFAULT 0,"
         "  rating        INTEGER NOT NULL DEFAULT 0,"
         "  comments      TEXT    NOT NULL DEFAULT '',"
-        "  legacy_imported INTEGER NOT NULL DEFAULT 0"
+        "  legacy_imported INTEGER NOT NULL DEFAULT 0,"
+        "  regular_analysis_state TEXT NOT NULL DEFAULT '',"
+        "  regular_analysis_json  TEXT NOT NULL DEFAULT '',"
+        "  live_analysis_state    TEXT NOT NULL DEFAULT '',"
+        "  live_analysis_json     TEXT NOT NULL DEFAULT ''"
         ");"
     ));
     if (!ok) {
@@ -89,8 +139,15 @@ bool DjLibraryDatabase::createSchema()
     q.exec(qs("CREATE INDEX IF NOT EXISTS idx_lib_display ON library_tracks(display_name COLLATE NOCASE);"));
     q.exec(qs("CREATE INDEX IF NOT EXISTS idx_lib_artist  ON library_tracks(artist       COLLATE NOCASE);"));
     q.exec(qs("CREATE INDEX IF NOT EXISTS idx_lib_album   ON library_tracks(album        COLLATE NOCASE);"));
+    q.exec(qs("CREATE INDEX IF NOT EXISTS idx_lib_media   ON library_tracks(media_id);"));
+    q.exec(qs("CREATE INDEX IF NOT EXISTS idx_lib_fingerprint ON library_tracks(file_fingerprint);"));
     q.exec(qs("CREATE INDEX IF NOT EXISTS idx_lib_path    ON library_tracks(file_path);"));
-    return true;
+    return ensureColumnExists(db_, QStringLiteral("library_tracks"), QStringLiteral("media_id"), QStringLiteral("INTEGER NOT NULL DEFAULT 0"))
+        && ensureColumnExists(db_, QStringLiteral("library_tracks"), QStringLiteral("file_fingerprint"), QStringLiteral("TEXT NOT NULL DEFAULT ''"))
+        && ensureColumnExists(db_, QStringLiteral("library_tracks"), QStringLiteral("regular_analysis_state"), QStringLiteral("TEXT NOT NULL DEFAULT ''"))
+        && ensureColumnExists(db_, QStringLiteral("library_tracks"), QStringLiteral("regular_analysis_json"), QStringLiteral("TEXT NOT NULL DEFAULT ''"))
+        && ensureColumnExists(db_, QStringLiteral("library_tracks"), QStringLiteral("live_analysis_state"), QStringLiteral("TEXT NOT NULL DEFAULT ''"))
+        && ensureColumnExists(db_, QStringLiteral("library_tracks"), QStringLiteral("live_analysis_json"), QStringLiteral("TEXT NOT NULL DEFAULT ''"));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,15 +165,16 @@ bool DjLibraryDatabase::bulkInsert(const std::vector<TrackInfo>& tracks)
     QSqlQuery ins(db_);
     ins.prepare(qs(
         "INSERT INTO library_tracks "
-        "(track_id, file_path, display_name, title, artist, album, genre,"
+        "(track_id, media_id, file_fingerprint, file_path, display_name, title, artist, album, genre,"
         " duration_ms, duration_str, bpm, musical_key, camelot_key, energy,"
         " loudness_lufs, file_size, cue_in, cue_out, danceability,"
-        " year_tag, rating, comments, legacy_imported)"
+        " year_tag, rating, comments, legacy_imported,"
+        " regular_analysis_state, regular_analysis_json, live_analysis_state, live_analysis_json)"
         " VALUES "
-        "(:tid, :fp, :dn, :ti, :ar, :al, :ge,"
+        "(:tid, :mid, :ffp, :fp, :dn, :ti, :ar, :al, :ge,"
         " :dm, :ds, :bp, :mk, :ck, :en,"
         " :ll, :fs, :ci, :co, :da,"
-        " :yr, :rt, :cm, :li);"
+        " :yr, :rt, :cm, :li, :ras, :raj, :las, :laj);"
     ));
 
     // Qt binds null QStrings as SQL NULL which violates NOT NULL constraints
@@ -128,7 +186,9 @@ bool DjLibraryDatabase::bulkInsert(const std::vector<TrackInfo>& tracks)
     for (int i = 0; i < static_cast<int>(tracks.size()); ++i) {
         const TrackInfo& t = tracks[static_cast<size_t>(i)];
         ins.bindValue(qs(":tid"), i);
-        ins.bindValue(qs(":fp"),  nn(t.filePath));
+        ins.bindValue(qs(":mid"), static_cast<qint64>(t.mediaId));
+        ins.bindValue(qs(":ffp"), nn(t.fileFingerprint));
+        ins.bindValue(qs(":fp"),  nn(normalizeLibraryPath(t.filePath)));
         ins.bindValue(qs(":dn"),  nn(t.displayName));
         ins.bindValue(qs(":ti"),  nn(t.title));
         ins.bindValue(qs(":ar"),  nn(t.artist));
@@ -149,6 +209,10 @@ bool DjLibraryDatabase::bulkInsert(const std::vector<TrackInfo>& tracks)
         ins.bindValue(qs(":rt"),  t.rating);
         ins.bindValue(qs(":cm"),  nn(t.comments));
         ins.bindValue(qs(":li"),  t.legacyImported ? 1 : 0);
+        ins.bindValue(qs(":ras"), nn(t.regularAnalysisState));
+        ins.bindValue(qs(":raj"), nn(t.regularAnalysisJson));
+        ins.bindValue(qs(":las"), nn(t.liveAnalysisState));
+        ins.bindValue(qs(":laj"), nn(t.liveAnalysisJson));
         if (!ins.exec()) {
             qWarning().noquote() << qs("DjLibraryDatabase::bulkInsert row") << i << ins.lastError().text();
         }
@@ -165,18 +229,21 @@ bool DjLibraryDatabase::upsertTrack(qint64 trackId, const TrackInfo& t)
     QSqlQuery q(db_);
     q.prepare(qs(
         "INSERT OR REPLACE INTO library_tracks "
-        "(track_id, file_path, display_name, title, artist, album, genre,"
+        "(track_id, media_id, file_fingerprint, file_path, display_name, title, artist, album, genre,"
         " duration_ms, duration_str, bpm, musical_key, camelot_key, energy,"
         " loudness_lufs, file_size, cue_in, cue_out, danceability,"
-        " year_tag, rating, comments, legacy_imported)"
+        " year_tag, rating, comments, legacy_imported,"
+        " regular_analysis_state, regular_analysis_json, live_analysis_state, live_analysis_json)"
         " VALUES "
-        "(:tid, :fp, :dn, :ti, :ar, :al, :ge,"
+        "(:tid, :mid, :ffp, :fp, :dn, :ti, :ar, :al, :ge,"
         " :dm, :ds, :bp, :mk, :ck, :en,"
         " :ll, :fs, :ci, :co, :da,"
-        " :yr, :rt, :cm, :li);"
+        " :yr, :rt, :cm, :li, :ras, :raj, :las, :laj);"
     ));
     q.bindValue(qs(":tid"), trackId);
-    q.bindValue(qs(":fp"),  t.filePath);
+    q.bindValue(qs(":mid"), static_cast<qint64>(t.mediaId));
+    q.bindValue(qs(":ffp"), t.fileFingerprint);
+    q.bindValue(qs(":fp"),  normalizeLibraryPath(t.filePath));
     q.bindValue(qs(":dn"),  t.displayName);
     q.bindValue(qs(":ti"),  t.title);
     q.bindValue(qs(":ar"),  t.artist);
@@ -197,6 +264,10 @@ bool DjLibraryDatabase::upsertTrack(qint64 trackId, const TrackInfo& t)
     q.bindValue(qs(":rt"),  t.rating);
     q.bindValue(qs(":cm"),  t.comments);
     q.bindValue(qs(":li"),  t.legacyImported ? 1 : 0);
+    q.bindValue(qs(":ras"), t.regularAnalysisState);
+    q.bindValue(qs(":raj"), t.regularAnalysisJson);
+    q.bindValue(qs(":las"), t.liveAnalysisState);
+    q.bindValue(qs(":laj"), t.liveAnalysisJson);
     return q.exec();
 }
 
@@ -342,27 +413,33 @@ DjLibraryDatabase::Row DjLibraryDatabase::rowFromQuery(const QSqlQuery& q)
 {
     Row r;
     r.trackId            = q.value(0).toLongLong();
-    r.info.filePath      = q.value(1).toString();
-    r.info.displayName   = q.value(2).toString();
-    r.info.title         = q.value(3).toString();
-    r.info.artist        = q.value(4).toString();
-    r.info.album         = q.value(5).toString();
-    r.info.genre         = q.value(6).toString();
-    r.info.durationMs    = q.value(7).toLongLong();
-    r.info.durationStr   = q.value(8).toString();
-    r.info.bpm           = q.value(9).toString();
-    r.info.musicalKey    = q.value(10).toString();
-    r.info.camelotKey    = q.value(11).toString();
-    r.info.energy        = q.value(12).toDouble();
-    r.info.loudnessLUFS  = q.value(13).toDouble();
-    r.info.fileSize      = q.value(14).toLongLong();
-    r.info.cueIn         = q.value(15).toString();
-    r.info.cueOut        = q.value(16).toString();
-    r.info.danceability  = q.value(17).toDouble();
-    r.info.year          = q.value(18).toInt();
-    r.info.rating        = q.value(19).toInt();
-    r.info.comments      = q.value(20).toString();
-    r.info.legacyImported = q.value(21).toInt() != 0;
+    r.info.mediaId       = q.value(1).toLongLong();
+    r.info.fileFingerprint = q.value(2).toString();
+    r.info.filePath      = q.value(3).toString();
+    r.info.displayName   = q.value(4).toString();
+    r.info.title         = q.value(5).toString();
+    r.info.artist        = q.value(6).toString();
+    r.info.album         = q.value(7).toString();
+    r.info.genre         = q.value(8).toString();
+    r.info.durationMs    = q.value(9).toLongLong();
+    r.info.durationStr   = q.value(10).toString();
+    r.info.bpm           = q.value(11).toString();
+    r.info.musicalKey    = q.value(12).toString();
+    r.info.camelotKey    = q.value(13).toString();
+    r.info.energy        = q.value(14).toDouble();
+    r.info.loudnessLUFS  = q.value(15).toDouble();
+    r.info.fileSize      = q.value(16).toLongLong();
+    r.info.cueIn         = q.value(17).toString();
+    r.info.cueOut        = q.value(18).toString();
+    r.info.danceability  = q.value(19).toDouble();
+    r.info.year          = q.value(20).toInt();
+    r.info.rating        = q.value(21).toInt();
+    r.info.comments      = q.value(22).toString();
+    r.info.legacyImported = q.value(23).toInt() != 0;
+    r.info.regularAnalysisState = q.value(24).toString();
+    r.info.regularAnalysisJson = q.value(25).toString();
+    r.info.liveAnalysisState = q.value(26).toString();
+    r.info.liveAnalysisJson = q.value(27).toString();
     return r;
 }
 
@@ -393,10 +470,11 @@ DjLibraryDatabase::queryPage(const QString& search, int searchMode,
 
     QSqlQuery q(db_);
     q.prepare(QStringLiteral(
-        "SELECT track_id, file_path, display_name, title, artist, album, genre,"
+        "SELECT track_id, media_id, file_fingerprint, file_path, display_name, title, artist, album, genre,"
         "       duration_ms, duration_str, bpm, musical_key, camelot_key, energy,"
         "       loudness_lufs, file_size, cue_in, cue_out, danceability,"
-        "       year_tag, rating, comments, legacy_imported"
+        "       year_tag, rating, comments, legacy_imported,"
+        "       regular_analysis_state, regular_analysis_json, live_analysis_state, live_analysis_json"
         " FROM library_tracks WHERE %1 ORDER BY %2 LIMIT :lim OFFSET :off;"
     ).arg(where, order));
 
@@ -417,10 +495,11 @@ std::optional<TrackInfo> DjLibraryDatabase::trackById(qint64 trackId) const
     if (!open_) return std::nullopt;
     QSqlQuery q(db_);
     q.prepare(QStringLiteral(
-        "SELECT track_id, file_path, display_name, title, artist, album, genre,"
+        "SELECT track_id, media_id, file_fingerprint, file_path, display_name, title, artist, album, genre,"
         "       duration_ms, duration_str, bpm, musical_key, camelot_key, energy,"
         "       loudness_lufs, file_size, cue_in, cue_out, danceability,"
-        "       year_tag, rating, comments, legacy_imported"
+        "       year_tag, rating, comments, legacy_imported,"
+        "       regular_analysis_state, regular_analysis_json, live_analysis_state, live_analysis_json"
         " FROM library_tracks WHERE track_id = :tid LIMIT 1;"
     ));
     q.bindValue(qs(":tid"), trackId);
@@ -431,25 +510,81 @@ std::optional<TrackInfo> DjLibraryDatabase::trackById(qint64 trackId) const
 std::optional<TrackInfo> DjLibraryDatabase::trackByPath(const QString& path) const
 {
     if (!open_) return std::nullopt;
+    const QString normalizedPath = normalizeLibraryPath(path);
+    if (normalizedPath.isEmpty()) return std::nullopt;
     QSqlQuery q(db_);
     q.prepare(QStringLiteral(
-        "SELECT track_id, file_path, display_name, title, artist, album, genre,"
+        "SELECT track_id, media_id, file_fingerprint, file_path, display_name, title, artist, album, genre,"
         "       duration_ms, duration_str, bpm, musical_key, camelot_key, energy,"
         "       loudness_lufs, file_size, cue_in, cue_out, danceability,"
-        "       year_tag, rating, comments, legacy_imported"
+        "       year_tag, rating, comments, legacy_imported,"
+        "       regular_analysis_state, regular_analysis_json, live_analysis_state, live_analysis_json"
         " FROM library_tracks WHERE file_path = :fp LIMIT 1;"
     ));
-    q.bindValue(qs(":fp"), path);
+    q.bindValue(qs(":fp"), normalizedPath);
     if (!q.exec() || !q.next()) return std::nullopt;
     return rowFromQuery(q).info;
+}
+
+std::optional<TrackInfo> DjLibraryDatabase::trackByFingerprint(const QString& fingerprint) const
+{
+    if (!open_) return std::nullopt;
+    const QString normalizedFingerprint = fingerprint.trimmed().toLower();
+    if (normalizedFingerprint.isEmpty()) return std::nullopt;
+
+    QSqlQuery q(db_);
+    q.prepare(QStringLiteral(
+        "SELECT track_id, media_id, file_fingerprint, file_path, display_name, title, artist, album, genre,"
+        "       duration_ms, duration_str, bpm, musical_key, camelot_key, energy,"
+        "       loudness_lufs, file_size, cue_in, cue_out, danceability,"
+        "       year_tag, rating, comments, legacy_imported,"
+        "       regular_analysis_state, regular_analysis_json, live_analysis_state, live_analysis_json"
+        " FROM library_tracks WHERE lower(file_fingerprint) = :ffp LIMIT 1;"
+    ));
+    q.bindValue(qs(":ffp"), normalizedFingerprint);
+    if (!q.exec() || !q.next()) return std::nullopt;
+    return rowFromQuery(q).info;
+}
+
+std::optional<TrackInfo> DjLibraryDatabase::trackByFileNameAndSize(const QString& fileName, qint64 fileSize) const
+{
+    if (!open_) return std::nullopt;
+    const QString trimmedName = fileName.trimmed();
+    if (trimmedName.isEmpty() || fileSize <= 0) return std::nullopt;
+
+    QSqlQuery q(db_);
+    q.prepare(QStringLiteral(
+        "SELECT track_id, media_id, file_fingerprint, file_path, display_name, title, artist, album, genre,"
+        "       duration_ms, duration_str, bpm, musical_key, camelot_key, energy,"
+        "       loudness_lufs, file_size, cue_in, cue_out, danceability,"
+        "       year_tag, rating, comments, legacy_imported,"
+        "       regular_analysis_state, regular_analysis_json, live_analysis_state, live_analysis_json"
+        " FROM library_tracks"
+        " WHERE file_size = :fs AND lower(file_path) LIKE :suffix"
+        " LIMIT 2;"
+    ));
+    q.bindValue(qs(":fs"), fileSize);
+    q.bindValue(qs(":suffix"), QStringLiteral("%/") + trimmedName.toLower());
+
+    std::optional<TrackInfo> match;
+    int count = 0;
+    if (!q.exec()) return std::nullopt;
+    while (q.next()) {
+        ++count;
+        if (count > 1) return std::nullopt;
+        match = rowFromQuery(q).info;
+    }
+    return match;
 }
 
 std::optional<qint64> DjLibraryDatabase::trackIdByPath(const QString& path) const
 {
     if (!open_) return std::nullopt;
+    const QString normalizedPath = normalizeLibraryPath(path);
+    if (normalizedPath.isEmpty()) return std::nullopt;
     QSqlQuery q(db_);
     q.prepare(QStringLiteral("SELECT track_id FROM library_tracks WHERE file_path = :fp LIMIT 1;"));
-    q.bindValue(qs(":fp"), path);
+    q.bindValue(qs(":fp"), normalizedPath);
     if (!q.exec() || !q.next()) return std::nullopt;
     return q.value(0).toLongLong();
 }

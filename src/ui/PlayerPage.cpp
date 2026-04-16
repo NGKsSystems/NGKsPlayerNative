@@ -581,7 +581,6 @@ PlayerPage::PlayerPage(EngineBridge& bridge, DjLibraryDatabase& db, QWidget* par
     layout->addSpacing(4);
 
     playerLibraryTree_ = new DjLibraryWidget(this);
-    playerLibraryTree_->setDatabase(&db_);
     {
         QFont f = playerLibraryTree_->font();
         f.setPointSize(11);
@@ -785,6 +784,14 @@ layout->addWidget(playerLibraryTree_, 1);
     QObject::connect(&bridge_, &EngineBridge::audioProfileApplied, this,
         &PlayerPage::onAudioProfileApplied);
 }
+
+void PlayerPage::bindLibraryDatabase()
+{
+    if (libraryDatabaseBound_ || !playerLibraryTree_) return;
+    playerLibraryTree_->setDatabase(&db_);
+    libraryDatabaseBound_ = true;
+}
+
 void PlayerPage::activateTrack(int trackIndex)
 {
     refreshPlayerLibrary();

@@ -17,6 +17,7 @@
 #include <QMutexLocker>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QSet>
 #include <QScrollArea>
 #include <QDir>
 #include <QFile>
@@ -46,12 +47,16 @@
 #include <QSplitter>
 #include <QSlider>
 #include <QStackedWidget>
+#include <QToolButton>
+#include <QStyle>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPen>
 #include <QElapsedTimer>
 #include <QFileDialog>
 #include <QDirIterator>
+#include <QFormLayout>
+#include <QHash>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -91,6 +96,7 @@
 #include "ui/library/DjBrowserPane.h"
 #include "ui/library/LibraryScanner.h"
 #include "ui/library/LegacyLibraryImport.h"
+#include "ui/library/LibraryImportCoordinator.h"
 #include "ui/audio/AudioProfileStore.h"
 #include "ui/diagnostics/DiagnosticsDialog.h"
 #include "ui/widgets/VisualizerWidget.h"
@@ -135,6 +141,159 @@ QString textFromBlob(const QByteArray& blob)
     return QString::fromUtf8(blob).trimmed();
 }
 
+struct ImportFolderSelection {
+    QString sourceFolder;
+    QString destinationFolder;
+};
+
+struct ManagedImportCopyResult {
+    int copiedCount{0};
+    int reusedCount{0};
+    QStringList failedFiles;
+};
+
+class ImportFoldersDialog final : public QDialog {
+public:
+    ImportFoldersDialog(const QString& initialDestination, QWidget* parent = nullptr)
+        : QDialog(parent)
+    {
+        setWindowTitle(QStringLiteral("Import Music"));
+        setModal(true);
+
+        auto* layout = new QVBoxLayout(this);
+        auto* form = new QFormLayout();
+        sourceEdit_ = new QLineEdit(this);
+        destinationEdit_ = new QLineEdit(this);
+        destinationEdit_->setText(initialDestination);
+
+        auto* sourceRow = new QWidget(this);
+        auto* sourceLayout = new QHBoxLayout(sourceRow);
+        sourceLayout->setContentsMargins(0, 0, 0, 0);
+        auto* sourceBrowse = new QPushButton(QStringLiteral("Browse"), sourceRow);
+        sourceLayout->addWidget(sourceEdit_);
+        sourceLayout->addWidget(sourceBrowse);
+
+        auto* destinationRow = new QWidget(this);
+        auto* destinationLayout = new QHBoxLayout(destinationRow);
+        destinationLayout->setContentsMargins(0, 0, 0, 0);
+        auto* destinationBrowse = new QPushButton(QStringLiteral("Browse"), destinationRow);
+        destinationLayout->addWidget(destinationEdit_);
+        destinationLayout->addWidget(destinationBrowse);
+
+        form->addRow(QStringLiteral("Source Folder"), sourceRow);
+        form->addRow(QStringLiteral("Destination Folder"), destinationRow);
+        layout->addLayout(form);
+
+        auto* hint = new QLabel(
+            QStringLiteral("Audio files are copied into the managed destination folder. Existing files with identical content are reused instead of duplicated."),
+            this);
+        hint->setWordWrap(true);
+        layout->addWidget(hint);
+
+        auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+        layout->addWidget(buttons);
+
+        QObject::connect(sourceBrowse, &QPushButton::clicked, this, [this]() {
+            const QString selected = QFileDialog::getExistingDirectory(this, QStringLiteral("Select Source Folder"), sourceEdit_->text());
+            if (!selected.isEmpty()) sourceEdit_->setText(selected);
+        });
+        QObject::connect(destinationBrowse, &QPushButton::clicked, this, [this]() {
+            const QString selected = QFileDialog::getExistingDirectory(this, QStringLiteral("Select Destination Folder"), destinationEdit_->text());
+            if (!selected.isEmpty()) destinationEdit_->setText(selected);
+        });
+        QObject::connect(buttons, &QDialogButtonBox::accepted, this, [this]() {
+            if (sourceEdit_->text().trimmed().isEmpty() || destinationEdit_->text().trimmed().isEmpty()) {
+                QMessageBox::warning(this, QStringLiteral("Import Music"),
+                    QStringLiteral("Choose both a source folder and a destination folder before importing."));
+                return;
+            }
+            accept();
+        });
+        QObject::connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    }
+
+    ImportFolderSelection selection() const
+    {
+        return { sourceEdit_->text().trimmed(), destinationEdit_->text().trimmed() };
+    }
+
+private:
+    QLineEdit* sourceEdit_{nullptr};
+    QLineEdit* destinationEdit_{nullptr};
+};
+
+qint64 generateMediaId()
+{
+    qint64 mediaId = 0;
+    while (mediaId <= 0) {
+        mediaId = static_cast<qint64>(QRandomGenerator::global()->generate64() & 0x7fffffffffffffffULL);
+    }
+    return mediaId;
+}
+
+QString uniqueImportPath(const QString& desiredPath)
+{
+    QFileInfo info(desiredPath);
+    const QString stem = info.completeBaseName();
+    const QString suffix = info.suffix().isEmpty() ? QString() : QStringLiteral(".") + info.suffix();
+    QDir dir = info.dir();
+
+    QString candidate = desiredPath;
+    for (int counter = 2; QFileInfo::exists(candidate); ++counter) {
+        candidate = dir.filePath(QStringLiteral("%1 (%2)%3").arg(stem).arg(counter).arg(suffix));
+    }
+    return candidate;
+}
+
+ManagedImportCopyResult copyManagedImportLibrary(const QString& sourceFolder, const QString& destinationFolder)
+{
+    ManagedImportCopyResult result;
+    const QDir sourceRoot(sourceFolder);
+    const QDir destinationRoot(destinationFolder);
+    QDir().mkpath(destinationRoot.absolutePath());
+
+    QDirIterator it(sourceFolder, supportedAudioFileFilters(), QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        const QString sourcePath = it.filePath();
+        QString relativePath = sourceRoot.relativeFilePath(sourcePath);
+        if (relativePath.startsWith(QStringLiteral(".."))) {
+            relativePath = QFileInfo(sourcePath).fileName();
+        }
+
+        QString destinationPath = destinationRoot.filePath(relativePath);
+        QFileInfo destinationInfo(destinationPath);
+        QDir().mkpath(destinationInfo.dir().absolutePath());
+
+        const QString normalizedSource = QFileInfo(sourcePath).absoluteFilePath();
+        const QString normalizedDestination = QFileInfo(destinationPath).absoluteFilePath();
+        if (normalizedSource.compare(normalizedDestination, Qt::CaseInsensitive) == 0) {
+            ++result.reusedCount;
+            continue;
+        }
+
+        const QString sourceFingerprint = computeTrackFingerprint(sourcePath);
+        if (QFileInfo::exists(destinationPath)) {
+            const QString destinationFingerprint = computeTrackFingerprint(destinationPath);
+            if (!sourceFingerprint.isEmpty() && sourceFingerprint == destinationFingerprint) {
+                ++result.reusedCount;
+                continue;
+            }
+            destinationPath = uniqueImportPath(destinationPath);
+            destinationInfo = QFileInfo(destinationPath);
+            QDir().mkpath(destinationInfo.dir().absolutePath());
+        }
+
+        if (!QFile::copy(sourcePath, destinationPath)) {
+            result.failedFiles << sourcePath;
+            continue;
+        }
+        ++result.copiedCount;
+    }
+
+    return result;
+}
+
 DjIntroMode djIntroModeFromString(const QString& value)
 {
     const QString lower = value.trimmed().toLower();
@@ -161,6 +320,7 @@ public:
     explicit MainWindow(EngineBridge& engineBridge)
         : bridge_(engineBridge)
     {
+        setWindowFlag(Qt::FramelessWindowHint, true);
         setWindowTitle(QStringLiteral("NGKsPlayerNative"));
         resize(640, 480);
 
@@ -169,18 +329,96 @@ public:
         rootLayout->setContentsMargins(0, 0, 0, 0);
         rootLayout->setSpacing(0);
 
+        topChrome_ = new QWidget(root);
+        topChrome_->setObjectName(QStringLiteral("topChrome"));
+        topChrome_->setFixedHeight(34);
+        topChrome_->setStyleSheet(QStringLiteral(
+            "QWidget#topChrome { background: #121722; border-bottom: 1px solid #222a36; }"
+            "QLabel { color: #d7deea; background: transparent; }"
+            "QLabel#topTitleLabel { color: #dfe8ff; font-size: 15px; font-weight: 700; letter-spacing: 3px; padding-left: 6px; }"
+            "QToolButton { background: #1a2434; color: #e4edf8; border: 1px solid #2f4f88; border-radius: 4px; padding: 1px 10px; }"
+            "QToolButton:hover { background: #22314b; }"
+            "QToolButton:pressed { background: #16213e; }"
+            "QToolButton#closeWindowBtn { border-color: #8f313d; background: #2a1b22; }"
+            "QToolButton#closeWindowBtn:hover { background: #5a2432; }"));
+        auto* topChromeLayout = new QHBoxLayout(topChrome_);
+        topChromeLayout->setContentsMargins(8, 4, 6, 4);
+        topChromeLayout->setSpacing(6);
+
+        auto* leftChromeSlot = new QWidget(topChrome_);
+        leftChromeSlot->setFixedWidth(140);
+        auto* leftChromeLayout = new QHBoxLayout(leftChromeSlot);
+        leftChromeLayout->setContentsMargins(0, 0, 0, 0);
+        leftChromeLayout->setSpacing(6);
+
+        djUtilityMenuBtn_ = new QToolButton(topChrome_);
+        djUtilityMenuBtn_->setText(QStringLiteral("Menu"));
+        djUtilityMenuBtn_->setPopupMode(QToolButton::InstantPopup);
+        djUtilityMenuBtn_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        djUtilityMenuBtn_->setVisible(false);
+        leftChromeLayout->addWidget(djUtilityMenuBtn_, 0);
+
+        diagnosticsBtn_ = new QToolButton(topChrome_);
+        diagnosticsBtn_->setText(QStringLiteral("Diagnostics"));
+        diagnosticsBtn_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        leftChromeLayout->addWidget(diagnosticsBtn_, 0);
+        leftChromeLayout->addStretch(1);
+        topChromeLayout->addWidget(leftChromeSlot, 0);
+
+        topTitleLabel_ = new QLabel(QStringLiteral("KAELIX"), topChrome_);
+        topTitleLabel_->setObjectName(QStringLiteral("topTitleLabel"));
+        topTitleLabel_->setAlignment(Qt::AlignCenter);
+        topChromeLayout->addWidget(topTitleLabel_, 1);
+
+        auto* rightChromeSlot = new QWidget(topChrome_);
+        rightChromeSlot->setFixedWidth(110);
+        auto* rightChromeLayout = new QHBoxLayout(rightChromeSlot);
+        rightChromeLayout->setContentsMargins(0, 0, 0, 0);
+        rightChromeLayout->setSpacing(6);
+        rightChromeLayout->addStretch(1);
+
+        minimizeWindowBtn_ = new QToolButton(topChrome_);
+        minimizeWindowBtn_->setText(QStringLiteral("-"));
+        minimizeWindowBtn_->setFixedWidth(28);
+        rightChromeLayout->addWidget(minimizeWindowBtn_, 0);
+
+        maximizeWindowBtn_ = new QToolButton(topChrome_);
+        maximizeWindowBtn_->setText(QStringLiteral("[]"));
+        maximizeWindowBtn_->setFixedWidth(34);
+        rightChromeLayout->addWidget(maximizeWindowBtn_, 0);
+
+        closeWindowBtn_ = new QToolButton(topChrome_);
+        closeWindowBtn_->setObjectName(QStringLiteral("closeWindowBtn"));
+        closeWindowBtn_->setText(QStringLiteral("X"));
+        closeWindowBtn_->setFixedWidth(28);
+        rightChromeLayout->addWidget(closeWindowBtn_, 0);
+
+        topChromeLayout->addWidget(rightChromeSlot, 0);
+
+        rootLayout->addWidget(topChrome_);
+
         // ── Stacked pages ──
         stack_ = new QStackedWidget(root);
         stack_->addWidget(buildSplashPage());    // 0
         stack_->addWidget(buildLandingPage());   // 1
         playerPage_ = new PlayerPage(bridge_, djDb_);
+        playerPage_->setTrackList(&allTracks_);
         stack_->addWidget(playerPage_);          // 2
         djModePage_ = new DjModePage(bridge_, djDb_);
         djModePage_->setTrackList(&allTracks_);
+        if (!importedFolderPath_.trimmed().isEmpty()) {
+            djModePage_->setBrowserRootFolder(importedFolderPath_);
+        }
         stack_->addWidget(djModePage_);          // 3
         connect(djModePage_, &DjModePage::backRequested, this, [this]() {
             if (djIntroOverlay_) djIntroOverlay_->stop();
             stack_->setCurrentIndex(1);
+        });
+        connect(djModePage_, &DjModePage::importFolderRequested, this, [this]() {
+            importMusicFolder();
+        });
+        connect(djModePage_, &DjModePage::importAnalysisRequested, this, [this]() {
+            startImportAnalysisBatch();
         });
         djIntroOverlay_ = new DjIntroOverlay(stack_);
         djIntroOverlay_->setGeometry(stack_->rect());
@@ -193,26 +431,32 @@ public:
         rootLayout->addWidget(stack_, 1);
 
         // ── Persistent status strip ──
-        auto* statusStrip = new QWidget(root);
-        statusStrip->setStyleSheet(QStringLiteral("background:#222; color:#ccc; font-size:11px;"));
-        auto* stripLayout = new QHBoxLayout(statusStrip);
+        statusStrip_ = new QWidget(root);
+        statusStrip_->setStyleSheet(QStringLiteral("background:#222; color:#ccc; font-size:11px;"));
+        auto* stripLayout = new QHBoxLayout(statusStrip_);
         stripLayout->setContentsMargins(8, 4, 8, 4);
-        engineStatusLabel_ = new QLabel(QStringLiteral("Engine: NOT_READY"), statusStrip);
-        runningLabel_ = new QLabel(QStringLiteral("Running: NO"), statusStrip);
-        meterLabel_ = new QLabel(QStringLiteral("MeterL: 0.000  MeterR: 0.000"), statusStrip);
+        engineStatusLabel_ = new QLabel(QStringLiteral("Engine: NOT_READY"), statusStrip_);
+        runningLabel_ = new QLabel(QStringLiteral("Running: NO"), statusStrip_);
+        meterLabel_ = new QLabel(QStringLiteral("MeterL: 0.000  MeterR: 0.000"), statusStrip_);
         stripLayout->addWidget(engineStatusLabel_);
         stripLayout->addSpacing(16);
         stripLayout->addWidget(runningLabel_);
         stripLayout->addSpacing(16);
         stripLayout->addWidget(meterLabel_);
         stripLayout->addStretch(1);
-        rootLayout->addWidget(statusStrip);
+        rootLayout->addWidget(statusStrip_);
 
         setCentralWidget(root);
 
-        // ── Menu bar ──
-        auto* diagnosticsAction = menuBar()->addAction(QStringLiteral("Diagnostics"));
-        QObject::connect(diagnosticsAction, &QAction::triggered, this, &MainWindow::showDiagnostics);
+        if (menuBar()) menuBar()->hide();
+        if (djModePage_) djUtilityMenuBtn_->setMenu(djModePage_->utilityMenu());
+
+        QObject::connect(diagnosticsBtn_, &QToolButton::clicked, this, &MainWindow::showDiagnostics);
+        QObject::connect(minimizeWindowBtn_, &QToolButton::clicked, this, &QWidget::showMinimized);
+        QObject::connect(maximizeWindowBtn_, &QToolButton::clicked, this, [this]() {
+            isMaximized() ? showNormal() : showMaximized();
+        });
+        QObject::connect(closeWindowBtn_, &QToolButton::clicked, this, &QWidget::close);
         auto* shortcut = new QShortcut(QKeySequence(QStringLiteral("Ctrl+D")), this);
         QObject::connect(shortcut, &QShortcut::activated, this, &MainWindow::showDiagnostics);
 
@@ -240,6 +484,23 @@ public:
         // ── Open SQLite library database ──
         djDb_.open(runtimePath("data/runtime/ngks_library.db"));
 
+        importCoordinator_ = new LibraryImportCoordinator(&djDb_, this);
+        importCoordinator_->setStatusCallback([this](const QString& text) {
+            latestImportStatusText_ = text;
+            refreshImportSystemSummary();
+            qInfo().noquote() << text;
+        });
+        importCoordinator_->setTrackCallback([this](const QString& filePath, const TrackInfo& track) {
+            applyImportedTrackUpdate(filePath, track);
+        });
+        importCoordinator_->setBatchFinishedCallback([this]() {
+            importAnalysisRunning_ = false;
+            latestImportStatusText_ = QStringLiteral("Import analysis complete.");
+            refreshImportSystemSummary();
+            saveLibraryJson(allTracks_, importedFolderPath_);
+            qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_IMPORT_ANALYSIS");
+        });
+
         // ── Restore persisted library ──
         {
             QString restoredFolder;
@@ -247,6 +508,23 @@ public:
             if (loadLibraryJson(restoredTracks, restoredFolder)) {
                 allTracks_ = std::move(restoredTracks);
                 importedFolderPath_ = restoredFolder;
+                playerPage_->setTrackList(&allTracks_);
+                if (djModePage_ && !importedFolderPath_.trimmed().isEmpty()) {
+                    djModePage_->setBrowserRootFolder(importedFolderPath_);
+                }
+                latestImportStatusText_ = QStringLiteral("Library restored from disk.");
+
+                bool libraryUpgraded = false;
+                for (TrackInfo& track : allTracks_) {
+                    if (track.mediaId <= 0) {
+                        track.mediaId = generateMediaId();
+                        libraryUpgraded = true;
+                    }
+                    if (track.fileFingerprint.isEmpty() && QFileInfo::exists(track.filePath)) {
+                        track.fileFingerprint = computeTrackFingerprint(track.filePath);
+                        libraryUpgraded = true;
+                    }
+                }
 
                 // Auto-merge legacy DB on restore if not already imported
                 bool anyLegacy = false;
@@ -265,12 +543,13 @@ public:
                     }
                 }
 
-                applyCoreDurationPatch(allTracks_);
+                if (libraryUpgraded) {
+                    saveLibraryJson(allTracks_, importedFolderPath_);
+                }
+
 djDb_.bulkInsert(allTracks_);
-                refreshLibraryList();
-                playerPage_->setTrackList(&allTracks_);
-                playerPage_->refreshLibrary();
-                qInfo().noquote() << QStringLiteral("LIBRARY_RESTORED=%1").arg(allTracks_.size());
+                refreshImportSystemSummary();
+                restoreLibraryUiPending_ = true;
             }
         }
 
@@ -284,7 +563,24 @@ djDb_.bulkInsert(allTracks_);
 
         // ── Refresh player library every time the player page becomes visible ──
         QObject::connect(stack_, &QStackedWidget::currentChanged, this, [this](int index) {
+            const bool djModeActive = (index == 3);
+            if (diagnosticsBtn_) diagnosticsBtn_->setVisible(!djModeActive);
+            if (djUtilityMenuBtn_) djUtilityMenuBtn_->setVisible(djModeActive);
+            if (statusStrip_) statusStrip_->setVisible(!djModeActive);
+            if (index == 1) {
+                if (!landingLibraryBound_ && libraryTree_) {
+                    libraryTree_->setDatabase(&djDb_);
+                    landingLibraryBound_ = true;
+                }
+                if (restoreLibraryUiPending_) {
+                    restoreLibraryUiPending_ = false;
+                    refreshLibraryList();
+                    playerPage_->refreshLibrary();
+                    qInfo().noquote() << QStringLiteral("LIBRARY_RESTORED=%1").arg(allTracks_.size());
+                }
+            }
             if (index == 2) {
+                playerPage_->bindLibraryDatabase();
                 playerPage_->refreshLibrary();
             }
         });
@@ -308,6 +604,51 @@ private:
         }
 
         return QMainWindow::eventFilter(watched, event);
+    }
+
+    bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override
+    {
+#ifdef _WIN32
+        Q_UNUSED(eventType);
+        MSG* msg = static_cast<MSG*>(message);
+        if (msg->message == WM_NCHITTEST && !isMaximized()) {
+            const LONG border = 8;
+            RECT windowRect {};
+            GetWindowRect(HWND(winId()), &windowRect);
+
+            const LONG x = static_cast<short>(LOWORD(msg->lParam));
+            const LONG y = static_cast<short>(HIWORD(msg->lParam));
+
+            const bool onLeft = x >= windowRect.left && x < windowRect.left + border;
+            const bool onRight = x < windowRect.right && x >= windowRect.right - border;
+            const bool onTop = y >= windowRect.top && y < windowRect.top + border;
+            const bool onBottom = y < windowRect.bottom && y >= windowRect.bottom - border;
+
+            if (onTop && onLeft) { *result = HTTOPLEFT; return true; }
+            if (onTop && onRight) { *result = HTTOPRIGHT; return true; }
+            if (onBottom && onLeft) { *result = HTBOTTOMLEFT; return true; }
+            if (onBottom && onRight) { *result = HTBOTTOMRIGHT; return true; }
+            if (onLeft) { *result = HTLEFT; return true; }
+            if (onRight) { *result = HTRIGHT; return true; }
+            if (onTop) { *result = HTTOP; return true; }
+            if (onBottom) { *result = HTBOTTOM; return true; }
+
+            if (topChrome_) {
+                const QPoint globalPos(x, y);
+                const QPoint localPos = mapFromGlobal(globalPos);
+                const QRect chromeRect(topChrome_->mapTo(this, QPoint(0, 0)), topChrome_->size());
+                if (chromeRect.contains(localPos)) {
+                    QWidget* hovered = childAt(localPos);
+                    const bool draggableArea = (hovered == nullptr || hovered == topChrome_ || hovered == topTitleLabel_);
+                    if (draggableArea) {
+                        *result = HTCAPTION;
+                        return true;
+                    }
+                }
+            }
+        }
+#endif
+        return QMainWindow::nativeEvent(eventType, message, result);
     }
 
     // ── Page builders ──
@@ -383,13 +724,21 @@ private:
         auto* actionRow = new QHBoxLayout();
         actionRow->setSpacing(6);
 
-        auto* importBtn = new QPushButton(QStringLiteral("Add Folder"), page);
+        importFolderBtn_ = new QPushButton(QStringLiteral("Import Music Folder"), page);
+        auto* importBtn = importFolderBtn_;
         importBtn->setMinimumHeight(32);
         importBtn->setCursor(Qt::PointingHandCursor);
-        importBtn->setToolTip(QStringLiteral("Import a folder of audio files into the library"));
+        importBtn->setToolTip(QStringLiteral("Scan a folder, add tracks to the library, and start background dual analysis"));
         actionRow->addWidget(importBtn);
 
-        auto* legacyDbBtn = new QPushButton(QStringLiteral("Import Legacy DB"), page);
+        runImportAnalysisBtn_ = new QPushButton(QStringLiteral("Run Import Analysis"), page);
+        runImportAnalysisBtn_->setMinimumHeight(32);
+        runImportAnalysisBtn_->setCursor(Qt::PointingHandCursor);
+        runImportAnalysisBtn_->setToolTip(QStringLiteral("Run the regular and live analysis import pipeline on the current library"));
+        actionRow->addWidget(runImportAnalysisBtn_);
+
+        legacyImportBtn_ = new QPushButton(QStringLiteral("Import Legacy DB"), page);
+        auto* legacyDbBtn = legacyImportBtn_;
         legacyDbBtn->setMinimumHeight(32);
         legacyDbBtn->setCursor(Qt::PointingHandCursor);
         legacyDbBtn->setToolTip(QStringLiteral("Merge BPM, key, LUFS and analysis fields from the legacy ngksplayer database"));
@@ -464,13 +813,31 @@ private:
         toolRow->addStretch(1);
         layout->addLayout(toolRow);
 
+        auto* importStatusCard = new QWidget(page);
+        importStatusCard->setStyleSheet(QStringLiteral(
+            "background: #101a33; border: 1px solid #0f3460; border-radius: 8px;"
+        ));
+        auto* importStatusLayout = new QVBoxLayout(importStatusCard);
+        importStatusLayout->setContentsMargins(12, 10, 12, 10);
+        importStatusLayout->setSpacing(4);
+
+        importStatusTitleLabel_ = new QLabel(QStringLiteral("Import System Ready"), importStatusCard);
+        importStatusTitleLabel_->setStyleSheet(QStringLiteral("color: #e94560; font-size: 13px; font-weight: bold;"));
+        importStatusLayout->addWidget(importStatusTitleLabel_);
+
+        importStatusDetailLabel_ = new QLabel(importStatusCard);
+        importStatusDetailLabel_->setWordWrap(true);
+        importStatusDetailLabel_->setStyleSheet(QStringLiteral("color: #b8c2d8; font-size: 11px;"));
+        importStatusLayout->addWidget(importStatusDetailLabel_);
+
+        layout->addWidget(importStatusCard);
+
         // ── Main content: splitter (library browser | detail panel) ──
         auto* splitter = new QSplitter(Qt::Horizontal, page);
         splitter->setHandleWidth(2);
         splitter->setStyleSheet(QStringLiteral("QSplitter::handle { background: #0f3460; }"));
 
         libraryTree_ = new LibraryBrowserWidget(LibraryBrowserWidget::Mode::MainPanel, splitter);
-        libraryTree_->setDatabase(&djDb_);
 
         // ── Detail panel (scrollable) ──
         auto* detailScroll = new QScrollArea(splitter);
@@ -501,29 +868,17 @@ private:
         bottomRow->addStretch(1);
         layout->addLayout(bottomRow);
 
+        refreshImportSystemSummary();
+
         // ── Connections ──
 
         // Import folder
         QObject::connect(importBtn, &QPushButton::clicked, this, [this]() {
-            const QString dir = QFileDialog::getExistingDirectory(this, QStringLiteral("Select Music Folder"));
-            if (dir.isEmpty()) return;
-            qInfo().noquote() << QStringLiteral("LIBRARY_SCAN_STARTED=%1").arg(dir);
+            importMusicFolder();
+        });
 
-            allTracks_ = scanFolderForTracks(dir);
-            importedFolderPath_ = dir;
-            qInfo().noquote() << QStringLiteral("FILES_FOUND=%1").arg(allTracks_.size());
-            qInfo().noquote() << QStringLiteral("TRACKS_INDEXED=%1").arg(allTracks_.size());
-
-            applyCoreDurationPatch(allTracks_);
-            djDb_.bulkInsert(allTracks_);
-
-            clearTrackDetail();
-            refreshLibraryList();
-            playerPage_->setTrackList(&allTracks_);
-            playerPage_->refreshLibrary();
-
-            saveLibraryJson(allTracks_, importedFolderPath_);
-            qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_SCAN");
+        QObject::connect(runImportAnalysisBtn_, &QPushButton::clicked, this, [this]() {
+            startImportAnalysisBatch();
         });
 
         // Import legacy DB
@@ -547,6 +902,8 @@ private:
             applyCoreDurationPatch(allTracks_);
 djDb_.bulkInsert(allTracks_);
             refreshLibraryList();
+            latestImportStatusText_ = QStringLiteral("Legacy database merged into the current library.");
+            refreshImportSystemSummary();
             saveLibraryJson(allTracks_, importedFolderPath_);
             qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_LEGACY_IMPORT");
 
@@ -871,14 +1228,18 @@ djDb_.bulkInsert(allTracks_);
             stack_->setCurrentIndex(2);
         });
         QObject::connect(djBtn, &QPushButton::clicked, this, [this]() {
+            qInfo().noquote() << QStringLiteral("DJ_MODE_REQUEST overlayActive=%1")
+                .arg((djIntroOverlay_ && djIntroOverlay_->isActive()) ? 1 : 0);
             if (djIntroOverlay_ && djIntroOverlay_->isActive()) {
                 djIntroOverlay_->skip();
                 return;
             }
 
-            bridge_.enterDjMode();
+            const bool enterOk = bridge_.enterDjMode();
+            qInfo().noquote() << QStringLiteral("DJ_MODE_ENTER dispatched=%1").arg(enterOk ? 1 : 0);
             djModePage_->refreshLibrary();
             stack_->setCurrentIndex(3);
+            qInfo().noquote() << QStringLiteral("DJ_MODE_STACK_INDEX=%1").arg(stack_->currentIndex());
 
             if (shouldPlayDjIntro()) {
                 const QString intro = chooseRandomDjIntroVideo();
@@ -886,7 +1247,11 @@ djDb_.bulkInsert(allTracks_);
                     markDjIntroSeen();
                     djIntroOverlay_->setGeometry(stack_->rect());
                     djIntroOverlay_->play(intro);
+                } else {
+                    qInfo().noquote() << QStringLiteral("DJ_MODE_INTRO_SKIPPED reason=no_video");
                 }
+            } else {
+                qInfo().noquote() << QStringLiteral("DJ_MODE_INTRO_SKIPPED reason=mode_setting");
             }
         });
 
@@ -1012,6 +1377,243 @@ djDb_.bulkInsert(allTracks_);
         libraryTree_->refresh();
     }
 
+    void refreshImportSystemSummary()
+    {
+        const bool canImportFolder = !importAnalysisRunning_;
+        const bool canRunAnalysis = !allTracks_.empty() && !importAnalysisRunning_;
+
+        if (importFolderBtn_) {
+            importFolderBtn_->setEnabled(canImportFolder);
+        }
+        if (runImportAnalysisBtn_) {
+            runImportAnalysisBtn_->setEnabled(canRunAnalysis);
+        }
+        if (legacyImportBtn_) {
+            legacyImportBtn_->setEnabled(!allTracks_.empty() && !importAnalysisRunning_);
+        }
+
+        QString titleText;
+        QString detailText;
+
+        if (allTracks_.empty()) {
+            titleText = QStringLiteral("Import System Ready");
+            detailText =
+                QStringLiteral("Use Import Music Folder to scan tracks. Songs will appear in the library immediately while regular and live analysis run in the background and persist to the database.");
+            if (importStatusTitleLabel_) importStatusTitleLabel_->setText(titleText);
+            if (importStatusDetailLabel_) importStatusDetailLabel_->setText(detailText);
+            if (djModePage_) djModePage_->setImportUiState(titleText, detailText, canImportFolder, canRunAnalysis);
+            return;
+        }
+
+        int regularComplete = 0;
+        int regularRunning = 0;
+        int regularFailed = 0;
+        int regularWaiting = 0;
+        int liveComplete = 0;
+        int liveQueued = 0;
+        int liveRunning = 0;
+        int liveFailed = 0;
+        int liveWaiting = 0;
+
+        for (const TrackInfo& track : allTracks_) {
+            const QString regularState = track.regularAnalysisState.trimmed();
+            if (regularState == QStringLiteral("ANALYSIS_COMPLETE")) {
+                ++regularComplete;
+            } else if (regularState == QStringLiteral("ANALYSIS_RUNNING")) {
+                ++regularRunning;
+            } else if (regularState == QStringLiteral("ANALYSIS_FAILED") ||
+                       regularState == QStringLiteral("ANALYSIS_CANCELED")) {
+                ++regularFailed;
+            } else {
+                ++regularWaiting;
+            }
+
+            const QString liveState = track.liveAnalysisState.trimmed();
+            if (liveState == QStringLiteral("ANALYSIS_COMPLETE")) {
+                ++liveComplete;
+            } else if (liveState == QStringLiteral("ANALYSIS_QUEUED")) {
+                ++liveQueued;
+            } else if (liveState == QStringLiteral("ANALYSIS_RUNNING")) {
+                ++liveRunning;
+            } else if (liveState == QStringLiteral("ANALYSIS_FAILED") ||
+                       liveState == QStringLiteral("ANALYSIS_CANCELED")) {
+                ++liveFailed;
+            } else {
+                ++liveWaiting;
+            }
+        }
+
+        const bool workRemaining = regularRunning > 0 || regularWaiting > 0 || liveQueued > 0 || liveRunning > 0 || liveWaiting > 0;
+        titleText = importAnalysisRunning_ || workRemaining
+            ? QStringLiteral("Import System Running")
+            : QStringLiteral("Import System Ready");
+
+        QStringList detailParts;
+        if (!latestImportStatusText_.trimmed().isEmpty()) {
+            detailParts << latestImportStatusText_.trimmed();
+        }
+        detailParts << QStringLiteral("Tracks: %1").arg(allTracks_.size());
+        detailParts << QStringLiteral("Regular %1 done, %2 running, %3 failed, %4 waiting")
+            .arg(regularComplete)
+            .arg(regularRunning)
+            .arg(regularFailed)
+            .arg(regularWaiting);
+        detailParts << QStringLiteral("Live %1 done, %2 queued, %3 running, %4 failed, %5 waiting")
+            .arg(liveComplete)
+            .arg(liveQueued)
+            .arg(liveRunning)
+            .arg(liveFailed)
+            .arg(liveWaiting);
+        detailText = detailParts.join(QStringLiteral("  |  "));
+
+        if (importStatusTitleLabel_) importStatusTitleLabel_->setText(titleText);
+        if (importStatusDetailLabel_) importStatusDetailLabel_->setText(detailText);
+        if (djModePage_) djModePage_->setImportUiState(titleText, detailText, canImportFolder, canRunAnalysis);
+    }
+
+    void carryForwardTrackedState(TrackInfo& target, const TrackInfo& existing) const
+    {
+        if (target.fileFingerprint.isEmpty()) target.fileFingerprint = existing.fileFingerprint;
+        target.regularAnalysisState = existing.regularAnalysisState;
+        target.regularAnalysisJson = existing.regularAnalysisJson;
+        target.liveAnalysisState = existing.liveAnalysisState;
+        target.liveAnalysisJson = existing.liveAnalysisJson;
+        target.cueIn = existing.cueIn;
+        target.cueOut = existing.cueOut;
+        target.rating = existing.rating;
+        target.comments = existing.comments;
+        target.legacyImported = existing.legacyImported;
+
+        if (!existing.bpm.trimmed().isEmpty()) target.bpm = existing.bpm;
+        if (!existing.musicalKey.trimmed().isEmpty()) target.musicalKey = existing.musicalKey;
+        if (!existing.camelotKey.trimmed().isEmpty()) target.camelotKey = existing.camelotKey;
+        if (existing.energy >= 0.0) target.energy = existing.energy;
+        if (existing.danceability >= 0.0) target.danceability = existing.danceability;
+        if (existing.loudnessLUFS != 0.0) target.loudnessLUFS = existing.loudnessLUFS;
+        if (target.durationMs <= 0 && existing.durationMs > 0) target.durationMs = existing.durationMs;
+        if (target.durationStr.trimmed().isEmpty() && !existing.durationStr.trimmed().isEmpty()) target.durationStr = existing.durationStr;
+    }
+
+    std::vector<TrackInfo> reconcileManagedLibraryTracks(const std::vector<TrackInfo>& scannedTracks) const
+    {
+        QHash<QString, int> existingByPath;
+        QHash<QString, int> existingByFingerprint;
+        for (int index = 0; index < static_cast<int>(allTracks_.size()); ++index) {
+            const TrackInfo& existing = allTracks_[static_cast<size_t>(index)];
+            existingByPath.insert(existing.filePath, index);
+            if (!existing.fileFingerprint.isEmpty() && !existingByFingerprint.contains(existing.fileFingerprint)) {
+                existingByFingerprint.insert(existing.fileFingerprint, index);
+            }
+        }
+
+        std::vector<TrackInfo> reconciled;
+        reconciled.reserve(scannedTracks.size());
+        QSet<qint64> assignedMediaIds;
+
+        for (const TrackInfo& scanned : scannedTracks) {
+            TrackInfo merged = scanned;
+            const TrackInfo* existing = nullptr;
+
+            const auto pathIt = existingByPath.constFind(scanned.filePath);
+            if (pathIt != existingByPath.cend()) {
+                existing = &allTracks_[static_cast<size_t>(pathIt.value())];
+            } else if (!scanned.fileFingerprint.isEmpty()) {
+                const auto fingerprintIt = existingByFingerprint.constFind(scanned.fileFingerprint);
+                if (fingerprintIt != existingByFingerprint.cend()) {
+                    existing = &allTracks_[static_cast<size_t>(fingerprintIt.value())];
+                }
+            }
+
+            if (existing != nullptr) {
+                carryForwardTrackedState(merged, *existing);
+                if (existing->mediaId > 0 && !assignedMediaIds.contains(existing->mediaId)) {
+                    merged.mediaId = existing->mediaId;
+                }
+            }
+
+            if (merged.mediaId <= 0 || assignedMediaIds.contains(merged.mediaId)) {
+                merged.mediaId = generateMediaId();
+            }
+            assignedMediaIds.insert(merged.mediaId);
+            reconciled.push_back(std::move(merged));
+        }
+
+        return reconciled;
+    }
+
+    void importMusicFolder()
+    {
+        const QString initialDestination = importedFolderPath_.trimmed().isEmpty()
+            ? QDir::home().filePath(QStringLiteral("NGKsPlayerNativeLibrary"))
+            : importedFolderPath_;
+        ImportFoldersDialog dialog(initialDestination, this);
+        if (dialog.exec() != QDialog::Accepted) return;
+
+        const ImportFolderSelection selection = dialog.selection();
+        if (selection.sourceFolder.isEmpty() || selection.destinationFolder.isEmpty()) return;
+
+        qInfo().noquote() << QStringLiteral("LIBRARY_IMPORT_STARTED source=%1 dest=%2")
+            .arg(selection.sourceFolder, selection.destinationFolder);
+
+        const ManagedImportCopyResult copyResult = copyManagedImportLibrary(selection.sourceFolder, selection.destinationFolder);
+        std::vector<TrackInfo> scannedTracks = scanFolderForTracks(selection.destinationFolder);
+        allTracks_ = reconcileManagedLibraryTracks(scannedTracks);
+        importedFolderPath_ = selection.destinationFolder;
+
+        latestImportStatusText_ = QStringLiteral("Imported from %1 to %2. %3 copied, %4 reused, %5 failed. Background analysis starting.")
+            .arg(QFileInfo(selection.sourceFolder).fileName().isEmpty() ? selection.sourceFolder : QFileInfo(selection.sourceFolder).fileName())
+            .arg(QFileInfo(selection.destinationFolder).fileName().isEmpty() ? selection.destinationFolder : QFileInfo(selection.destinationFolder).fileName())
+            .arg(copyResult.copiedCount)
+            .arg(copyResult.reusedCount)
+            .arg(copyResult.failedFiles.size());
+        qInfo().noquote() << QStringLiteral("FILES_FOUND=%1").arg(allTracks_.size());
+        qInfo().noquote() << QStringLiteral("TRACKS_INDEXED=%1").arg(allTracks_.size());
+
+        applyCoreDurationPatch(allTracks_);
+        djDb_.bulkInsert(allTracks_);
+
+        clearTrackDetail();
+        refreshLibraryList();
+        playerPage_->setTrackList(&allTracks_);
+        playerPage_->refreshLibrary();
+        if (djModePage_) {
+            djModePage_->setBrowserRootFolder(importedFolderPath_);
+            djModePage_->refreshLibrary();
+        }
+        refreshImportSystemSummary();
+
+        saveLibraryJson(allTracks_, importedFolderPath_);
+        qInfo().noquote() << QStringLiteral("LIBRARY_PERSISTED=POST_SCAN");
+
+        if (!copyResult.failedFiles.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("Import Completed With Errors"),
+                QStringLiteral("%1 files could not be copied into the managed library folder. The library was refreshed with the files that did import.")
+                    .arg(copyResult.failedFiles.size()));
+        }
+
+        startImportAnalysisBatch();
+    }
+
+    void startImportAnalysisBatch()
+    {
+        if (!importCoordinator_ || allTracks_.empty()) {
+            refreshImportSystemSummary();
+            return;
+        }
+        if (importAnalysisRunning_) {
+            QMessageBox::information(this, QStringLiteral("Import Analysis Running"),
+                QStringLiteral("The import analysis pipeline is already running for this library."));
+            return;
+        }
+
+        importAnalysisRunning_ = true;
+        if (latestImportStatusText_.trimmed().isEmpty()) {
+            latestImportStatusText_ = QStringLiteral("Background analysis starting.");
+        }
+        refreshImportSystemSummary();
+        importCoordinator_->startImportBatch(allTracks_);
+    }
+
     void updateTreeItemForTrack(int trackIndex)
     {
         if (trackIndex < 0 || trackIndex >= static_cast<int>(allTracks_.size())) return;
@@ -1021,6 +1623,26 @@ djDb_.bulkInsert(allTracks_);
         // If this track is currently selected in the detail panel, refresh the detail
         if (libraryTree_ && libraryTree_->currentTrackId() == static_cast<qint64>(trackIndex))
             showTrackDetail(trackIndex);
+    }
+
+    void applyImportedTrackUpdate(const QString& filePath, const TrackInfo& track)
+    {
+        if (filePath.isEmpty()) return;
+
+        for (size_t index = 0; index < allTracks_.size(); ++index) {
+            if (allTracks_[index].filePath != filePath) continue;
+
+            allTracks_[index] = track;
+            refreshLibraryList();
+            playerPage_->refreshLibrary();
+            if (djModePage_) djModePage_->refreshLibrary();
+            if (libraryTree_ && libraryTree_->currentTrackId() == static_cast<qint64>(index)) {
+                showTrackDetail(static_cast<int>(index));
+            }
+            refreshImportSystemSummary();
+            saveLibraryJson(allTracks_, importedFolderPath_);
+            return;
+        }
     }
 
     void showTrackDetail(int trackIndex)
@@ -1269,11 +1891,17 @@ private:
     DiagnosticsDialog* diagnosticsDialog_{nullptr};
     QStackedWidget* stack_{nullptr};
     LibraryBrowserWidget* libraryTree_{nullptr};
+    QPushButton* importFolderBtn_{nullptr};
+    QPushButton* runImportAnalysisBtn_{nullptr};
+    QPushButton* legacyImportBtn_{nullptr};
     QLabel* trackCountLabel_{nullptr};
+    QLabel* importStatusTitleLabel_{nullptr};
+    QLabel* importStatusDetailLabel_{nullptr};
     TrackDetailPanel* detailPanel_{nullptr};
     PlayerPage* playerPage_{nullptr};
     DjModePage* djModePage_{nullptr};
     DjIntroOverlay* djIntroOverlay_{nullptr};
+    LibraryImportCoordinator* importCoordinator_{nullptr};
     QString lastDjIntroVideoPath_;
     DjIntroMode djIntroMode_{DjIntroMode::Always};
     bool djIntroSeen_{false};
@@ -1282,11 +1910,23 @@ private:
     std::vector<Playlist> playlists_;
     int activePlaylistIndex_{-1}; // -1 = show all library
     QString importedFolderPath_;
+    QString latestImportStatusText_;
+    bool importAnalysisRunning_{false};
+    bool restoreLibraryUiPending_{false};
+    bool landingLibraryBound_{false};
 
 
     QLabel* engineStatusLabel_{nullptr};
     QLabel* runningLabel_{nullptr};
     QLabel* meterLabel_{nullptr};
+    QWidget* statusStrip_{nullptr};
+    QWidget* topChrome_{nullptr};
+    QLabel* topTitleLabel_{nullptr};
+    QToolButton* diagnosticsBtn_{nullptr};
+    QToolButton* djUtilityMenuBtn_{nullptr};
+    QToolButton* minimizeWindowBtn_{nullptr};
+    QToolButton* maximizeWindowBtn_{nullptr};
+    QToolButton* closeWindowBtn_{nullptr};
     UIStatus lastStatus_ {};
     UIHealthSnapshot lastHealth_ {};
     UIEngineTelemetrySnapshot lastTelemetry_ {};

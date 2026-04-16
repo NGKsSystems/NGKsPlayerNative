@@ -1,6 +1,8 @@
 #include "ui/DjModePage.h"
 
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMenu>
@@ -12,6 +14,7 @@
 #include <QVBoxLayout>
 #include <windows.h>  // GetCurrentThreadId
 
+#include "ui/AnalysisBridge.h"
 #include "ui/EngineBridge.h"
 #include "ui/AncillaryScreensWidget.h"
 #include "ui/library/DjBrowserPane.h"
@@ -27,68 +30,38 @@ DjModePage::DjModePage(EngineBridge& bridge, DjLibraryDatabase& db,
 {
     setStyleSheet(QStringLiteral("background: #080b10;"));
 auto* layout = new QVBoxLayout(this);
-layout->setContentsMargins(8, 8, 8, 8);
-layout->setSpacing(4);
+layout->setContentsMargins(4, 0, 4, 4);
+layout->setSpacing(2);
 
-// ── Header row: Back + title ──
-auto* headerRow = new QHBoxLayout();
-headerRow->setSpacing(6);
-auto* backBtn = new QPushButton(QStringLiteral("\u2190 Back"), this);
-backBtn->setCursor(Qt::PointingHandCursor);
-backBtn->setStyleSheet(QStringLiteral(
-    "QPushButton { background: rgba(20,20,30,200); border: 1px solid #333;"
-    "  border-radius: 4px; color: #aaa; font-size: 9px; padding: 4px 10px; }"
-    "QPushButton:hover { background: rgba(40,40,60,220); color: #ddd; }"));
-headerRow->addWidget(backBtn);
+djUtilityMenu_ = new QMenu(this);
+djUtilityMenu_->setStyleSheet(QStringLiteral(
+    "QMenu { background: #16213e; color: #e0e0e0; border: 1px solid #0f3460; padding: 4px 0; }"
+    "QMenu::item { padding: 6px 24px; }"
+    "QMenu::item:selected { background: #533483; }"
+    "QMenu::separator { height: 1px; background: #0f3460; margin: 4px 8px; }"));
 
-auto* title = new QLabel(QStringLiteral("DJ MIXER"), this);
-{
-    QFont f = title->font();
-    f.setPointSize(14);
-    f.setBold(true);
-    title->setFont(f);
-}
-title->setStyleSheet(QStringLiteral("color: #e0e0e0; background: transparent;"));
-title->setAlignment(Qt::AlignCenter);
-headerRow->addWidget(title, 1);
+backAction_ = djUtilityMenu_->addAction(QStringLiteral("Back to Library"));
+importFolderAction_ = djUtilityMenu_->addAction(QStringLiteral("Import Folder"));
+importAnalysisAction_ = djUtilityMenu_->addAction(QStringLiteral("Run Analysis"));
+djUtilityMenu_->addSeparator();
+proAudioClipperAction_ = djUtilityMenu_->addAction(QStringLiteral("ProAudioClipper"));
+ancillaryScreensAction_ = djUtilityMenu_->addAction(QStringLiteral("Ancillary Screens"));
 
-auto* proAudioClipperBtn = new QPushButton(QStringLiteral("ProAudioClipper"), this);
-proAudioClipperBtn->setStyleSheet(QStringLiteral(
-    "QPushButton { background: rgba(20,20,30,200); border: 1px solid #444;"
-    "border-radius: 4px; color: #888; font-size: 11px; padding: 6px 12px; }"
-    "QPushButton:hover { background: rgba(40,40,60,220); color: #ddd; }"
-));
-proAudioClipperBtn->setMinimumHeight(28);
-headerRow->addWidget(proAudioClipperBtn);
-QObject::connect(proAudioClipperBtn, &QPushButton::clicked, this, [this]() {
-    QMessageBox::information(this, QStringLiteral("Coming Soon"), QStringLiteral("ProAudioClipper integration is a placeholder."));
-});
-
-auto* ancillaryBtn = new QPushButton(QStringLiteral("Ancillary Screens"), this);
-ancillaryBtn->setStyleSheet(QStringLiteral(
-    "QPushButton { background: #b35900; border: 1px solid #ff8000;"
-    "border-radius: 4px; color: #fff; font-size: 11px; padding: 6px 12px; }"
-    "QPushButton:hover { background: #d96600; }"
-));
-ancillaryBtn->setMinimumHeight(28);
-headerRow->addWidget(ancillaryBtn);
-QObject::connect(ancillaryBtn, &QPushButton::clicked, this, [this]() {
-    if (!ancillaryWidget_) {
-        ancillaryWidget_ = new AncillaryScreensWidget(&bridge_);
-        ancillaryWidget_->setWindowTitle(QStringLiteral("Ancillary Screens"));
-        ancillaryWidget_->setAttribute(Qt::WA_DeleteOnClose, false);
-    }
-    ancillaryWidget_->show();
-    ancillaryWidget_->raise();
-    ancillaryWidget_->activateWindow();
-});
-
-headerRow->addSpacing(60);  // balance the back button
-layout->addLayout(headerRow);
-
-QObject::connect(backBtn, &QPushButton::clicked, this, [this]() {
+QObject::connect(backAction_, &QAction::triggered, this, [this]() {
     bridge_.leaveDjMode();
     emit backRequested();
+});
+QObject::connect(importFolderAction_, &QAction::triggered, this, [this]() {
+    emit importFolderRequested();
+});
+QObject::connect(importAnalysisAction_, &QAction::triggered, this, [this]() {
+    emit importAnalysisRequested();
+});
+QObject::connect(proAudioClipperAction_, &QAction::triggered, this, [this]() {
+    showProAudioClipperPlaceholder();
+});
+QObject::connect(ancillaryScreensAction_, &QAction::triggered, this, [this]() {
+    openAncillaryScreens();
 });
 
 // ── Per-deck columns: Deck + Library side by side ──
@@ -221,39 +194,46 @@ colB->setSpacing(4);
 djDeckB_ = new DeckStrip(1, QStringLiteral("#2080e0"), &bridge_, this);
 colB->addWidget(djDeckB_, 1);
 
+deckAnalysisBridgeA_ = new AnalysisBridge(this);
+deckAnalysisBridgeB_ = new AnalysisBridge(this);
+wireDeckAnalysisBridge(deckAnalysisBridgeA_, djDeckA_, 0);
+wireDeckAnalysisBridge(deckAnalysisBridgeB_, djDeckB_, 1);
+
 deckRow->addLayout(colB, 5);
 
 
 
-auto* deckSplitter = new QSplitter(Qt::Horizontal, this);
-auto* djBrowser = new DjBrowserPane(&db_, this);
-deckSplitter->addWidget(djBrowser);
+auto* pageSplitter = new QSplitter(Qt::Vertical, this);
+djBrowser_ = new DjBrowserPane(&db_, this);
 
 // -- Browser context menu -> load to deck --
-QObject::connect(djBrowser, &DjBrowserPane::loadToDeckRequested, this,
+QObject::connect(djBrowser_, &DjBrowserPane::loadToDeckRequested, this,
     [this](int deckIdx, const QString& path) {
-        bridge_.loadTrackToDeck(deckIdx, path);
-        auto optTrack = db_.trackByPath(path);
-        if (optTrack.has_value()) {
-            if (deckIdx == 0 && djDeckA_)
-                djDeckA_->setTrackMetadata(optTrack->title, optTrack->artist,
-                                           optTrack->bpm, optTrack->musicalKey,
-                                           optTrack->durationStr);
-            else if (deckIdx == 1 && djDeckB_)
-                djDeckB_->setTrackMetadata(optTrack->title, optTrack->artist,
-                                           optTrack->bpm, optTrack->musicalKey,
-                                           optTrack->durationStr);
-        }
+        loadDeckTrack(deckIdx, path);
     });
+
+QObject::connect(djBrowser_, &DjBrowserPane::importFolderRequested, this, [this]() {
+    emit importFolderRequested();
+});
+
+QObject::connect(djBrowser_, &DjBrowserPane::importAnalysisRequested, this, [this]() {
+    emit importAnalysisRequested();
+});
+QObject::connect(djBrowser_, &DjBrowserPane::backRequested, this, [this]() {
+    bridge_.leaveDjMode();
+    emit backRequested();
+});
+QObject::connect(djBrowser_, &DjBrowserPane::showProAudioClipperRequested, this, [this]() {
+    showProAudioClipperPlaceholder();
+});
+QObject::connect(djBrowser_, &DjBrowserPane::showAncillaryScreensRequested, this, [this]() {
+    openAncillaryScreens();
+});
 
 auto* deckWidget = new QWidget(this);
 auto* deckRowLayout = new QVBoxLayout(deckWidget);
 deckRowLayout->setContentsMargins(0,0,0,0);
 deckRowLayout->addLayout(deckRow);
-
-deckSplitter->addWidget(deckWidget);
-deckSplitter->setSizes({250, 1000});
-layout->addWidget(deckSplitter, 1);
 
 // ── Crossfader row ──
 auto* xfadeRow = new QHBoxLayout();
@@ -303,7 +283,12 @@ xfadeLabelB->setStyleSheet(QStringLiteral(
     "color: #2080e0; background: transparent;"));
 xfadeRow->addWidget(xfadeLabelB);
 
-layout->addLayout(xfadeRow);
+deckRowLayout->addLayout(xfadeRow);
+
+pageSplitter->addWidget(deckWidget);
+pageSplitter->addWidget(djBrowser_);
+pageSplitter->setSizes({760, 260});
+layout->addWidget(pageSplitter, 1);
 
 QObject::connect(djCrossfader_, &QSlider::valueChanged, this, [this](int value) {
     bridge_.setCrossfader(static_cast<double>(value) / 1000.0);
@@ -358,47 +343,30 @@ QObject::connect(&bridge_, &EngineBridge::deviceSwitchFinished, this,
 // ── DeckStrip LOAD buttons: library is offline, no-op ──
 QObject::connect(djDeckA_, &DeckStrip::loadRequested, this, [](int) {});
 QObject::connect(djDeckB_, &DeckStrip::loadRequested, this, [](int) {});
-
 // ── DeckStrip drag-to-deck: load track by track_id ──
 QObject::connect(djDeckA_, &DeckStrip::loadTrackRequested, this,
     [this](int /*deckIndex*/, qint64 trackId) {
     auto optTrack = db_.trackById(trackId);
     if (optTrack.has_value()) {
-        bridge_.loadTrackToDeck(0, optTrack->filePath);
-        djDeckA_->setTrackMetadata(optTrack->title, optTrack->artist,
-                                   optTrack->bpm, optTrack->musicalKey,
-                                   optTrack->durationStr);
+        loadDeckTrack(0, optTrack->filePath);
     }
 });
 QObject::connect(djDeckB_, &DeckStrip::loadTrackRequested, this,
     [this](int /*deckIndex*/, qint64 trackId) {
     auto optTrack = db_.trackById(trackId);
     if (optTrack.has_value()) {
-        bridge_.loadTrackToDeck(1, optTrack->filePath);
-        djDeckB_->setTrackMetadata(optTrack->title, optTrack->artist,
-                                   optTrack->bpm, optTrack->musicalKey,
-                                   optTrack->durationStr);
+        loadDeckTrack(1, optTrack->filePath);
     }
 });
 
 // ── DeckStrip file-drag (from DjBrowserPane) ──
 QObject::connect(djDeckA_, &DeckStrip::loadFileRequested, this,
     [this](int /*deckIndex*/, const QString& path) {
-        bridge_.loadTrackToDeck(0, path);
-        auto optTrack = db_.trackByPath(path);
-        if (optTrack.has_value())
-            djDeckA_->setTrackMetadata(optTrack->title, optTrack->artist,
-                                       optTrack->bpm, optTrack->musicalKey,
-                                       optTrack->durationStr);
+        loadDeckTrack(0, path);
     });
 QObject::connect(djDeckB_, &DeckStrip::loadFileRequested, this,
     [this](int /*deckIndex*/, const QString& path) {
-        bridge_.loadTrackToDeck(1, path);
-        auto optTrack = db_.trackByPath(path);
-        if (optTrack.has_value())
-            djDeckB_->setTrackMetadata(optTrack->title, optTrack->artist,
-                                       optTrack->bpm, optTrack->musicalKey,
-                                       optTrack->durationStr);
+        loadDeckTrack(1, path);
     });
 
 // Wire snapshot refresh
@@ -407,6 +375,8 @@ QObject::connect(&bridge_, &EngineBridge::djSnapshotUpdated, this, [this]() {
     if (djDeckB_) djDeckB_->refreshFromSnapshot();
     if (djMasterMeterL_) djMasterMeterL_->setLevel(static_cast<float>(bridge_.masterPeakL()));
     if (djMasterMeterR_) djMasterMeterR_->setLevel(static_cast<float>(bridge_.masterPeakR()));
+    syncDeckLiveAnalysis(0);
+    syncDeckLiveAnalysis(1);
 });
 
 // ── Device-lost overlay banner + Recover Audio button ──
@@ -508,6 +478,147 @@ QObject::connect(&bridge_, &EngineBridge::djAutoRecoverySuccess, this,
     // Auto-dismiss after 3 seconds
     djBannerDismissTimer_->start(3000);
 });
+}
+
+void DjModePage::setBrowserRootFolder(const QString& folderPath)
+{
+    if (djBrowser_) djBrowser_->setBrowserRootFolder(folderPath);
+}
+
+void DjModePage::wireDeckAnalysisBridge(AnalysisBridge* analysisBridge, DeckStrip* deckWidget, int deckIndex)
+{
+    if (!analysisBridge || !deckWidget) return;
+
+    QObject::connect(analysisBridge, &AnalysisBridge::bridgeReady, this,
+        [this, analysisBridge, deckIndex]() {
+            QString* pendingPath = pendingDeckAnalysisPath(deckIndex);
+            if (!pendingPath || pendingPath->isEmpty()) return;
+            analysisBridge->selectTrack(*pendingPath);
+        });
+
+    QObject::connect(analysisBridge, &AnalysisBridge::panelStateChanged, this,
+        [deckWidget](const QJsonObject& panel) {
+            deckWidget->updateAnalysisPanel(panel);
+        });
+
+    QObject::connect(analysisBridge, &AnalysisBridge::bridgeError, this,
+        [deckIndex](const QString& error) {
+            qWarning().noquote() << QStringLiteral("DJ_DECK_ANALYSIS_ERROR deck=%1 error=%2")
+                .arg(deckIndex)
+                .arg(error);
+        });
+}
+
+void DjModePage::loadDeckTrack(int deckIndex, const QString& path)
+{
+    if (path.trimmed().isEmpty()) return;
+
+    const QString normalizedPath = QDir::fromNativeSeparators(QFileInfo(path).absoluteFilePath());
+    bridge_.loadTrackToDeck(deckIndex, normalizedPath);
+
+    DeckStrip* deck = (deckIndex == 0) ? djDeckA_ : djDeckB_;
+    if (deck) {
+        const auto optTrack = db_.trackByPath(normalizedPath);
+        if (optTrack.has_value()) {
+            deck->setTrackMetadata(optTrack->title, optTrack->artist,
+                                   optTrack->bpm, optTrack->musicalKey,
+                                   optTrack->durationStr);
+        } else {
+            const QFileInfo info(normalizedPath);
+            deck->setTrackMetadata(info.completeBaseName(), QString(), QString(), QString(), QString());
+        }
+    }
+
+    startDeckLiveAnalysis(deckIndex, normalizedPath);
+}
+
+void DjModePage::startDeckLiveAnalysis(int deckIndex, const QString& path)
+{
+    AnalysisBridge* analysisBridge = deckAnalysisBridge(deckIndex);
+    QString* pendingPath = pendingDeckAnalysisPath(deckIndex);
+    if (!analysisBridge || !pendingPath) return;
+
+    const QString normalizedPath = path.trimmed();
+    *pendingPath = normalizedPath;
+    if (normalizedPath.isEmpty()) {
+        if (analysisBridge->isReady()) analysisBridge->unselectTrack();
+        return;
+    }
+
+    if (analysisBridge->isReady()) {
+        analysisBridge->selectTrack(normalizedPath);
+        return;
+    }
+
+    analysisBridge->start();
+}
+
+void DjModePage::syncDeckLiveAnalysis(int deckIndex)
+{
+    AnalysisBridge* analysisBridge = deckAnalysisBridge(deckIndex);
+    QString* pendingPath = pendingDeckAnalysisPath(deckIndex);
+    if (!analysisBridge || !pendingPath) return;
+
+    const QString rawPath = bridge_.deckFilePath(deckIndex).trimmed();
+    if (rawPath.isEmpty()) {
+        if (!pendingPath->isEmpty()) {
+            startDeckLiveAnalysis(deckIndex, QString());
+        }
+        return;
+    }
+
+    if (pendingPath->isEmpty()) return;
+
+    const QString currentPath = QDir::fromNativeSeparators(QFileInfo(rawPath).absoluteFilePath());
+    if (*pendingPath != currentPath) return;
+
+    if (analysisBridge->isReady()) {
+        analysisBridge->resolvePlayhead(bridge_.deckPlayhead(deckIndex));
+    }
+}
+
+AnalysisBridge* DjModePage::deckAnalysisBridge(int deckIndex) const
+{
+    return deckIndex == 0 ? deckAnalysisBridgeA_ : deckAnalysisBridgeB_;
+}
+
+QString* DjModePage::pendingDeckAnalysisPath(int deckIndex)
+{
+    return deckIndex == 0 ? &deckAnalysisPathA_ : &deckAnalysisPathB_;
+}
+
+void DjModePage::setImportUiState(const QString& title,
+                                  const QString& detail,
+                                  bool importEnabled,
+                                  bool runAnalysisEnabled)
+{
+    if (!djBrowser_) return;
+    djBrowser_->setImportUiState(title, detail, importEnabled, runAnalysisEnabled);
+    if (importFolderAction_) {
+        importFolderAction_->setEnabled(importEnabled);
+        importFolderAction_->setToolTip(title + QStringLiteral("\n") + detail);
+    }
+    if (importAnalysisAction_) {
+        importAnalysisAction_->setEnabled(runAnalysisEnabled);
+        importAnalysisAction_->setToolTip(title + QStringLiteral("\n") + detail);
+    }
+}
+
+void DjModePage::openAncillaryScreens()
+{
+    if (!ancillaryWidget_) {
+        ancillaryWidget_ = new AncillaryScreensWidget(&bridge_);
+        ancillaryWidget_->setWindowTitle(QStringLiteral("Ancillary Screens"));
+        ancillaryWidget_->setAttribute(Qt::WA_DeleteOnClose, false);
+    }
+    ancillaryWidget_->show();
+    ancillaryWidget_->raise();
+    ancillaryWidget_->activateWindow();
+}
+
+void DjModePage::showProAudioClipperPlaceholder()
+{
+    QMessageBox::information(this, QStringLiteral("Coming Soon"), QStringLiteral("ProAudioClipper integration is a placeholder."));
 }
 
 void DjModePage::setTrackList(const std::vector<TrackInfo>* tracks)

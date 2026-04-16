@@ -28,6 +28,8 @@ class PlayerPage : public QWidget
 public:
     explicit PlayerPage(EngineBridge& bridge, DjLibraryDatabase& db, QWidget* parent = nullptr);
 
+    void bindLibraryDatabase();
+
     /// Update the track list pointer (call after allTracks_ changes in MainWindow).
     void setTrackList(const std::vector<TrackInfo>* tracks) { tracks_ = tracks; }
 
@@ -129,6 +131,7 @@ private:
     QLineEdit* playerSearchBar_{nullptr};
     QComboBox* playerSortCombo_{nullptr};
     QLabel* playerLibCountLabel_{nullptr};
+    bool libraryDatabaseBound_{false};
 
     // ── Audio profile widgets ─────────────────────────────────────────────────
     QComboBox* audioProfileCombo_{nullptr};

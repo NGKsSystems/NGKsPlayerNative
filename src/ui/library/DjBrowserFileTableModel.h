@@ -3,8 +3,10 @@
 #include "ui/library/DjBrowserUiFeedback.h"
 #include "ui/library/DjBrowserTrackOps.h"
 #include "ui/library/DjLibraryDatabase.h"
+#include "ui/library/LibraryScanner.h"
 
 #include <QAbstractTableModel>
+#include <QDateTime>
 #include <QFileIconProvider>
 #include <QFileInfo>
 #include <QLineEdit>
@@ -119,8 +121,16 @@ public:
             return formatFileSize(row.fileInfo.size());
         case TypeColumn:
             return row.typeLabel;
-        case DateModifiedColumn:
-            return QLocale().toString(row.fileInfo.lastModified(), QLocale::ShortFormat);
+        case DateModifiedColumn: {
+            QDateTime modified = row.fileInfo.lastModified();
+            if (!modified.isValid()) {
+                const QFileInfo refreshedInfo(row.fileInfo.absoluteFilePath());
+                modified = refreshedInfo.lastModified();
+            }
+            return modified.isValid()
+                ? QLocale().toString(modified, QLocale::ShortFormat)
+                : QStringLiteral("-");
+        }
         case BpmColumn:
             return (track && !track->bpm.isEmpty()) ? track->bpm : QStringLiteral("-");
         case KeyColumn:
@@ -371,7 +381,18 @@ private:
                 Row row;
                 row.fileInfo = fileInfo;
                 row.typeLabel = DjBrowserFileTableModelInternal::fileTypeLabel(fileInfo);
-                if (db_) row.track = db_->trackByPath(fileInfo.absoluteFilePath());
+                if (db_) {
+                    row.track = db_->trackByPath(fileInfo.absoluteFilePath());
+                    if (!row.track) {
+                        row.track = db_->trackByFileNameAndSize(fileInfo.fileName(), fileInfo.size());
+                    }
+                    if (!row.track) {
+                        const QString fingerprint = computeTrackFingerprint(fileInfo.absoluteFilePath());
+                        if (!fingerprint.isEmpty()) {
+                            row.track = db_->trackByFingerprint(fingerprint);
+                        }
+                    }
+                }
                 rows.push_back(std::move(row));
             }
         }

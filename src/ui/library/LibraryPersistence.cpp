@@ -63,6 +63,8 @@ bool saveLibraryJson(const std::vector<TrackInfo>& tracks, const QString& folder
     QJsonArray arr;
     for (const TrackInfo& t : tracks) {
         QJsonObject obj;
+        if (t.mediaId > 0)              obj.insert(QStringLiteral("mediaId"),          t.mediaId);
+        if (!t.fileFingerprint.isEmpty()) obj.insert(QStringLiteral("fileFingerprint"), t.fileFingerprint);
         obj.insert(QStringLiteral("filePath"),    t.filePath);
         obj.insert(QStringLiteral("title"),       t.title);
         obj.insert(QStringLiteral("artist"),      t.artist);
@@ -88,6 +90,10 @@ bool saveLibraryJson(const std::vector<TrackInfo>& tracks, const QString& folder
         if (t.rating > 0)               obj.insert(QStringLiteral("rating"),            t.rating);
         if (!t.comments.isEmpty())      obj.insert(QStringLiteral("comments"),          t.comments);
         if (t.legacyImported)           obj.insert(QStringLiteral("legacyImported"),    true);
+        if (!t.regularAnalysisState.isEmpty()) obj.insert(QStringLiteral("regularAnalysisState"), t.regularAnalysisState);
+        if (!t.regularAnalysisJson.isEmpty())  obj.insert(QStringLiteral("regularAnalysisJson"),  t.regularAnalysisJson);
+        if (!t.liveAnalysisState.isEmpty())    obj.insert(QStringLiteral("liveAnalysisState"),    t.liveAnalysisState);
+        if (!t.liveAnalysisJson.isEmpty())     obj.insert(QStringLiteral("liveAnalysisJson"),     t.liveAnalysisJson);
         arr.append(obj);
     }
     QJsonObject root;
@@ -121,6 +127,8 @@ bool loadLibraryJson(std::vector<TrackInfo>& outTracks, QString& outFolderPath)
         if (!val.isObject()) continue;
         const QJsonObject obj = val.toObject();
         TrackInfo t;
+        t.mediaId            = obj.value(QStringLiteral("mediaId")).toInteger(0);
+        t.fileFingerprint    = obj.value(QStringLiteral("fileFingerprint")).toString();
         t.filePath           = obj.value(QStringLiteral("filePath")).toString();
         t.title              = obj.value(QStringLiteral("title")).toString();
         t.artist             = obj.value(QStringLiteral("artist")).toString();
@@ -146,6 +154,10 @@ bool loadLibraryJson(std::vector<TrackInfo>& outTracks, QString& outFolderPath)
         t.rating             = obj.value(QStringLiteral("rating")).toInt(0);
         t.comments           = obj.value(QStringLiteral("comments")).toString();
         t.legacyImported     = obj.value(QStringLiteral("legacyImported")).toBool(false);
+        t.regularAnalysisState = obj.value(QStringLiteral("regularAnalysisState")).toString();
+        t.regularAnalysisJson  = obj.value(QStringLiteral("regularAnalysisJson")).toString();
+        t.liveAnalysisState    = obj.value(QStringLiteral("liveAnalysisState")).toString();
+        t.liveAnalysisJson     = obj.value(QStringLiteral("liveAnalysisJson")).toString();
         if (t.filePath.isEmpty()) continue;
         outTracks.push_back(std::move(t));
     }

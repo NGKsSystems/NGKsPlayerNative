@@ -82,6 +82,11 @@ enum class FileMenuAction {
     LoadDeckA,
     LoadDeckB,
     BulkRename,
+    BackToLibrary,
+    ImportFolder,
+    RunAnalysis,
+    ProAudioClipper,
+    AncillaryScreens,
 };
 
 struct FileMenuContext {
@@ -96,6 +101,11 @@ struct FileMenuContext {
     std::function<void(const QString&)> startRegularAnalysis;
     std::function<void(const QString&)> startBackgroundAnalysis;
     std::function<void()> showBulkReplaceDialog;
+    std::function<void()> backToLibrary;
+    std::function<void()> importFolder;
+    std::function<void()> runAnalysis;
+    std::function<void()> showProAudioClipper;
+    std::function<void()> showAncillaryScreens;
 };
 
 inline FileMenuAction showFileContextMenu(QWidget* parent,
@@ -122,6 +132,15 @@ inline FileMenuAction showFileContextMenu(QWidget* parent,
     auto* queueAction = menu.addAction(QStringLiteral("Place in Queue"));
     menu.addSeparator();
     auto* bulkRenameAction = menu.addAction(QStringLiteral("Bulk Find && Replace for File Names"));
+    menu.addSeparator();
+    auto* utilityMenu = menu.addMenu(QStringLiteral("Utilities"));
+    utilityMenu->setStyleSheet(menu.styleSheet());
+    auto* backAction = utilityMenu->addAction(QStringLiteral("Back to Library"));
+    auto* importFolderAction = utilityMenu->addAction(QStringLiteral("Import Folder"));
+    auto* runAnalysisAction = utilityMenu->addAction(QStringLiteral("Run Analysis"));
+    utilityMenu->addSeparator();
+    auto* proAudioClipperAction = utilityMenu->addAction(QStringLiteral("ProAudioClipper"));
+    auto* ancillaryScreensAction = utilityMenu->addAction(QStringLiteral("Ancillary Screens"));
 
     pasteAction->setEnabled(canPaste);
     queueAction->setEnabled(false);
@@ -138,6 +157,11 @@ inline FileMenuAction showFileContextMenu(QWidget* parent,
     if (chosen == loadAAction) return FileMenuAction::LoadDeckA;
     if (chosen == loadBAction) return FileMenuAction::LoadDeckB;
     if (chosen == bulkRenameAction) return FileMenuAction::BulkRename;
+    if (chosen == backAction) return FileMenuAction::BackToLibrary;
+    if (chosen == importFolderAction) return FileMenuAction::ImportFolder;
+    if (chosen == runAnalysisAction) return FileMenuAction::RunAnalysis;
+    if (chosen == proAudioClipperAction) return FileMenuAction::ProAudioClipper;
+    if (chosen == ancillaryScreensAction) return FileMenuAction::AncillaryScreens;
     return FileMenuAction::None;
 }
 
@@ -220,6 +244,21 @@ inline void handleFileMenuAction(FileMenuAction action, const FileMenuContext& c
         return;
     case FileMenuAction::BulkRename:
         if (context.showBulkReplaceDialog) context.showBulkReplaceDialog();
+        return;
+    case FileMenuAction::BackToLibrary:
+        if (context.backToLibrary) context.backToLibrary();
+        return;
+    case FileMenuAction::ImportFolder:
+        if (context.importFolder) context.importFolder();
+        return;
+    case FileMenuAction::RunAnalysis:
+        if (context.runAnalysis) context.runAnalysis();
+        return;
+    case FileMenuAction::ProAudioClipper:
+        if (context.showProAudioClipper) context.showProAudioClipper();
+        return;
+    case FileMenuAction::AncillaryScreens:
+        if (context.showAncillaryScreens) context.showAncillaryScreens();
         return;
     case FileMenuAction::None:
         return;

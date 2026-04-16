@@ -12,9 +12,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // DjLibraryDatabase
 //
-// SQLite-backed store for the DJ library.  track_id is the integer primary key
-// assigned during bulkInsert (equal to the insertion index).  It is the sole
-// stable identifier for a track across the DB→model→view pipeline.
+// SQLite-backed store for the DJ library. track_id is the row key used by the
+// current model/view pipeline. media_id is the persistent song identity that
+// survives managed-library imports, renames, and moves.
 //
 // The display model (DjLibraryModel) always reads from SQLite with LIMIT/OFFSET
 // paging — the full dataset is never held in widget items or a shadow vector.
@@ -65,6 +65,12 @@ public:
 
     // Lookup by exact file path.
     std::optional<TrackInfo> trackByPath(const QString& path) const;
+
+    // Lookup by exact file fingerprint.
+    std::optional<TrackInfo> trackByFingerprint(const QString& fingerprint) const;
+
+    // Lookup by filename and size when the path has drifted but the source file is the same.
+    std::optional<TrackInfo> trackByFileNameAndSize(const QString& fileName, qint64 fileSize) const;
 
     // Lookup the primary key by exact file path.
     std::optional<qint64> trackIdByPath(const QString& path) const;
