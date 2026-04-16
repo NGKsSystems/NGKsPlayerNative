@@ -1002,10 +1002,9 @@ void DeckStrip::buildUi()
 
     jogCenterRow_ = new QHBoxLayout(jogContainer_);
     jogCenterRow_->setSpacing(2);
-    // Jog cluster is now left-anchored so the control column can live on the right.
+    // Jog cluster is left-anchored inside the lower control row.
     jogCenterRow_->setContentsMargins(0, 0, 0, 0);
     jogCenterRow_->addWidget(jogPanel_, 0, Qt::AlignTop);
-    deckControlRow->addWidget(jogContainer_, 0, Qt::AlignTop | Qt::AlignLeft);
 
     // ═══ ZONE 5+6: COLLAPSIBLE PERFORMANCE + CUE EDIT ═══
     {
@@ -1434,24 +1433,29 @@ void DeckStrip::buildUi()
             pitchValueLabel_->setVisible(false);
         }
 
-        controlColumn->addStretch(1);
-
         // ── Horizontal knob strip: GAIN | REV | FILTER | FLG | FX | MUTE | meters ──
-        auto* knobStrip = new QHBoxLayout();
-        knobStrip->setSpacing(4);
-        knobStrip->setContentsMargins(4, 2, 4, 2);
+        auto* leftMixerStripHost = new QWidget(outerFrame);
+        auto* leftMixerStrip = new QHBoxLayout(leftMixerStripHost);
+        leftMixerStrip->setSpacing(4);
+        leftMixerStrip->setContentsMargins(0, 2, 0, 2);
+        leftMixerStrip->addStretch(1);
+
+        auto* rightMixerStripHost = new QWidget(outerFrame);
+        auto* rightMixerStrip = new QHBoxLayout(rightMixerStripHost);
+        rightMixerStrip->setSpacing(4);
+        rightMixerStrip->setContentsMargins(0, 2, 0, 2);
 
         auto* gainCell = makeKnobCell(QStringLiteral("GAIN"), gainKnob_,
                                       volumeDbLabel_, outerFrame, 0.5, 0.5);
         volumeDbLabel_->setText(QStringLiteral("0 dB"));
         gainKnob_->setDetentThreshold(0.03);
-        knobStrip->addLayout(gainCell);
+        leftMixerStrip->addLayout(gainCell);
 
         auto* reverbCell = makeKnobCell(QStringLiteral("REV"), reverbKnob_,
                                         reverbValueLabel_, outerFrame, 0.0, 0.0);
         reverbValueLabel_->setText(QStringLiteral("0%"));
         reverbKnob_->setDefaultValue(0.0);
-        knobStrip->addLayout(reverbCell);
+        leftMixerStrip->addLayout(reverbCell);
 
         {
             filterLabel_ = new QLabel(QStringLiteral("FILTER"), outerFrame);
@@ -1460,7 +1464,7 @@ void DeckStrip::buildUi()
             auto* filterCell = makeKnobCell(QStringLiteral("FILTER"), filterKnob_,
                                             filterValueLabel_, outerFrame, 0.5, 0.5);
             filterValueLabel_->setText(QStringLiteral("0.00"));
-            knobStrip->addLayout(filterCell);
+            leftMixerStrip->addLayout(filterCell);
 
             if (filterCell->count() > 1) {
                 if (auto* w = filterCell->itemAt(1) ? filterCell->itemAt(1)->widget() : nullptr) {
@@ -1473,7 +1477,7 @@ void DeckStrip::buildUi()
                                          flangerValueLabel_, outerFrame, 0.0, 0.0);
         flangerValueLabel_->setText(QStringLiteral("0%"));
         flangerKnob_->setDefaultValue(0.0);
-        knobStrip->addLayout(flangerCell);
+        rightMixerStrip->addLayout(flangerCell);
 
         // FX button
         {
@@ -1510,11 +1514,11 @@ void DeckStrip::buildUi()
             fxSpacer->setStyleSheet(QStringLiteral("background: transparent; border: none;"));
             fxCell->addWidget(fxSpacer);
 
-            knobStrip->addLayout(fxCell);
+            rightMixerStrip->addLayout(fxCell);
         }
 
         // Separator
-        knobStrip->addSpacing(4);
+        rightMixerStrip->addSpacing(4);
 
         // MUTE button
         {
@@ -1536,27 +1540,31 @@ void DeckStrip::buildUi()
                 "  background: #4a0808; border: 1px solid #ff1111; color: #ff2222; }"));
             muteCell->addWidget(muteBtn_, 0, Qt::AlignHCenter);
             muteCell->addStretch();
-            knobStrip->addLayout(muteCell);
+            rightMixerStrip->addLayout(muteCell);
         }
 
         // Level meters
         meterL_ = new LevelMeter(accentColor, outerFrame);
         meterL_->setFixedSize(10, 50);
-        knobStrip->addWidget(meterL_);
+        rightMixerStrip->addWidget(meterL_);
 
         meterR_ = new LevelMeter(accentColor, outerFrame);
         meterR_->setFixedSize(10, 50);
-        knobStrip->addWidget(meterR_);
+        rightMixerStrip->addWidget(meterR_);
 
-        mainLayout->addLayout(knobStrip);
+        rightMixerStrip->addStretch(1);
+
+        deckControlRow->addWidget(leftMixerStripHost, 1, Qt::AlignTop);
+        deckControlRow->addWidget(jogContainer_, 0, Qt::AlignTop | Qt::AlignHCenter);
+        deckControlRow->addWidget(rightMixerStripHost, 1, Qt::AlignTop);
+
+        mainLayout->addLayout(controlColumn);
+        mainLayout->addLayout(deckControlRow);
 
         // Keep mixerFrame_ for API compat (hidden)
         mixerFrame_ = new QFrame(outerFrame);
         mixerFrame_->setVisible(false);
 
-
-    deckControlRow->addLayout(controlColumn, 1);
-    mainLayout->addLayout(deckControlRow);
         // Density buttons (hidden, kept for API)
         mixerDensityUpBtn_ = new QPushButton(outerFrame); mixerDensityUpBtn_->hide();
         mixerDensityDownBtn_ = new QPushButton(outerFrame); mixerDensityDownBtn_->hide();

@@ -44,6 +44,9 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QHeaderView>
+#include <QPixmap>
+#include <QLinearGradient>
+#include <QRadialGradient>
 #include <QSplitter>
 #include <QSlider>
 #include <QStackedWidget>
@@ -139,6 +142,66 @@ QByteArray blobForText(const QString& text)
 QString textFromBlob(const QByteArray& blob)
 {
     return QString::fromUtf8(blob).trimmed();
+}
+
+QPixmap makeKaelixLogoPixmap(const QSize& logicalSize, qreal devicePixelRatio)
+{
+    const QSize safeSize = logicalSize.expandedTo(QSize(208, 24));
+    const QSize pixelSize(
+        qMax(1, qRound(safeSize.width() * devicePixelRatio)),
+        qMax(1, qRound(safeSize.height() * devicePixelRatio)));
+
+    QPixmap pixmap(pixelSize);
+    pixmap.setDevicePixelRatio(devicePixelRatio);
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setRenderHint(QPainter::TextAntialiasing);
+
+    const QRectF bounds(QPointF(0.0, 0.0), QSizeF(safeSize));
+    QFont font(QStringLiteral("Arial Black"));
+    font.setBold(true);
+    font.setPixelSize(qRound(bounds.height() * 0.82));
+    font.setLetterSpacing(QFont::AbsoluteSpacing, 1.8);
+
+    QFontMetricsF metrics(font);
+    const QString title = QStringLiteral("KAELIX");
+    const qreal textWidth = metrics.horizontalAdvance(title);
+    const qreal x = (bounds.width() - textWidth) * 0.5;
+    const qreal baseline = bounds.top() + metrics.ascent() + ((bounds.height() - metrics.height()) * 0.58);
+
+    QPainterPath textPath;
+    textPath.addText(QPointF(x, baseline), font, title);
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(0x06, 0x07, 0x10, 110));
+    painter.drawPath(textPath.translated(0.8, 1.2));
+
+    painter.strokePath(textPath, QPen(QColor(0x7f, 0x6d, 0xff, 70), 5.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.strokePath(textPath, QPen(QColor(0x9a, 0xe8, 0xff, 92), 3.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+
+    QLinearGradient textGradient(QPointF(x, bounds.top() + 2.0), QPointF(x + textWidth, bounds.bottom() - 3.0));
+    textGradient.setColorAt(0.0, QColor(0xf9, 0xfe, 0xff));
+    textGradient.setColorAt(0.18, QColor(0xa8, 0xef, 0xff));
+    textGradient.setColorAt(0.36, QColor(0xe5, 0xf0, 0xff));
+    textGradient.setColorAt(0.68, QColor(0xb1, 0xb9, 0xff));
+    textGradient.setColorAt(1.0, QColor(0xb7, 0x7a, 0xff));
+    painter.fillPath(textPath, textGradient);
+
+    painter.save();
+    painter.setClipRect(QRectF(bounds.left(), bounds.top(), bounds.width(), bounds.height() * 0.38));
+    QLinearGradient highlight(QPointF(x, bounds.top()), QPointF(x, bounds.top() + bounds.height() * 0.34));
+    highlight.setColorAt(0.0, QColor(0xff, 0xff, 0xff, 240));
+    highlight.setColorAt(1.0, QColor(0x8e, 0xf2, 0xff, 180));
+    painter.fillPath(textPath, highlight);
+    painter.restore();
+
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(QColor(0xfb, 0xfd, 0xff, 230), 1.25, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.drawPath(textPath);
+
+    return pixmap;
 }
 
 struct ImportFolderSelection {
@@ -335,7 +398,6 @@ public:
         topChrome_->setStyleSheet(QStringLiteral(
             "QWidget#topChrome { background: #121722; border-bottom: 1px solid #222a36; }"
             "QLabel { color: #d7deea; background: transparent; }"
-            "QLabel#topTitleLabel { color: #dfe8ff; font-size: 15px; font-weight: 700; letter-spacing: 3px; padding-left: 6px; }"
             "QToolButton { background: #1a2434; color: #e4edf8; border: 1px solid #2f4f88; border-radius: 4px; padding: 1px 10px; }"
             "QToolButton:hover { background: #22314b; }"
             "QToolButton:pressed { background: #16213e; }"
@@ -346,7 +408,7 @@ public:
         topChromeLayout->setSpacing(6);
 
         auto* leftChromeSlot = new QWidget(topChrome_);
-        leftChromeSlot->setFixedWidth(140);
+        leftChromeSlot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         auto* leftChromeLayout = new QHBoxLayout(leftChromeSlot);
         leftChromeLayout->setContentsMargins(0, 0, 0, 0);
         leftChromeLayout->setSpacing(6);
@@ -363,15 +425,17 @@ public:
         diagnosticsBtn_->setToolButtonStyle(Qt::ToolButtonTextOnly);
         leftChromeLayout->addWidget(diagnosticsBtn_, 0);
         leftChromeLayout->addStretch(1);
-        topChromeLayout->addWidget(leftChromeSlot, 0);
+        topChromeLayout->addWidget(leftChromeSlot, 1);
 
-        topTitleLabel_ = new QLabel(QStringLiteral("KAELIX"), topChrome_);
+        topTitleLabel_ = new QLabel(topChrome_);
         topTitleLabel_->setObjectName(QStringLiteral("topTitleLabel"));
         topTitleLabel_->setAlignment(Qt::AlignCenter);
-        topChromeLayout->addWidget(topTitleLabel_, 1);
+        topTitleLabel_->setFixedSize(208, 24);
+        topTitleLabel_->setPixmap(makeKaelixLogoPixmap(topTitleLabel_->size(), devicePixelRatioF()));
+        topChromeLayout->addWidget(topTitleLabel_, 0, Qt::AlignCenter);
 
         auto* rightChromeSlot = new QWidget(topChrome_);
-        rightChromeSlot->setFixedWidth(110);
+        rightChromeSlot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         auto* rightChromeLayout = new QHBoxLayout(rightChromeSlot);
         rightChromeLayout->setContentsMargins(0, 0, 0, 0);
         rightChromeLayout->setSpacing(6);
@@ -393,7 +457,7 @@ public:
         closeWindowBtn_->setFixedWidth(28);
         rightChromeLayout->addWidget(closeWindowBtn_, 0);
 
-        topChromeLayout->addWidget(rightChromeSlot, 0);
+        topChromeLayout->addWidget(rightChromeSlot, 1);
 
         rootLayout->addWidget(topChrome_);
 
@@ -639,7 +703,13 @@ private:
                 const QRect chromeRect(topChrome_->mapTo(this, QPoint(0, 0)), topChrome_->size());
                 if (chromeRect.contains(localPos)) {
                     QWidget* hovered = childAt(localPos);
-                    const bool draggableArea = (hovered == nullptr || hovered == topChrome_ || hovered == topTitleLabel_);
+                    const bool draggableArea = (
+                        hovered == nullptr
+                        || hovered == topChrome_
+                        || hovered == topTitleLabel_
+                        || (hovered != nullptr
+                            && hovered->parentWidget() == topChrome_
+                            && qobject_cast<QToolButton*>(hovered) == nullptr));
                     if (draggableArea) {
                         *result = HTCAPTION;
                         return true;
